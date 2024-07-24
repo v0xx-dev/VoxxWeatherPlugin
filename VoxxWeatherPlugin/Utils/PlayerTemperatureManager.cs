@@ -6,21 +6,13 @@ using UnityEngine;
 
 namespace VoxxWeatherPlugin.Utils
 {
-    internal class PlayerHeatManager
+    internal class PlayerTemperatureManager
     {
         public static bool isInHeatZone = false;
         public static float heatSeverityMultiplier = 1f;
         public static float heatSeverity = 0f;
 
-        private static Volume heatEffectVolume;
-
-        public static void SetEffectsVolume(Volume volume)
-        {
-            if (volume != null)
-            {
-                heatEffectVolume = volume;
-            }
-        }
+        internal static Volume heatEffectVolume;
 
         internal static void SetHeatSeverity(float heatSeverityDelta)
         {

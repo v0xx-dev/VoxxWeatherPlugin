@@ -36,19 +36,18 @@ namespace VoxxWeatherPlugin.Patches
 
             if (__instance.isInsideFactory)
             {
-                PlayerHeatManager.heatSeverityMultiplier = 1f;
-                PlayerHeatManager.isInHeatZone = false;
+                PlayerTemperatureManager.heatSeverityMultiplier = 1f;
+                PlayerTemperatureManager.isInHeatZone = false;
             }
 
-            if (!PlayerHeatManager.isInHeatZone)
+            if (!PlayerTemperatureManager.isInHeatZone)
             {
-                PlayerHeatManager.SetHeatSeverity(-Time.deltaTime / timeToCool);
+                PlayerTemperatureManager.SetHeatSeverity(-Time.deltaTime / timeToCool);
             }
 
+            float severity = PlayerTemperatureManager.heatSeverity;
 
-            float severity = PlayerHeatManager.heatSeverity;
-
-            //Debug.Log($"Severity: {severity}, inHeatZone: {PlayerHeatManager.isInHeatZone}, heatMultiplier {PlayerHeatManager.heatSeverityMultiplier}, isInside {__instance.isInsideFactory}");
+            //Debug.Log($"Severity: {severity}, inHeatZone: {PlayerTemperatureManager.isInHeatZone}, heatMultiplier {PlayerTemperatureManager.heatSeverityMultiplier}, isInside {__instance.isInsideFactory}");
 
             if (severity > 0)
             {

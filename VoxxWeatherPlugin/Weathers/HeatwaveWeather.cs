@@ -1,132 +1,72 @@
 ﻿using GameNetcodeStuff;
-using System;
 using System.Collections.Generic;
-using System.Text;
 using UnityEngine.Rendering;
-using Unity.AI.Navigation;
 using UnityEngine;
 using VoxxWeatherPlugin.Utils;
+using UnityEngine.AI;
 
 namespace VoxxWeatherPlugin.Weathers
 {
-    internal class HeatwaveZoneInteract : MonoBehaviour
+    internal class HeatwaveWeather: MonoBehaviour
     {
-        [SerializeField] private float timeInHeatZoneMax = 10f; // Time before maximum effects are applied
-        [SerializeField] private Volume exhaustionFilter; // Filter for visual effects
+        public VolumeProfile heatwaveFilter; // Filter for visual effects
 
-        public bool CheckConditionsForHeatingPause(PlayerControllerB playerController)
-        {
-            return playerController.inSpecialInteractAnimation || (bool)(UnityEngine.Object)playerController.inAnimationWithEnemy || playerController.isClimbingLadder || ((UnityEngine.Object)playerController.physicsParent != (UnityEngine.Object)null);
-        }
-
-        public bool CheckConditionsForHeatingStop(PlayerControllerB playerController)
-        {
-            return playerController.beamUpParticle.isPlaying || playerController.isInElevator || playerController.isInHangarShipRoom;
-        }
-
-        private void OnTriggerEnter(Collider other)
-        {
-            if (other.CompareTag("Player"))
-            {
-                PlayerControllerB playerController = other.gameObject.GetComponent<PlayerControllerB>();
-
-                if (playerController != GameNetworkManager.Instance.localPlayerController)
-                    return;
-                PlayerHeatManager.SetEffectsVolume(exhaustionFilter);
-            }
-        }
-
-        private void OnTriggerStay(Collider other)
-        {
-            if (other.CompareTag("Player"))
-            {
-                PlayerControllerB playerController = other.gameObject.GetComponent<PlayerControllerB>();
-
-                if (playerController != GameNetworkManager.Instance.localPlayerController)
-                    return;
-
-                if (playerController.isPlayerDead)
-                {
-                    PlayerHeatManager.heatSeverityMultiplier = 1f;
-                    PlayerHeatManager.isInHeatZone = false;
-                    PlayerHeatManager.SetHeatSeverity(-PlayerHeatManager.heatSeverity);
-                    return;
-                }
-
-                if (CheckConditionsForHeatingStop(playerController))
-                {
-                    PlayerHeatManager.heatSeverityMultiplier = 1f;
-                    PlayerHeatManager.isInHeatZone = false;
-                    return;
-                }
-
-                if (CheckConditionsForHeatingPause(playerController))
-                    PlayerHeatManager.heatSeverityMultiplier = .33f;
-                else
-                    PlayerHeatManager.heatSeverityMultiplier = 1f;
-
-                if (PlayerHeatManager.isInHeatZone)
-                {
-                    PlayerHeatManager.SetHeatSeverity(Time.deltaTime / timeInHeatZoneMax);
-                }
-                else
-                {
-                    PlayerHeatManager.isInHeatZone = true;
-                }
-            }
-        }
-
-        private void OnTriggerExit(Collider other)
-        {
-            if (other.CompareTag("Player"))
-            {
-                PlayerControllerB playerController = other.gameObject.GetComponent<PlayerControllerB>();
-
-                if (playerController != GameNetworkManager.Instance.localPlayerController)
-                    return;
-
-                PlayerHeatManager.heatSeverityMultiplier = 1f;
-                PlayerHeatManager.isInHeatZone = false;
-            }
-        }
-
-        private void OnDestroy()
-        {
-            PlayerHeatManager.heatSeverityMultiplier = 1f;
-            PlayerHeatManager.isInHeatZone = false;
-            PlayerHeatManager.SetEffectsVolume(null);
-        }
-    }
-    internal class HeatwaveWeather : MonoBehaviour
-    {
-        [SerializeField] private GameObject heatwaveParticlePrefab; // Prefab for the heatwave particle effect
+        internal HeatwaveVFXManager heatwaveVFXManager; // Manager for heatwave visual effects
+        private Volume exhaustionFilter; // Filter for visual effects
+        private BoxCollider heatwaveTrigger; // Trigger collider for the heatwave zone
         private Vector3 heatwaveZoneSize; // Size of the heatwave zone
         private Vector3 heatwaveZoneLocation; //Center of the heatwave zone
 
-        private void Start()
+        private System.Random seededRandom;
+
+        private float timeUntilStrokeMin = 40f; // Minimum time until a heatstroke occurs
+        private float timeUntilStrokeMax = 80f; // Maximum time until a heatstroke occurs
+        [SerializeField] private float timeInHeatZoneMax = 50f; // Time before maximum effects are applied
+
+        private void Awake()
         {
-            CalculateZoneSize();
-            SpawnHeatwaveTrigger();
-            PopulateLevelWithParticleEmitters();
+            // Add a BoxCollider component as a trigger to the GameObject
+            if (heatwaveTrigger == null)
+                heatwaveTrigger = gameObject.AddComponent<BoxCollider>();
+            heatwaveTrigger.isTrigger = true;
+            // Attach a Volume component to the GameObject
+            Volume volumeComponent = gameObject.AddComponent<Volume>();
+            // Set the volume profile from heatwaveFilter
+            volumeComponent.profile = heatwaveFilter;
+            volumeComponent.weight = 0f;
+            exhaustionFilter = volumeComponent;
+            PlayerTemperatureManager.heatEffectVolume = exhaustionFilter;
         }
 
-        private void SpawnHeatwaveTrigger()
+        private void OnEnable()
         {
-            // Create a new empty GameObject
-            GameObject heatwaveTrigger = new GameObject("HeatwaveTrigger");
+            seededRandom = new System.Random(StartOfRound.Instance.randomMapSeed);
+            CalculateZoneSize();
+            heatwaveVFXManager.CalculateEmitterRadius();
+            heatwaveVFXManager.PopulateLevelWithVFX(ref heatwaveZoneSize, ref heatwaveZoneLocation, seededRandom);
+            SetupHeatwaveWeather();
+        }
 
-            // Attach a BoxCollider component to the GameObject
-            BoxCollider collider = heatwaveTrigger.AddComponent<BoxCollider>();
-            collider.isTrigger = true;
-            // Set the size of the BoxCollider
-            collider.size = heatwaveZoneSize;
+        private void OnDisable()
+        {
+            Destroy(heatwaveVFXManager.heatwaveVFXContainer);
+            heatwaveVFXManager.heatwaveVFXContainer = null;
+            Debug.Log("Heatwave VFX container destroyed.");
+            PlayerTemperatureManager.heatSeverityMultiplier = 1f;
+            PlayerTemperatureManager.isInHeatZone = false;
+        }
 
-            // Set the position and rotation of the GameObject
+        private void SetupHeatwaveWeather()
+        {
+            // Set the size, position and rotation of the trigger zone
+            heatwaveTrigger.size = heatwaveZoneSize;
             heatwaveTrigger.transform.position = heatwaveZoneLocation;
             heatwaveTrigger.transform.rotation = Quaternion.identity;
+            Debug.Log($"Heatwave zone placed!");
 
-            // Attach the HeatwaveZoneInteract script to the GameObject
-            HeatwaveZoneInteract interactScript = heatwaveTrigger.AddComponent<HeatwaveZoneInteract>();
+            // Set exhaustion time for the player
+            timeInHeatZoneMax = (float)seededRandom.Next((int)timeUntilStrokeMin, (int)timeUntilStrokeMax);
+            Debug.Log($"Set time until heatstroke: {timeInHeatZoneMax} seconds");
         }
 
         private void CalculateZoneSize()
@@ -156,14 +96,6 @@ namespace VoxxWeatherPlugin.Weathers
                 }
             }
 
-            GameObject navMeshContainer = GameObject.FindGameObjectWithTag("OutsideLevelNavMesh");
-            if (navMeshContainer != null)
-            {
-                Bounds navMeshBounds = navMeshContainer.GetComponent<NavMeshSurface>().navMeshData.sourceBounds;
-                keyLocationCoords.Add(navMeshBounds.min);
-                keyLocationCoords.Add(navMeshBounds.max);
-            }
-
             // Calculate the size of the heatwave zone based on the key locations
             Vector3 minCoords = keyLocationCoords[0];
             Vector3 maxCoords = keyLocationCoords[0];
@@ -177,23 +109,180 @@ namespace VoxxWeatherPlugin.Weathers
             Vector3 zoneSize = maxCoords - minCoords;
             Vector3 zoneCenter = (minCoords + maxCoords) / 2f;
 
-            heatwaveZoneSize = zoneSize;
+            Debug.Log($"Heatwave zone size: {zoneSize}");
+
+            heatwaveZoneSize = zoneSize*1.25f;
             heatwaveZoneLocation = zoneCenter;
+
         }
 
-        private void PopulateLevelWithParticleEmitters()
+        public bool CheckConditionsForHeatingPause(PlayerControllerB playerController)
         {
-            // Instantiate the heatwave particle prefab at various positions in the level
-            // Replace this with your own logic to populate the level with particle emitters
-            // Example code to instantiate particle emitters:
-            Instantiate(heatwaveParticlePrefab, new Vector3(0f, 0f, 0f), Quaternion.identity);
-            Instantiate(heatwaveParticlePrefab, new Vector3(1f, 0f, 0f), Quaternion.identity);
-            Instantiate(heatwaveParticlePrefab, new Vector3(0f, 1f, 0f), Quaternion.identity);
-            Instantiate(heatwaveParticlePrefab, new Vector3(0f, 0f, 1f), Quaternion.identity);
+            return playerController.inSpecialInteractAnimation || (bool)(UnityEngine.Object)playerController.inAnimationWithEnemy || playerController.isClimbingLadder || ((UnityEngine.Object)playerController.physicsParent != (UnityEngine.Object)null);
+        }
+
+        public bool CheckConditionsForHeatingStop(PlayerControllerB playerController)
+        {
+            return playerController.beamUpParticle.isPlaying || playerController.isInElevator || playerController.isInHangarShipRoom;
+        }
+
+        private void OnTriggerStay(Collider other)
+        {
+            if (other.CompareTag("Player"))
+            {
+                PlayerControllerB playerController = other.gameObject.GetComponent<PlayerControllerB>();
+
+                if (playerController != GameNetworkManager.Instance.localPlayerController)
+                    return;
+
+                if (playerController.isPlayerDead)
+                {
+                    PlayerTemperatureManager.heatSeverityMultiplier = 1f;
+                    PlayerTemperatureManager.isInHeatZone = false;
+                    PlayerTemperatureManager.SetHeatSeverity(-PlayerTemperatureManager.heatSeverity);
+                    return;
+                }
+
+                if (CheckConditionsForHeatingStop(playerController))
+                {
+                    PlayerTemperatureManager.heatSeverityMultiplier = 1f;
+                    PlayerTemperatureManager.isInHeatZone = false;
+                    return;
+                }
+
+                if (CheckConditionsForHeatingPause(playerController))
+                    PlayerTemperatureManager.heatSeverityMultiplier = .33f; //heat slower when in special interact animation and in a car
+                else
+                    PlayerTemperatureManager.heatSeverityMultiplier = 1f;
+
+                if (PlayerTemperatureManager.isInHeatZone)
+                {
+                    PlayerTemperatureManager.SetHeatSeverity(Time.deltaTime / timeInHeatZoneMax);
+                }
+                else
+                {
+                    PlayerTemperatureManager.isInHeatZone = true;
+                }
+            }
+        }
+
+        private void OnTriggerExit(Collider other)
+        {
+            if (other.CompareTag("Player"))
+            {
+                PlayerControllerB playerController = other.gameObject.GetComponent<PlayerControllerB>();
+
+                if (playerController != GameNetworkManager.Instance.localPlayerController)
+                    return;
+
+                PlayerTemperatureManager.heatSeverityMultiplier = 1f;
+                PlayerTemperatureManager.isInHeatZone = false;
+            }
         }
     }
 
+    public class HeatwaveVFXManager: MonoBehaviour
+    {
+        public GameObject heatwaveParticlePrefab; // Prefab for the heatwave particle effect
+        public GameObject heatwaveVFXContainer; // GameObject for the particles
 
+        // Variables for emitter placement
+        private float emitterSize;
+        private float raycastHeight = 500f; // Height from which to cast rays
+        private Vector4 shipXZBounds = new Vector4(-13f, 23f, -24f, -4f); // MinX, MaxX, MinZ, MaxZ
 
+        internal void CalculateEmitterRadius()
+        {
+            Transform transform = heatwaveParticlePrefab.transform;
+            emitterSize = Mathf.Max(transform.localScale.x, transform.localScale.z) * 5f;
+            Debug.Log($"Emitter size: {emitterSize}");
+        }
 
+        internal void PopulateLevelWithVFX(ref Vector3 heatwaveZoneSize, ref Vector3 heatwaveZoneLocation, System.Random seededRandom)
+        {
+            
+            if (heatwaveVFXContainer == null)
+                heatwaveVFXContainer = new GameObject("HeatwaveVFXContainer");
+
+            int placedEmittersNum = 0;
+
+            int xCount = Mathf.CeilToInt(heatwaveZoneSize.x / emitterSize);
+            int zCount = Mathf.CeilToInt(heatwaveZoneSize.z / emitterSize);
+            //Debug.Log($"Placing {xCount * zCount} emitters...");
+
+            Vector3 startPoint = heatwaveZoneLocation - heatwaveZoneSize * 0.5f;
+
+            float minY = -1f;
+            float maxY = 1f;
+
+            for (int x = 0; x < xCount; x++)
+            {
+                for (int z = 0; z < zCount; z++)
+                {
+                    // Randomize the position of the emitter within the grid cell
+                    float dx = (float)seededRandom.NextDouble() - 0.5f;
+                    float dz = (float)seededRandom.NextDouble() - 0.5f;
+                    Vector3 rayOrigin = startPoint + new Vector3((x + dx) * emitterSize, raycastHeight, (z + dz) * emitterSize);
+                    //Debug.Log($"Raycast origin: {rayOrigin}");
+                    (Vector3 position, Vector3 normal) = CastRayAndSampleNavMesh(rayOrigin);
+                    //Debug.Log($"NavMesh hit position and normal: {position}, {normal}");
+
+                    if (position != Vector3.zero)
+                    {
+                        float randomRotation = (float)seededRandom.NextDouble() * 360f;
+                        Quaternion rotation = Quaternion.AngleAxis(randomRotation, normal) * Quaternion.LookRotation(normal);
+                        //position.y -= 0.5f; // Offset the emitter slightly below the ground
+                        GameObject emitter = Instantiate(heatwaveParticlePrefab, position, rotation);
+                        emitter.transform.parent = heatwaveVFXContainer.transform; // Parent the emitter to the VFX container
+                        placedEmittersNum++;
+
+                        minY = Mathf.Min(minY, position.y);
+                        maxY = Mathf.Max(maxY, position.y);
+                    }
+                }
+            }
+            //Adjust the height of the heatwave zone based on the placed emitters
+            heatwaveZoneSize.y = (maxY - minY) * 1.1f;
+            heatwaveZoneLocation.y = (minY + maxY) / 2;
+
+            Debug.Log($"Placed {placedEmittersNum} emitters.");
+        }
+
+        private (Vector3, Vector3) CastRayAndSampleNavMesh(Vector3 rayOrigin)
+        {
+            int layerMask = (1 << LayerMask.NameToLayer("Room")) | (1 << LayerMask.NameToLayer("Default"));
+
+            RaycastHit hit;
+            if (Physics.Raycast(rayOrigin, Vector3.down, out hit, 1000, layerMask, QueryTriggerInteraction.Ignore))
+            {
+                NavMeshHit navHit;
+                if (NavMesh.SamplePosition(hit.point, out navHit, 3f, -1)) //places only where player can walk
+                {
+                    if (!IsPointWithinShipBounds(navHit.position))
+                        return (navHit.position, hit.normal);
+                }
+            }
+            return (Vector3.zero, Vector3.up);
+        }
+
+        bool IsPointWithinShipBounds(Vector3 point)
+        {
+            return (point.x >= shipXZBounds.x && point.x <= shipXZBounds.y &&
+                    point.z >= shipXZBounds.z && point.z <= shipXZBounds.w);
+        }
+
+        private void OnEnable()
+        {
+            if (heatwaveVFXContainer != null)
+            {
+                heatwaveVFXContainer.SetActive(true);
+            }
+        }
+
+        private void OnDisable()
+        {
+            if (heatwaveVFXContainer != null)
+                heatwaveVFXContainer.SetActive(false);
+        }
+    }
 }
