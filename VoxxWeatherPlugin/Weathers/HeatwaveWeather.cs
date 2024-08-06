@@ -52,8 +52,8 @@ namespace VoxxWeatherPlugin.Weathers
             Destroy(heatwaveVFXManager.heatwaveVFXContainer);
             heatwaveVFXManager.heatwaveVFXContainer = null;
             Debug.Log("Heatwave VFX container destroyed.");
-            PlayerTemperatureManager.heatSeverityMultiplier = 1f;
             PlayerTemperatureManager.isInHeatZone = false;
+            PlayerTemperatureManager.heatSeverityMultiplier = 1f;
         }
 
         private void SetupHeatwaveWeather()
@@ -72,6 +72,7 @@ namespace VoxxWeatherPlugin.Weathers
         private void CalculateZoneSize()
         {
             List<Vector3> keyLocationCoords = new List<Vector3>();
+            keyLocationCoords.Add(Vector3.zero);
 
             // Store positions of all the outside AI nodes in the scene
             foreach (GameObject node in RoundManager.Instance.outsideAINodes)

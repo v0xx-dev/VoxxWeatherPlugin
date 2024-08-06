@@ -5,6 +5,11 @@ using UnityEngine;
 using WeatherRegistry;
 using UnityEngine.Rendering;
 using VoxxWeatherPlugin.Weathers;
+using VoxxWeatherPlugin.Utils;
+using UnityEngine.Rendering.HighDefinition;
+using System;
+using UnityEngine.VFX;
+using System.Xml.Linq;
 
 namespace VoxxWeatherPlugin
 {
@@ -27,7 +32,7 @@ namespace VoxxWeatherPlugin
             this.harmony.PatchAll();
             Logger.LogInfo($"Plugin {PluginInfo.PLUGIN_GUID} patched PlayerControllerB!");
             WeatherTypeLoader.RegisterHeatwaveWeather();
-            Logger.LogInfo($"{PluginInfo.PLUGIN_GUID}: Heatwave weather registered!");
+            WeatherTypeLoader.RegisterFlareWeather();
         }
     }
 
@@ -91,7 +96,7 @@ namespace VoxxWeatherPlugin
         internal static string bundleName = "voxxweather.assetbundle";
         public static void RegisterHeatwaveWeather()
         {
-            GameObject vfxPrefab = WeatherAssetLoader.LoadAsset<GameObject>(bundleName, "HeatwaveParticle");
+            GameObject vfxPrefab = WeatherAssetLoader.LoadAsset<GameObject>(bundleName, "HeatwaveParticlePrefab");
             VolumeProfile volumeProfile = WeatherAssetLoader.LoadAsset<VolumeProfile>(bundleName, "HeatExhaustionFilter");
 
             if (vfxPrefab == null || volumeProfile == null)
@@ -116,19 +121,90 @@ namespace VoxxWeatherPlugin
             effectPermanentObject.hideFlags = HideFlags.HideAndDontSave;
             GameObject.DontDestroyOnLoad(effectPermanentObject);
 
-            ImprovedWeatherEffect heatwaveEffect = new(effectObject, effectPermanentObject);
+            ImprovedWeatherEffect heatwaveEffect = new(effectObject, effectPermanentObject) {
+                SunAnimatorBool = "",
+                };
 
             Weather HeatwaveWeather = new Weather("Heatwave", heatwaveEffect)
             {
-                DefaultLevelFilters = new[] {"Experimentation", "Assurance", "Offense"},
+                DefaultLevelFilters = new[] {"Experimentation", "Assurance", "Offense", "Embrion", "Artifice",
+                                            "EGypt", "Aquatis", "Affliction", "Penumbra", "EchoReach", "Harloth",
+                                            "Celestria", "Derelict", "Infernis", "Etern", "Atlantica", "Junic",
+                                            "Fission", "Mantif", "Sierra", "Cambrian", "Orion", "Vertigo",
+                                            "Collateral", "Devastation", "RelayStation"},
                 LevelFilteringOption = FilteringOption.Include,
                 Color = new Color(1f, 0.5f, 0f),
                 ScrapAmountMultiplier = 1.2f,
                 ScrapValueMultiplier = 0.9f,
-                DefaultWeight = 400
+                DefaultWeight = 100
             };
 
             WeatherRegistry.WeatherManager.RegisterWeather(HeatwaveWeather);
+            Debug.Log($"{PluginInfo.PLUGIN_GUID}: Heatwave weather registered!");
+        }
+
+        public static void RegisterFlareWeather()
+        {
+            VisualEffectAsset auroraVFX = WeatherAssetLoader.LoadAsset<VisualEffectAsset>(bundleName, "AuroraVFX");
+            VisualEffectAsset coronaVFX = WeatherAssetLoader.LoadAsset<VisualEffectAsset>(bundleName, "CoronaVFX");
+            Material glitchPassMaterial = WeatherAssetLoader.LoadAsset<Material>(bundleName, "GlitchPassMaterial");
+
+            if (auroraVFX == null || coronaVFX == null || glitchPassMaterial == null)
+            {
+                Debug.LogError("Failed to load Solar Flare Weather assets. Weather registration failed.");
+                return;
+            }
+
+            GameObject flareVFXObject = new GameObject("SolarFlareVFX");
+            flareVFXObject.SetActive(false);
+            GameObject effectObject = GameObject.Instantiate(flareVFXObject);
+
+            GameObject auroraVFXObject = new GameObject("AuroraVFX");
+            auroraVFXObject.SetActive(false);
+            VisualEffect loadedVFX = auroraVFXObject.AddComponent<VisualEffect>();
+            loadedVFX.visualEffectAsset = auroraVFX;
+            GameObject.DontDestroyOnLoad(auroraVFXObject);
+            auroraVFXObject.transform.SetParent(effectObject.transform);
+
+            GameObject coronaVFXObject = new GameObject("CoronaVFX");
+            coronaVFXObject.SetActive(false);
+            loadedVFX = coronaVFXObject.AddComponent<VisualEffect>();
+            loadedVFX.visualEffectAsset = coronaVFX;
+            coronaVFXObject.transform.SetParent(effectObject.transform);
+
+            SolarFlareVFXManager VFXmanager = effectObject.AddComponent<SolarFlareVFXManager>();
+            SolarFlareVFXManager.flarePrefab = coronaVFXObject;
+            SolarFlareVFXManager.auroraPrefab = auroraVFXObject;
+            effectObject.hideFlags = HideFlags.HideAndDontSave;
+            GameObject.DontDestroyOnLoad(effectObject);
+
+            GameObject flareEffect = new GameObject("SolarFlareEffect");
+            flareEffect.SetActive(false);
+            GameObject effectPermanentObject = GameObject.Instantiate(flareEffect);
+            SolarFlareWeather flareScript = effectPermanentObject.AddComponent<SolarFlareWeather>();
+            SolarFlareWeather.glitchMaterial = glitchPassMaterial;
+            effectPermanentObject.hideFlags = HideFlags.HideAndDontSave;
+            GameObject.DontDestroyOnLoad(effectPermanentObject);
+
+            ImprovedWeatherEffect flareWeatherEffect = new(effectObject, effectPermanentObject)
+            {
+                SunAnimatorBool = "",
+            };
+
+            Weather FlareWeather = new Weather("Solar Flare", flareWeatherEffect)
+            {
+                DefaultLevelFilters = new[] {"Gordion"},
+                LevelFilteringOption = FilteringOption.Exclude,
+                Color = Color.yellow,
+                ScrapAmountMultiplier = 1.05f,
+                ScrapValueMultiplier = 1.25f,
+                DefaultWeight = 1000
+            };
+
+            WeatherRegistry.WeatherManager.RegisterWeather(FlareWeather);
+            Debug.Log($"{PluginInfo.PLUGIN_GUID}: Solar flare weather registered!");
         }
     }
+
+
 }

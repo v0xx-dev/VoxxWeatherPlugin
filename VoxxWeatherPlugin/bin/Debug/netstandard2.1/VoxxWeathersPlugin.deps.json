@@ -13,14 +13,11 @@
           "BepInEx.AssemblyPublicizer.MSBuild": "0.4.2",
           "BepInEx.Core": "5.4.21",
           "BepInEx.PluginInfoProps": "1.1.0",
+          "LethalCompany.GameLibs.Steam": "56.0.1-ngd.0",
           "UnityEngine.Modules": "2022.3.9",
-          "mrov.MrovLib": "0.2.2",
-          "mrov.WeatherRegistry": "0.1.18",
-          "Unity.AI.Navigation": "0.0.0.0",
-          "Unity.Netcode.Runtime": "0.0.0.0",
-          "Unity.RenderPipelines.Core.Runtime": "0.0.0.0",
-          "UnityEditor": "0.0.0.0",
-          "Assembly-CSharp": "0.0.0.0"
+          "mrov.MrovLib": "0.2.3",
+          "mrov.WeatherRegistry": "0.1.21",
+          "UnityEditor": "0.0.0.0"
         },
         "runtime": {
           "VoxxWeathersPlugin.dll": {}
@@ -93,6 +90,12 @@
           }
         }
       },
+      "LethalCompany.GameLibs.Steam/56.0.1-ngd.0": {
+        "dependencies": {
+          "Newtonsoft.Json": "13.0.3",
+          "UnityEngine.Modules": "2022.3.9"
+        }
+      },
       "Lib.Harmony/2.3.3": {
         "dependencies": {
           "Lib.Harmony.Ref": "2.3.3"
@@ -160,7 +163,7 @@
           }
         }
       },
-      "mrov.MrovLib/0.2.2": {
+      "mrov.MrovLib/0.2.3": {
         "dependencies": {
           "BepInEx.Core": "5.4.21",
           "BepInEx.PluginInfoProps": "1.1.0",
@@ -170,11 +173,11 @@
         "runtime": {
           "lib/netstandard2.1/MrovLib.dll": {
             "assemblyVersion": "0.0.0.0",
-            "fileVersion": "0.2.2.0"
+            "fileVersion": "0.2.3.0"
           }
         }
       },
-      "mrov.WeatherRegistry/0.1.18": {
+      "mrov.WeatherRegistry/0.1.21": {
         "dependencies": {
           "BepInEx.Core": "5.4.21",
           "BepInEx.PluginInfoProps": "1.1.0",
@@ -186,7 +189,7 @@
         "runtime": {
           "lib/netstandard2.1/WeatherRegistry.dll": {
             "assemblyVersion": "0.0.0.0",
-            "fileVersion": "0.1.18.0"
+            "fileVersion": "0.1.21.0"
           }
         }
       },
@@ -455,41 +458,9 @@
         }
       },
       "UnityEngine.Modules/2022.3.9": {},
-      "Unity.AI.Navigation/0.0.0.0": {
-        "runtime": {
-          "Unity.AI.Navigation.dll": {
-            "assemblyVersion": "0.0.0.0",
-            "fileVersion": "0.0.0.0"
-          }
-        }
-      },
-      "Unity.Netcode.Runtime/0.0.0.0": {
-        "runtime": {
-          "Unity.Netcode.Runtime.dll": {
-            "assemblyVersion": "0.0.0.0",
-            "fileVersion": "0.0.0.0"
-          }
-        }
-      },
-      "Unity.RenderPipelines.Core.Runtime/0.0.0.0": {
-        "runtime": {
-          "Unity.RenderPipelines.Core.Runtime.dll": {
-            "assemblyVersion": "0.0.0.0",
-            "fileVersion": "0.0.0.0"
-          }
-        }
-      },
       "UnityEditor/0.0.0.0": {
         "runtime": {
           "UnityEditor.dll": {
-            "assemblyVersion": "0.0.0.0",
-            "fileVersion": "0.0.0.0"
-          }
-        }
-      },
-      "Assembly-CSharp/0.0.0.0": {
-        "runtime": {
-          "Assembly-CSharp.dll": {
             "assemblyVersion": "0.0.0.0",
             "fileVersion": "0.0.0.0"
           }
@@ -574,254 +545,6 @@
             "fileVersion": "5.0.20.51904"
           }
         }
-      },
-      "Unity.Collections/0.0.0.0": {
-        "runtime": {
-          "Unity.Collections.dll": {
-            "assemblyVersion": "0.0.0.0",
-            "fileVersion": "0.0.0.0"
-          }
-        }
-      },
-      "Unity.Multiplayer.Tools.NetStats/0.0.0.0": {
-        "runtime": {
-          "Unity.Multiplayer.Tools.NetStats.dll": {
-            "assemblyVersion": "0.0.0.0",
-            "fileVersion": "0.0.0.0"
-          }
-        }
-      },
-      "Unity.Multiplayer.Tools.MetricTypes/0.0.0.0": {
-        "runtime": {
-          "Unity.Multiplayer.Tools.MetricTypes.dll": {
-            "assemblyVersion": "0.0.0.0",
-            "fileVersion": "0.0.0.0"
-          }
-        }
-      },
-      "Unity.Multiplayer.Tools.NetworkSolutionInterface/0.0.0.0": {
-        "runtime": {
-          "Unity.Multiplayer.Tools.NetworkSolutionInterface.dll": {
-            "assemblyVersion": "0.0.0.0",
-            "fileVersion": "0.0.0.0"
-          }
-        }
-      },
-      "Unity.Networking.Transport/0.0.0.0": {
-        "runtime": {
-          "Unity.Networking.Transport.dll": {
-            "assemblyVersion": "0.0.0.0",
-            "fileVersion": "0.0.0.0"
-          }
-        }
-      },
-      "Unity.Burst/0.0.0.0": {
-        "runtime": {
-          "Unity.Burst.dll": {
-            "assemblyVersion": "0.0.0.0",
-            "fileVersion": "0.0.0.0"
-          }
-        }
-      },
-      "Unity.Multiplayer.Tools.NetStatsReporting/0.0.0.0": {
-        "runtime": {
-          "Unity.Multiplayer.Tools.NetStatsReporting.dll": {
-            "assemblyVersion": "0.0.0.0",
-            "fileVersion": "0.0.0.0"
-          }
-        }
-      },
-      "Unity.InputSystem/1.7.0.0": {
-        "runtime": {
-          "Unity.InputSystem.dll": {
-            "assemblyVersion": "1.7.0.0",
-            "fileVersion": "1.7.0.0"
-          }
-        }
-      },
-      "UnityEngine.UI/1.0.0.0": {
-        "runtime": {
-          "UnityEngine.UI.dll": {
-            "assemblyVersion": "1.0.0.0",
-            "fileVersion": "1.0.0.0"
-          }
-        }
-      },
-      "Unity.Animation.Rigging/0.0.0.0": {
-        "runtime": {
-          "Unity.Animation.Rigging.dll": {
-            "assemblyVersion": "0.0.0.0",
-            "fileVersion": "0.0.0.0"
-          }
-        }
-      },
-      "Unity.TextMeshPro/0.0.0.0": {
-        "runtime": {
-          "Unity.TextMeshPro.dll": {
-            "assemblyVersion": "0.0.0.0",
-            "fileVersion": "0.0.0.0"
-          }
-        }
-      },
-      "Facepunch.Steamworks.Win64/1.0.0.0": {
-        "runtime": {
-          "Facepunch.Steamworks.Win64.dll": {
-            "assemblyVersion": "1.0.0.0",
-            "fileVersion": "1.0.0.0"
-          }
-        }
-      },
-      "Unity.RenderPipelines.HighDefinition.Runtime/0.0.0.0": {
-        "runtime": {
-          "Unity.RenderPipelines.HighDefinition.Runtime.dll": {
-            "assemblyVersion": "0.0.0.0",
-            "fileVersion": "0.0.0.0"
-          }
-        }
-      },
-      "DissonanceVoip/0.0.0.0": {
-        "runtime": {
-          "DissonanceVoip.dll": {
-            "assemblyVersion": "0.0.0.0",
-            "fileVersion": "0.0.0.0"
-          }
-        }
-      },
-      "Assembly-CSharp-firstpass/0.0.0.0": {
-        "runtime": {
-          "Assembly-CSharp-firstpass.dll": {
-            "assemblyVersion": "0.0.0.0",
-            "fileVersion": "0.0.0.0"
-          }
-        }
-      },
-      "Facepunch Transport for Netcode for GameObjects/0.0.0.0": {
-        "runtime": {
-          "Facepunch Transport for Netcode for GameObjects.dll": {
-            "assemblyVersion": "0.0.0.0",
-            "fileVersion": "0.0.0.0"
-          }
-        }
-      },
-      "Unity.Netcode.Components/0.0.0.0": {
-        "runtime": {
-          "Unity.Netcode.Components.dll": {
-            "assemblyVersion": "0.0.0.0",
-            "fileVersion": "0.0.0.0"
-          }
-        }
-      },
-      "ClientNetworkTransform/0.0.0.0": {
-        "runtime": {
-          "ClientNetworkTransform.dll": {
-            "assemblyVersion": "0.0.0.0",
-            "fileVersion": "0.0.0.0"
-          }
-        }
-      },
-      "Unity.Mathematics/1.0.0.0": {
-        "runtime": {
-          "Unity.Mathematics.dll": {
-            "assemblyVersion": "1.0.0.0",
-            "fileVersion": "1.0.0.0"
-          }
-        }
-      },
-      "Unity.Collections.LowLevel.ILSupport/0.0.0.0": {
-        "runtime": {
-          "Unity.Collections.LowLevel.ILSupport.dll": {
-            "assemblyVersion": "0.0.0.0",
-            "fileVersion": "0.0.0.0"
-          }
-        }
-      },
-      "Unity.Multiplayer.Tools.Common/0.0.0.0": {
-        "runtime": {
-          "Unity.Multiplayer.Tools.Common.dll": {
-            "assemblyVersion": "0.0.0.0",
-            "fileVersion": "0.0.0.0"
-          }
-        }
-      },
-      "Unity.Services.Relay/0.0.0.0": {
-        "runtime": {
-          "Unity.Services.Relay.dll": {
-            "assemblyVersion": "0.0.0.0",
-            "fileVersion": "0.0.0.0"
-          }
-        }
-      },
-      "Unity.Burst.Unsafe/4.0.5.0": {
-        "runtime": {
-          "Unity.Burst.Unsafe.dll": {
-            "assemblyVersion": "4.0.5.0",
-            "fileVersion": "0.0.0.0"
-          }
-        }
-      },
-      "Unity.Multiplayer.Tools.NetworkProfiler.Runtime/0.0.0.0": {
-        "runtime": {
-          "Unity.Multiplayer.Tools.NetworkProfiler.Runtime.dll": {
-            "assemblyVersion": "0.0.0.0",
-            "fileVersion": "0.0.0.0"
-          }
-        }
-      },
-      "Unity.VisualEffectGraph.Runtime/0.0.0.0": {
-        "runtime": {
-          "Unity.VisualEffectGraph.Runtime.dll": {
-            "assemblyVersion": "0.0.0.0",
-            "fileVersion": "0.0.0.0"
-          }
-        }
-      },
-      "UnityEngine.NVIDIAModule/0.0.0.0": {
-        "runtime": {
-          "UnityEngine.NVIDIAModule.dll": {
-            "assemblyVersion": "0.0.0.0",
-            "fileVersion": "0.0.0.0"
-          }
-        }
-      },
-      "Unity.RenderPipelines.HighDefinition.Config.Runtime/0.0.0.0": {
-        "runtime": {
-          "Unity.RenderPipelines.HighDefinition.Config.Runtime.dll": {
-            "assemblyVersion": "0.0.0.0",
-            "fileVersion": "0.0.0.0"
-          }
-        }
-      },
-      "Unity.Services.Core.Internal/0.0.0.0": {
-        "runtime": {
-          "Unity.Services.Core.Internal.dll": {
-            "assemblyVersion": "0.0.0.0",
-            "fileVersion": "0.0.0.0"
-          }
-        }
-      },
-      "Unity.Services.Core/0.0.0.0": {
-        "runtime": {
-          "Unity.Services.Core.dll": {
-            "assemblyVersion": "0.0.0.0",
-            "fileVersion": "0.0.0.0"
-          }
-        }
-      },
-      "Unity.Profiling.Core/0.0.0.0": {
-        "runtime": {
-          "Unity.Profiling.Core.dll": {
-            "assemblyVersion": "0.0.0.0",
-            "fileVersion": "0.0.0.0"
-          }
-        }
-      },
-      "Unity.Timeline/1.0.0.0": {
-        "runtime": {
-          "Unity.Timeline.dll": {
-            "assemblyVersion": "1.0.0.0",
-            "fileVersion": "1.0.0.0"
-          }
-        }
       }
     }
   },
@@ -880,6 +603,13 @@
       "path": "harmonyx/2.7.0",
       "hashPath": "harmonyx.2.7.0.nupkg.sha512"
     },
+    "LethalCompany.GameLibs.Steam/56.0.1-ngd.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-wzePk10ngsSmQTjd5CnYykD8KTTNZoGXN8Npr00VgmhRm1gisG0ZcJbdvXRaeREtNv8pLbLkThk+He4xXOm6YQ==",
+      "path": "lethalcompany.gamelibs.steam/56.0.1-ngd.0",
+      "hashPath": "lethalcompany.gamelibs.steam.56.0.1-ngd.0.nupkg.sha512"
+    },
     "Lib.Harmony/2.3.3": {
       "type": "package",
       "serviceable": true,
@@ -929,19 +659,19 @@
       "path": "monomod.utils/21.12.13.1",
       "hashPath": "monomod.utils.21.12.13.1.nupkg.sha512"
     },
-    "mrov.MrovLib/0.2.2": {
+    "mrov.MrovLib/0.2.3": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-TZ5Kjt3Ll3WyLybrpv3Y0K90PCIXZWIC9KhbssV/z3aieXFIT7cNrjCPGQE0wUthLxkKmIzysXm0KIHlqykiVw==",
-      "path": "mrov.mrovlib/0.2.2",
-      "hashPath": "mrov.mrovlib.0.2.2.nupkg.sha512"
+      "sha512": "sha512-E+LER8UaiTTQ4pLoacGfplFzYNQ9jSDlLneqJmqJMCTGaTqbYPSKAcFXumuxoB2aXF6R/0K9hrkvkK2HsvhHbw==",
+      "path": "mrov.mrovlib/0.2.3",
+      "hashPath": "mrov.mrovlib.0.2.3.nupkg.sha512"
     },
-    "mrov.WeatherRegistry/0.1.18": {
+    "mrov.WeatherRegistry/0.1.21": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-Ppfv6DcfllDC009OKnXrPFm+PWCewUurgjXcPRBhYDRslKjPrSdqGz12mg3MncYZ0aPKJh0fEYT5wksuveKmUg==",
-      "path": "mrov.weatherregistry/0.1.18",
-      "hashPath": "mrov.weatherregistry.0.1.18.nupkg.sha512"
+      "sha512": "sha512-PzZlVkUPHLTmY9+L8RDbJcONRqHzMUPLMI95i30RRDIsNY++aXjD3UxZwIjvikSThs1jnT+yJEp69AyMhA9jGA==",
+      "path": "mrov.weatherregistry/0.1.21",
+      "hashPath": "mrov.weatherregistry.0.1.21.nupkg.sha512"
     },
     "Newtonsoft.Json/13.0.3": {
       "type": "package",
@@ -1153,27 +883,7 @@
       "path": "unityengine.modules/2022.3.9",
       "hashPath": "unityengine.modules.2022.3.9.nupkg.sha512"
     },
-    "Unity.AI.Navigation/0.0.0.0": {
-      "type": "reference",
-      "serviceable": false,
-      "sha512": ""
-    },
-    "Unity.Netcode.Runtime/0.0.0.0": {
-      "type": "reference",
-      "serviceable": false,
-      "sha512": ""
-    },
-    "Unity.RenderPipelines.Core.Runtime/0.0.0.0": {
-      "type": "reference",
-      "serviceable": false,
-      "sha512": ""
-    },
     "UnityEditor/0.0.0.0": {
-      "type": "reference",
-      "serviceable": false,
-      "sha512": ""
-    },
-    "Assembly-CSharp/0.0.0.0": {
       "type": "reference",
       "serviceable": false,
       "sha512": ""
@@ -1224,161 +934,6 @@
       "sha512": ""
     },
     "System.CodeDom/5.0.0.0": {
-      "type": "reference",
-      "serviceable": false,
-      "sha512": ""
-    },
-    "Unity.Collections/0.0.0.0": {
-      "type": "reference",
-      "serviceable": false,
-      "sha512": ""
-    },
-    "Unity.Multiplayer.Tools.NetStats/0.0.0.0": {
-      "type": "reference",
-      "serviceable": false,
-      "sha512": ""
-    },
-    "Unity.Multiplayer.Tools.MetricTypes/0.0.0.0": {
-      "type": "reference",
-      "serviceable": false,
-      "sha512": ""
-    },
-    "Unity.Multiplayer.Tools.NetworkSolutionInterface/0.0.0.0": {
-      "type": "reference",
-      "serviceable": false,
-      "sha512": ""
-    },
-    "Unity.Networking.Transport/0.0.0.0": {
-      "type": "reference",
-      "serviceable": false,
-      "sha512": ""
-    },
-    "Unity.Burst/0.0.0.0": {
-      "type": "reference",
-      "serviceable": false,
-      "sha512": ""
-    },
-    "Unity.Multiplayer.Tools.NetStatsReporting/0.0.0.0": {
-      "type": "reference",
-      "serviceable": false,
-      "sha512": ""
-    },
-    "Unity.InputSystem/1.7.0.0": {
-      "type": "reference",
-      "serviceable": false,
-      "sha512": ""
-    },
-    "UnityEngine.UI/1.0.0.0": {
-      "type": "reference",
-      "serviceable": false,
-      "sha512": ""
-    },
-    "Unity.Animation.Rigging/0.0.0.0": {
-      "type": "reference",
-      "serviceable": false,
-      "sha512": ""
-    },
-    "Unity.TextMeshPro/0.0.0.0": {
-      "type": "reference",
-      "serviceable": false,
-      "sha512": ""
-    },
-    "Facepunch.Steamworks.Win64/1.0.0.0": {
-      "type": "reference",
-      "serviceable": false,
-      "sha512": ""
-    },
-    "Unity.RenderPipelines.HighDefinition.Runtime/0.0.0.0": {
-      "type": "reference",
-      "serviceable": false,
-      "sha512": ""
-    },
-    "DissonanceVoip/0.0.0.0": {
-      "type": "reference",
-      "serviceable": false,
-      "sha512": ""
-    },
-    "Assembly-CSharp-firstpass/0.0.0.0": {
-      "type": "reference",
-      "serviceable": false,
-      "sha512": ""
-    },
-    "Facepunch Transport for Netcode for GameObjects/0.0.0.0": {
-      "type": "reference",
-      "serviceable": false,
-      "sha512": ""
-    },
-    "Unity.Netcode.Components/0.0.0.0": {
-      "type": "reference",
-      "serviceable": false,
-      "sha512": ""
-    },
-    "ClientNetworkTransform/0.0.0.0": {
-      "type": "reference",
-      "serviceable": false,
-      "sha512": ""
-    },
-    "Unity.Mathematics/1.0.0.0": {
-      "type": "reference",
-      "serviceable": false,
-      "sha512": ""
-    },
-    "Unity.Collections.LowLevel.ILSupport/0.0.0.0": {
-      "type": "reference",
-      "serviceable": false,
-      "sha512": ""
-    },
-    "Unity.Multiplayer.Tools.Common/0.0.0.0": {
-      "type": "reference",
-      "serviceable": false,
-      "sha512": ""
-    },
-    "Unity.Services.Relay/0.0.0.0": {
-      "type": "reference",
-      "serviceable": false,
-      "sha512": ""
-    },
-    "Unity.Burst.Unsafe/4.0.5.0": {
-      "type": "reference",
-      "serviceable": false,
-      "sha512": ""
-    },
-    "Unity.Multiplayer.Tools.NetworkProfiler.Runtime/0.0.0.0": {
-      "type": "reference",
-      "serviceable": false,
-      "sha512": ""
-    },
-    "Unity.VisualEffectGraph.Runtime/0.0.0.0": {
-      "type": "reference",
-      "serviceable": false,
-      "sha512": ""
-    },
-    "UnityEngine.NVIDIAModule/0.0.0.0": {
-      "type": "reference",
-      "serviceable": false,
-      "sha512": ""
-    },
-    "Unity.RenderPipelines.HighDefinition.Config.Runtime/0.0.0.0": {
-      "type": "reference",
-      "serviceable": false,
-      "sha512": ""
-    },
-    "Unity.Services.Core.Internal/0.0.0.0": {
-      "type": "reference",
-      "serviceable": false,
-      "sha512": ""
-    },
-    "Unity.Services.Core/0.0.0.0": {
-      "type": "reference",
-      "serviceable": false,
-      "sha512": ""
-    },
-    "Unity.Profiling.Core/0.0.0.0": {
-      "type": "reference",
-      "serviceable": false,
-      "sha512": ""
-    },
-    "Unity.Timeline/1.0.0.0": {
       "type": "reference",
       "serviceable": false,
       "sha512": ""

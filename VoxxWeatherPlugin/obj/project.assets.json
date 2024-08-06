@@ -89,6 +89,77 @@
           }
         }
       },
+      "LethalCompany.GameLibs.Steam/56.0.1-ngd.0": {
+        "type": "package",
+        "dependencies": {
+          "Newtonsoft.JSON": "13.0.3",
+          "UnityEngine.Modules": "2022.3.9"
+        },
+        "compile": {
+          "ref/netstandard2.1/AmazingAssets.TerrainToMesh.dll": {},
+          "ref/netstandard2.1/Assembly-CSharp-firstpass.dll": {},
+          "ref/netstandard2.1/Assembly-CSharp.dll": {},
+          "ref/netstandard2.1/ClientNetworkTransform.dll": {},
+          "ref/netstandard2.1/DissonanceVoip.dll": {},
+          "ref/netstandard2.1/Facepunch Transport for Netcode for GameObjects.dll": {},
+          "ref/netstandard2.1/Facepunch.Steamworks.Win64.dll": {},
+          "ref/netstandard2.1/Unity.AI.Navigation.dll": {},
+          "ref/netstandard2.1/Unity.Animation.Rigging.DocCodeExamples.dll": {},
+          "ref/netstandard2.1/Unity.Animation.Rigging.dll": {},
+          "ref/netstandard2.1/Unity.Burst.Unsafe.dll": {},
+          "ref/netstandard2.1/Unity.Burst.dll": {},
+          "ref/netstandard2.1/Unity.Collections.LowLevel.ILSupport.dll": {},
+          "ref/netstandard2.1/Unity.Collections.dll": {},
+          "ref/netstandard2.1/Unity.InputSystem.ForUI.dll": {},
+          "ref/netstandard2.1/Unity.InputSystem.dll": {},
+          "ref/netstandard2.1/Unity.Jobs.dll": {},
+          "ref/netstandard2.1/Unity.Mathematics.dll": {},
+          "ref/netstandard2.1/Unity.Multiplayer.Tools.Common.dll": {},
+          "ref/netstandard2.1/Unity.Multiplayer.Tools.MetricTypes.dll": {},
+          "ref/netstandard2.1/Unity.Multiplayer.Tools.NetStats.dll": {},
+          "ref/netstandard2.1/Unity.Multiplayer.Tools.NetStatsMonitor.Component.dll": {},
+          "ref/netstandard2.1/Unity.Multiplayer.Tools.NetStatsMonitor.Configuration.dll": {},
+          "ref/netstandard2.1/Unity.Multiplayer.Tools.NetStatsMonitor.Implementation.dll": {},
+          "ref/netstandard2.1/Unity.Multiplayer.Tools.NetStatsReporting.dll": {},
+          "ref/netstandard2.1/Unity.Multiplayer.Tools.NetworkProfiler.Runtime.dll": {},
+          "ref/netstandard2.1/Unity.Multiplayer.Tools.NetworkSolutionInterface.dll": {},
+          "ref/netstandard2.1/Unity.Netcode.Components.dll": {},
+          "ref/netstandard2.1/Unity.Netcode.Runtime.dll": {},
+          "ref/netstandard2.1/Unity.Networking.Transport.dll": {},
+          "ref/netstandard2.1/Unity.ProBuilder.Csg.dll": {},
+          "ref/netstandard2.1/Unity.ProBuilder.KdTree.dll": {},
+          "ref/netstandard2.1/Unity.ProBuilder.Poly2Tri.dll": {},
+          "ref/netstandard2.1/Unity.ProBuilder.Stl.dll": {},
+          "ref/netstandard2.1/Unity.ProBuilder.dll": {},
+          "ref/netstandard2.1/Unity.Profiling.Core.dll": {},
+          "ref/netstandard2.1/Unity.RenderPipelines.Core.Runtime.dll": {},
+          "ref/netstandard2.1/Unity.RenderPipelines.Core.ShaderLibrary.dll": {},
+          "ref/netstandard2.1/Unity.RenderPipelines.HighDefinition.Config.Runtime.dll": {},
+          "ref/netstandard2.1/Unity.RenderPipelines.HighDefinition.Runtime.dll": {},
+          "ref/netstandard2.1/Unity.RenderPipelines.ShaderGraph.ShaderGraphLibrary.dll": {},
+          "ref/netstandard2.1/Unity.Services.Authentication.dll": {},
+          "ref/netstandard2.1/Unity.Services.Core.Analytics.dll": {},
+          "ref/netstandard2.1/Unity.Services.Core.Configuration.dll": {},
+          "ref/netstandard2.1/Unity.Services.Core.Device.dll": {},
+          "ref/netstandard2.1/Unity.Services.Core.Environments.Internal.dll": {},
+          "ref/netstandard2.1/Unity.Services.Core.Environments.dll": {},
+          "ref/netstandard2.1/Unity.Services.Core.Internal.dll": {},
+          "ref/netstandard2.1/Unity.Services.Core.Networking.dll": {},
+          "ref/netstandard2.1/Unity.Services.Core.Registration.dll": {},
+          "ref/netstandard2.1/Unity.Services.Core.Scheduler.dll": {},
+          "ref/netstandard2.1/Unity.Services.Core.Telemetry.dll": {},
+          "ref/netstandard2.1/Unity.Services.Core.Threading.dll": {},
+          "ref/netstandard2.1/Unity.Services.Core.dll": {},
+          "ref/netstandard2.1/Unity.Services.QoS.dll": {},
+          "ref/netstandard2.1/Unity.Services.Relay.dll": {},
+          "ref/netstandard2.1/Unity.TextMeshPro.dll": {},
+          "ref/netstandard2.1/Unity.Timeline.dll": {},
+          "ref/netstandard2.1/Unity.VisualEffectGraph.Runtime.dll": {},
+          "ref/netstandard2.1/UnityEngine.ARModule.dll": {},
+          "ref/netstandard2.1/UnityEngine.NVIDIAModule.dll": {},
+          "ref/netstandard2.1/UnityEngine.UI.dll": {}
+        }
+      },
       "Lib.Harmony/2.3.3": {
         "type": "package",
         "dependencies": {
@@ -206,7 +277,7 @@
           }
         }
       },
-      "mrov.MrovLib/0.2.2": {
+      "mrov.MrovLib/0.2.3": {
         "type": "package",
         "dependencies": {
           "BepInEx.Core": "5.4.21",
@@ -221,7 +292,7 @@
           "lib/netstandard2.1/MrovLib.dll": {}
         }
       },
-      "mrov.WeatherRegistry/0.1.18": {
+      "mrov.WeatherRegistry/0.1.21": {
         "type": "package",
         "dependencies": {
           "BepInEx.Core": "5.4.21",
@@ -850,6 +921,79 @@
         "logo_mini.png"
       ]
     },
+    "LethalCompany.GameLibs.Steam/56.0.1-ngd.0": {
+      "sha512": "wzePk10ngsSmQTjd5CnYykD8KTTNZoGXN8Npr00VgmhRm1gisG0ZcJbdvXRaeREtNv8pLbLkThk+He4xXOm6YQ==",
+      "type": "package",
+      "path": "lethalcompany.gamelibs.steam/56.0.1-ngd.0",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "lethalcompany.gamelibs.steam.56.0.1-ngd.0.nupkg.sha512",
+        "lethalcompany.gamelibs.steam.nuspec",
+        "ref/netstandard2.1/AmazingAssets.TerrainToMesh.dll",
+        "ref/netstandard2.1/Assembly-CSharp-firstpass.dll",
+        "ref/netstandard2.1/Assembly-CSharp.dll",
+        "ref/netstandard2.1/ClientNetworkTransform.dll",
+        "ref/netstandard2.1/DissonanceVoip.dll",
+        "ref/netstandard2.1/Facepunch Transport for Netcode for GameObjects.dll",
+        "ref/netstandard2.1/Facepunch.Steamworks.Win64.dll",
+        "ref/netstandard2.1/Unity.AI.Navigation.dll",
+        "ref/netstandard2.1/Unity.Animation.Rigging.DocCodeExamples.dll",
+        "ref/netstandard2.1/Unity.Animation.Rigging.dll",
+        "ref/netstandard2.1/Unity.Burst.Unsafe.dll",
+        "ref/netstandard2.1/Unity.Burst.dll",
+        "ref/netstandard2.1/Unity.Collections.LowLevel.ILSupport.dll",
+        "ref/netstandard2.1/Unity.Collections.dll",
+        "ref/netstandard2.1/Unity.InputSystem.ForUI.dll",
+        "ref/netstandard2.1/Unity.InputSystem.dll",
+        "ref/netstandard2.1/Unity.Jobs.dll",
+        "ref/netstandard2.1/Unity.Mathematics.dll",
+        "ref/netstandard2.1/Unity.Multiplayer.Tools.Common.dll",
+        "ref/netstandard2.1/Unity.Multiplayer.Tools.MetricTypes.dll",
+        "ref/netstandard2.1/Unity.Multiplayer.Tools.NetStats.dll",
+        "ref/netstandard2.1/Unity.Multiplayer.Tools.NetStatsMonitor.Component.dll",
+        "ref/netstandard2.1/Unity.Multiplayer.Tools.NetStatsMonitor.Configuration.dll",
+        "ref/netstandard2.1/Unity.Multiplayer.Tools.NetStatsMonitor.Implementation.dll",
+        "ref/netstandard2.1/Unity.Multiplayer.Tools.NetStatsReporting.dll",
+        "ref/netstandard2.1/Unity.Multiplayer.Tools.NetworkProfiler.Runtime.dll",
+        "ref/netstandard2.1/Unity.Multiplayer.Tools.NetworkSolutionInterface.dll",
+        "ref/netstandard2.1/Unity.Netcode.Components.dll",
+        "ref/netstandard2.1/Unity.Netcode.Runtime.dll",
+        "ref/netstandard2.1/Unity.Networking.Transport.dll",
+        "ref/netstandard2.1/Unity.ProBuilder.Csg.dll",
+        "ref/netstandard2.1/Unity.ProBuilder.KdTree.dll",
+        "ref/netstandard2.1/Unity.ProBuilder.Poly2Tri.dll",
+        "ref/netstandard2.1/Unity.ProBuilder.Stl.dll",
+        "ref/netstandard2.1/Unity.ProBuilder.dll",
+        "ref/netstandard2.1/Unity.Profiling.Core.dll",
+        "ref/netstandard2.1/Unity.RenderPipelines.Core.Runtime.dll",
+        "ref/netstandard2.1/Unity.RenderPipelines.Core.ShaderLibrary.dll",
+        "ref/netstandard2.1/Unity.RenderPipelines.HighDefinition.Config.Runtime.dll",
+        "ref/netstandard2.1/Unity.RenderPipelines.HighDefinition.Runtime.dll",
+        "ref/netstandard2.1/Unity.RenderPipelines.ShaderGraph.ShaderGraphLibrary.dll",
+        "ref/netstandard2.1/Unity.Services.Authentication.dll",
+        "ref/netstandard2.1/Unity.Services.Core.Analytics.dll",
+        "ref/netstandard2.1/Unity.Services.Core.Configuration.dll",
+        "ref/netstandard2.1/Unity.Services.Core.Device.dll",
+        "ref/netstandard2.1/Unity.Services.Core.Environments.Internal.dll",
+        "ref/netstandard2.1/Unity.Services.Core.Environments.dll",
+        "ref/netstandard2.1/Unity.Services.Core.Internal.dll",
+        "ref/netstandard2.1/Unity.Services.Core.Networking.dll",
+        "ref/netstandard2.1/Unity.Services.Core.Registration.dll",
+        "ref/netstandard2.1/Unity.Services.Core.Scheduler.dll",
+        "ref/netstandard2.1/Unity.Services.Core.Telemetry.dll",
+        "ref/netstandard2.1/Unity.Services.Core.Threading.dll",
+        "ref/netstandard2.1/Unity.Services.Core.dll",
+        "ref/netstandard2.1/Unity.Services.QoS.dll",
+        "ref/netstandard2.1/Unity.Services.Relay.dll",
+        "ref/netstandard2.1/Unity.TextMeshPro.dll",
+        "ref/netstandard2.1/Unity.Timeline.dll",
+        "ref/netstandard2.1/Unity.VisualEffectGraph.Runtime.dll",
+        "ref/netstandard2.1/UnityEngine.ARModule.dll",
+        "ref/netstandard2.1/UnityEngine.NVIDIAModule.dll",
+        "ref/netstandard2.1/UnityEngine.UI.dll"
+      ]
+    },
     "Lib.Harmony/2.3.3": {
       "sha512": "qxO8d2q7luoY8mTfCStQFOgRSd3dWZSS0Ffi5nrjX4qFkZxEBAEvNh5b/ZejTl2kY0fJs62LmfRJkBBTeiuuyQ==",
       "type": "package",
@@ -1006,31 +1150,31 @@
         "monomod.utils.nuspec"
       ]
     },
-    "mrov.MrovLib/0.2.2": {
-      "sha512": "TZ5Kjt3Ll3WyLybrpv3Y0K90PCIXZWIC9KhbssV/z3aieXFIT7cNrjCPGQE0wUthLxkKmIzysXm0KIHlqykiVw==",
+    "mrov.MrovLib/0.2.3": {
+      "sha512": "E+LER8UaiTTQ4pLoacGfplFzYNQ9jSDlLneqJmqJMCTGaTqbYPSKAcFXumuxoB2aXF6R/0K9hrkvkK2HsvhHbw==",
       "type": "package",
-      "path": "mrov.mrovlib/0.2.2",
+      "path": "mrov.mrovlib/0.2.3",
       "files": [
         ".nupkg.metadata",
         ".signature.p7s",
         "README.md",
         "icon.png",
         "lib/netstandard2.1/MrovLib.dll",
-        "mrov.mrovlib.0.2.2.nupkg.sha512",
+        "mrov.mrovlib.0.2.3.nupkg.sha512",
         "mrov.mrovlib.nuspec"
       ]
     },
-    "mrov.WeatherRegistry/0.1.18": {
-      "sha512": "Ppfv6DcfllDC009OKnXrPFm+PWCewUurgjXcPRBhYDRslKjPrSdqGz12mg3MncYZ0aPKJh0fEYT5wksuveKmUg==",
+    "mrov.WeatherRegistry/0.1.21": {
+      "sha512": "PzZlVkUPHLTmY9+L8RDbJcONRqHzMUPLMI95i30RRDIsNY++aXjD3UxZwIjvikSThs1jnT+yJEp69AyMhA9jGA==",
       "type": "package",
-      "path": "mrov.weatherregistry/0.1.18",
+      "path": "mrov.weatherregistry/0.1.21",
       "files": [
         ".nupkg.metadata",
         ".signature.p7s",
         "README.md",
         "icon.png",
         "lib/netstandard2.1/WeatherRegistry.dll",
-        "mrov.weatherregistry.0.1.18.nupkg.sha512",
+        "mrov.weatherregistry.0.1.21.nupkg.sha512",
         "mrov.weatherregistry.nuspec"
       ]
     },
@@ -2966,9 +3110,10 @@
       "BepInEx.AssemblyPublicizer.MSBuild >= 0.4.2",
       "BepInEx.Core >= 5.*",
       "BepInEx.PluginInfoProps >= 1.*",
+      "LethalCompany.GameLibs.Steam >= 56.0.1-ngd.0",
       "UnityEngine.Modules >= 2022.3.9",
-      "mrov.MrovLib >= 0.2.2",
-      "mrov.WeatherRegistry >= 0.1.18"
+      "mrov.MrovLib >= 0.2.3",
+      "mrov.WeatherRegistry >= 0.1.21"
     ]
   },
   "packageFolders": {
@@ -3035,6 +3180,10 @@
             "target": "Package",
             "version": "[1.*, )"
           },
+          "LethalCompany.GameLibs.Steam": {
+            "target": "Package",
+            "version": "[56.0.1-ngd.0, )"
+          },
           "UnityEngine.Modules": {
             "include": "Compile",
             "target": "Package",
@@ -3042,11 +3191,11 @@
           },
           "mrov.MrovLib": {
             "target": "Package",
-            "version": "[0.2.2, )"
+            "version": "[0.2.3, )"
           },
           "mrov.WeatherRegistry": {
             "target": "Package",
-            "version": "[0.1.18, )"
+            "version": "[0.1.21, )"
           }
         },
         "imports": [

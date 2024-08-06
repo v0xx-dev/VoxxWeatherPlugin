@@ -65,6 +65,10 @@
               "target": "Package",
               "version": "[1.*, )"
             },
+            "LethalCompany.GameLibs.Steam": {
+              "target": "Package",
+              "version": "[56.0.1-ngd.0, )"
+            },
             "UnityEngine.Modules": {
               "include": "Compile",
               "target": "Package",
@@ -72,11 +76,11 @@
             },
             "mrov.MrovLib": {
               "target": "Package",
-              "version": "[0.2.2, )"
+              "version": "[0.2.3, )"
             },
             "mrov.WeatherRegistry": {
               "target": "Package",
-              "version": "[0.1.18, )"
+              "version": "[0.1.21, )"
             }
           },
           "imports": [
