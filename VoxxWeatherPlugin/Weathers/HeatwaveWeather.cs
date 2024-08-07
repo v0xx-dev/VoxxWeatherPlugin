@@ -4,6 +4,7 @@ using UnityEngine.Rendering;
 using UnityEngine;
 using VoxxWeatherPlugin.Utils;
 using UnityEngine.AI;
+using System.Drawing;
 
 namespace VoxxWeatherPlugin.Weathers
 {
@@ -72,7 +73,7 @@ namespace VoxxWeatherPlugin.Weathers
         private void CalculateZoneSize()
         {
             List<Vector3> keyLocationCoords = new List<Vector3>();
-            keyLocationCoords.Add(Vector3.zero);
+            keyLocationCoords.Add(StartOfRound.Instance.shipInnerRoomBounds.bounds.center);
 
             // Store positions of all the outside AI nodes in the scene
             foreach (GameObject node in RoundManager.Instance.outsideAINodes)
@@ -190,13 +191,12 @@ namespace VoxxWeatherPlugin.Weathers
         // Variables for emitter placement
         private float emitterSize;
         private float raycastHeight = 500f; // Height from which to cast rays
-        private Vector4 shipXZBounds = new Vector4(-13f, 23f, -24f, -4f); // MinX, MaxX, MinZ, MaxZ
 
         internal void CalculateEmitterRadius()
         {
             Transform transform = heatwaveParticlePrefab.transform;
             emitterSize = Mathf.Max(transform.localScale.x, transform.localScale.z) * 5f;
-            Debug.Log($"Emitter size: {emitterSize}");
+            //Debug.Log($"Emitter size: {emitterSize}");
         }
 
         internal void PopulateLevelWithVFX(ref Vector3 heatwaveZoneSize, ref Vector3 heatwaveZoneLocation, System.Random seededRandom)
@@ -259,17 +259,11 @@ namespace VoxxWeatherPlugin.Weathers
                 NavMeshHit navHit;
                 if (NavMesh.SamplePosition(hit.point, out navHit, 3f, -1)) //places only where player can walk
                 {
-                    if (!IsPointWithinShipBounds(navHit.position))
+                    if (!StartOfRound.Instance.shipBounds.bounds.Contains(navHit.position))
                         return (navHit.position, hit.normal);
                 }
             }
             return (Vector3.zero, Vector3.up);
-        }
-
-        bool IsPointWithinShipBounds(Vector3 point)
-        {
-            return (point.x >= shipXZBounds.x && point.x <= shipXZBounds.y &&
-                    point.z >= shipXZBounds.z && point.z <= shipXZBounds.w);
         }
 
         private void OnEnable()

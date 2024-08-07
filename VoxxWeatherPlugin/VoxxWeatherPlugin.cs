@@ -30,7 +30,7 @@ namespace VoxxWeatherPlugin
             //Apply Harmony patch
             this.harmony = new Harmony(PluginInfo.PLUGIN_GUID);
             this.harmony.PatchAll();
-            Logger.LogInfo($"Plugin {PluginInfo.PLUGIN_GUID} patched PlayerControllerB!");
+            Logger.LogInfo($"{PluginInfo.PLUGIN_GUID} patches successfully applied!");
             WeatherTypeLoader.RegisterHeatwaveWeather();
             WeatherTypeLoader.RegisterFlareWeather();
         }

@@ -1,9 +1,13 @@
-﻿using GameNetcodeStuff;
-using HarmonyLib;
-using Unity.Netcode;
+﻿using HarmonyLib;
 using VoxxWeatherPlugin.Utils;
 using VoxxWeatherPlugin.Weathers;
 using UnityEngine;
+using System.Collections.Generic;
+using System.Reflection.Emit;
+using System;
+using System.Linq;
+using System.Reflection;
+using static UnityEngine.GraphicsBuffer;
 
 namespace VoxxWeatherPlugin.Patches
 {
@@ -15,42 +19,61 @@ namespace VoxxWeatherPlugin.Patches
         internal static Transform originalTeleporterPosition;
 
         [HarmonyPatch(typeof(WalkieTalkie), "Start")]
-        [HarmonyPostfix]
+        [HarmonyPrefix]
         private static void WalkieDistortionPatch(WalkieTalkie __instance)
         {
-            __instance.target.gameObject.AddComponent<InterferenceDistortionFilter>();
+           __instance.gameObject.AddComponent<WalkieTargetsManager>();
         }
 
-        [HarmonyPatch(typeof(WalkieTalkie), "GetAllAudioSourcesToReplay")]
-        [HarmonyPostfix]
-        private static void DistortionUpdatePatch(WalkieTalkie __instance)
+        [HarmonyPatch(typeof(WalkieTalkie), "TimeAllAudioSources")]
+        [HarmonyTranspiler]
+        [HarmonyDebug]
+        static IEnumerable<CodeInstruction> RadioDistorterPatch(IEnumerable<CodeInstruction> instructions)
         {
-            InterferenceDistortionFilter distortionFilter = __instance.target.gameObject.GetComponent<InterferenceDistortionFilter>();
-            AudioLowPassFilter lowPassFilter = __instance.target.gameObject.GetComponent<AudioLowPassFilter>();
-            AudioHighPassFilter highPassFilter = __instance.target.gameObject.GetComponent<AudioHighPassFilter>();
-            AudioDistortionFilter audioDistortionFilter = __instance.target.gameObject.GetComponent<AudioDistortionFilter>();
-            if (distortionFilter != null)
-            {
-                if (SolarFlareWeather.flareData != null)
-                {
-                    distortionFilter.distortionChance = SolarFlareWeather.flareData.RadioDistortionIntensity;
-                    distortionFilter.maxClarityDuration = SolarFlareWeather.flareData.RadioBreakthroughLength;
-                    distortionFilter.enabled = true;
-                    lowPassFilter.enabled = false;
-                    highPassFilter.enabled = false;
-                    audioDistortionFilter.enabled = false;
-                }
-                else
-                {
-                    distortionFilter.enabled = false;
-                    lowPassFilter.enabled = true;
-                    highPassFilter.enabled = true;
-                    audioDistortionFilter.enabled = true;
-                }
+            var codeMatcher = new CodeMatcher(instructions);
 
-            }
+            // Replace audio source creation logic
+            codeMatcher = codeMatcher.MatchForward(true,
+                new CodeMatch(OpCodes.Ldarg_0),
+                new CodeMatch(OpCodes.Ldfld, AccessTools.Field(typeof(WalkieTalkie), "audioSourcesReceiving")),
+                new CodeMatch(OpCodes.Ldloc_3),
+                new CodeMatch(OpCodes.Ldarg_0),
+                new CodeMatch(OpCodes.Ldfld, AccessTools.Field(typeof(WalkieTalkie), "target")),
+                new CodeMatch(OpCodes.Callvirt, AccessTools.Method(typeof(Component), "get_gameObject"))
+            );
 
+            codeMatcher.Advance(1);
+
+            codeMatcher.SetInstruction(new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(FlarePatches), "SplitWalkieTarget")));
+
+            // Replace audio source disposal logic
+            codeMatcher = codeMatcher.MatchForward(true,
+                new CodeMatch(OpCodes.Ldloc_1),
+                new CodeMatch(OpCodes.Call, AccessTools.Method(typeof(UnityEngine.Object), "Destroy", new[] { typeof(UnityEngine.Object) }))
+            )
+            .Repeat(matcher => {
+                matcher.SetInstruction(new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(FlarePatches), "DisposeWalkieTarget",
+                     new[] { typeof(AudioSource), typeof(GameObject) })));
+                matcher.Insert(new CodeInstruction(OpCodes.Callvirt, AccessTools.Method(typeof(Component), "get_gameObject")));
+                matcher.Insert(new CodeInstruction(OpCodes.Ldarg_0));
+                ;
+             });
+
+            return codeMatcher.InstructionEnumeration();
         }
+
+        internal static AudioSource SplitWalkieTarget(GameObject target)
+        {
+            WalkieTargetsManager subTargetsManager = target.transform.parent.gameObject.GetComponent<WalkieTargetsManager>();
+            return subTargetsManager.SplitWalkieTarget(target);
+        }
+
+        internal static void DisposeWalkieTarget(AudioSource audioSource, GameObject walkieObject)
+        {
+            WalkieTargetsManager subTargetsManager = walkieObject.GetComponent<WalkieTargetsManager>();
+            subTargetsManager.DisposeWalkieTarget(audioSource);
+        }
+
 
         [HarmonyPatch(typeof(HUDManager), "UseSignalTranslatorClientRpc")]
         [HarmonyPrefix]
@@ -122,3 +145,5 @@ namespace VoxxWeatherPlugin.Patches
 
     }
 }
+
+
