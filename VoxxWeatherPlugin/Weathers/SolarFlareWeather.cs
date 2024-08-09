@@ -4,8 +4,6 @@ using UnityEngine.VFX;
 using UnityEngine.Rendering.HighDefinition;
 using VoxxWeatherPlugin.Utils;
 using System.Linq;
-using Unity.Collections;
-using static Steamworks.InventoryItem;
 
 namespace VoxxWeatherPlugin.Weathers
 {
