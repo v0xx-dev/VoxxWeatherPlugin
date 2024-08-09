@@ -1,10 +1,10 @@
 ﻿using HarmonyLib;
-using VoxxWeatherPlugin.Utils;
 using VoxxWeatherPlugin.Weathers;
 using UnityEngine;
 using System.Collections.Generic;
 using System.Reflection.Emit;
 using UnityEngine.AI;
+using VoxxWeatherPlugin.Behaviours;
 
 namespace VoxxWeatherPlugin.Patches
 {

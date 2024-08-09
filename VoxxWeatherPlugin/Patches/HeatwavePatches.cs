@@ -61,12 +61,11 @@ namespace VoxxWeatherPlugin.Patches
 
         [HarmonyPatch(typeof(SoundManager), "SetAudioFilters")]
         [HarmonyTranspiler]
-        [HarmonyDebug]
-        static IEnumerable<CodeInstruction> HeatstrokeAudioPatch(IEnumerable<CodeInstruction> instructions)
+        static IEnumerable<CodeInstruction> HeatstrokeAudioPatch(IEnumerable<CodeInstruction> instructions, ILGenerator generator)
         {
             var codes = new List<CodeInstruction>(instructions);
             
-            for (int i = 0; i < codes.Count; i++)
+            for (int i = 0; i < codes.Count - 2; i++)
             {
                 if (codes[i].opcode == OpCodes.Ldfld && 
                     codes[i].operand.ToString().Contains("drunkness") &&
@@ -77,9 +76,9 @@ namespace VoxxWeatherPlugin.Patches
                 {
                     // Store the original jump target
                     object originalJumpTarget = codes[i + 3].operand;
-
                     // Replace the original ble.un.s with bgt.s
-                    codes[i + 3] = new CodeInstruction(OpCodes.Bgt_S, codes[i + 4].labels[0]);
+                    Label jumpTarget = generator.DefineLabel();
+                    codes[i + 3] = new CodeInstruction(OpCodes.Bgt_S, jumpTarget);
 
                     // Insert the additional condition for PlayerTemperatureManager.heatSeverity
                     codes.InsertRange(i + 4, new[]
@@ -88,6 +87,7 @@ namespace VoxxWeatherPlugin.Patches
                         new CodeInstruction(OpCodes.Ldc_R4, 0.85f),
                         new CodeInstruction(OpCodes.Ble_Un_S, originalJumpTarget)
                     });
+                    codes[i + 7].labels.Add(jumpTarget); 
 
                     break;
                 }
