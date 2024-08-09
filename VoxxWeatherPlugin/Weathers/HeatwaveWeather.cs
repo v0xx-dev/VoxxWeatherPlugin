@@ -4,7 +4,7 @@ using UnityEngine.Rendering;
 using UnityEngine;
 using VoxxWeatherPlugin.Utils;
 using UnityEngine.AI;
-using System.Drawing;
+using VoxxWeatherPlugin.Behaviours;
 
 namespace VoxxWeatherPlugin.Weathers
 {
@@ -125,7 +125,7 @@ namespace VoxxWeatherPlugin.Weathers
 
         public bool CheckConditionsForHeatingStop(PlayerControllerB playerController)
         {
-            return playerController.beamUpParticle.isPlaying || playerController.isInElevator || playerController.isInHangarShipRoom;
+            return playerController.beamUpParticle.isPlaying || playerController.isInElevator || playerController.isInHangarShipRoom || playerController.isUnderwater;
         }
 
         private void OnTriggerStay(Collider other)
@@ -166,6 +166,14 @@ namespace VoxxWeatherPlugin.Weathers
                     PlayerTemperatureManager.isInHeatZone = true;
                 }
             }
+
+            if (other.CompareTag("Aluminium") && LayerMask.LayerToName(other.gameObject.layer) == "Vehicle")
+            {
+                if (other.TryGetComponent(out VehicleHeatwaveHandler cruiserHandler))
+                {
+                    cruiserHandler.isInHeatwave = true;
+                }
+            }
         }
 
         private void OnTriggerExit(Collider other)
@@ -179,6 +187,14 @@ namespace VoxxWeatherPlugin.Weathers
 
                 PlayerTemperatureManager.heatSeverityMultiplier = 1f;
                 PlayerTemperatureManager.isInHeatZone = false;
+            }
+
+            if (other.CompareTag("Aluminium") && LayerMask.LayerToName(other.gameObject.layer) == "Vehicle")
+            {
+                if (other.TryGetComponent(out VehicleHeatwaveHandler cruiserHandler))
+                {
+                    cruiserHandler.isInHeatwave = false;
+                }
             }
         }
     }

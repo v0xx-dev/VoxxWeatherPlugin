@@ -3129,6 +3129,7 @@
       "outputPath": "C:\\Users\\ispar\\Documents\\LC_Modding\\VoxxWeatherPlugins\\VoxxWeatherPlugin\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
+        "C:\\Users\\ispar\\Documents\\LC_Modding\\VoxxWeatherPlugins\\VoxxWeatherPlugin\\NuGet.Config",
         "C:\\Users\\ispar\\AppData\\Roaming\\NuGet\\NuGet.Config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],

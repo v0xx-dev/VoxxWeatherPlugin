@@ -4,10 +4,7 @@ using VoxxWeatherPlugin.Weathers;
 using UnityEngine;
 using System.Collections.Generic;
 using System.Reflection.Emit;
-using System;
-using System.Linq;
-using System.Reflection;
-using static UnityEngine.GraphicsBuffer;
+using UnityEngine.AI;
 
 namespace VoxxWeatherPlugin.Patches
 {
@@ -27,7 +24,6 @@ namespace VoxxWeatherPlugin.Patches
 
         [HarmonyPatch(typeof(WalkieTalkie), "TimeAllAudioSources")]
         [HarmonyTranspiler]
-        [HarmonyDebug]
         static IEnumerable<CodeInstruction> RadioDistorterPatch(IEnumerable<CodeInstruction> instructions)
         {
             var codeMatcher = new CodeMatcher(instructions);
@@ -74,6 +70,21 @@ namespace VoxxWeatherPlugin.Patches
             subTargetsManager.DisposeWalkieTarget(audioSource);
         }
 
+        [HarmonyPatch(typeof(GrabbableObject), "Update")]
+        [HarmonyPrefix]
+        private static void GrabbableDischargePatch(GrabbableObject __instance)
+        {
+            if (SolarFlareWeather.flareData != null)
+            {
+                if (__instance.IsOwner && __instance.hasBeenHeld && __instance.itemProperties.requiresBattery)
+                {
+                    if (__instance.insertedBattery.charge > 0.0 && !__instance.itemProperties.itemIsTrigger)
+                    {
+                        __instance.insertedBattery.charge -= 3 * SolarFlareWeather.flareData.ScreenDistortionIntensity * Time.deltaTime / __instance.itemProperties.batteryUsage;
+                    }
+                }
+            }
+        }
 
         [HarmonyPatch(typeof(HUDManager), "UseSignalTranslatorClientRpc")]
         [HarmonyPrefix]
@@ -94,7 +105,6 @@ namespace VoxxWeatherPlugin.Patches
 
                 signalMessage = new string(messageChars);
             }
-            Debug.Log($"Corrupted message: {signalMessage} ");
         }
 
         [HarmonyPatch(typeof(ShipTeleporter), "PressTeleportButtonClientRpc")]
@@ -112,8 +122,12 @@ namespace VoxxWeatherPlugin.Patches
                 {
                     int randomIndex = seededRandom.Next(0, outsideAINodes.Length);
                     Transform distortedPosition = outsideAINodes[randomIndex].transform;
-                    distortedPosition.position += 2 * Vector3.up;
-                    __instance.teleporterPosition = distortedPosition;
+                    NavMeshHit hit;
+                    if (NavMesh.SamplePosition(distortedPosition.position, out hit, 10f, NavMesh.AllAreas))
+                    {
+                        distortedPosition.position = hit.position;
+                        __instance.teleporterPosition = distortedPosition;
+                    }
                 }
             } 
         }
@@ -142,7 +156,28 @@ namespace VoxxWeatherPlugin.Patches
             }
         }
 
-
+        [HarmonyPatch(typeof(RadarBoosterItem), "EnableRadarBooster")]
+        [HarmonyPostfix]
+        public static void SignalBoosterPostfix(RadarBoosterItem __instance)
+        {
+            if (SolarFlareWeather.flareData != null)
+            {
+                if (!__instance.radarEnabled)
+                {
+                    // Restore the original values
+                    SolarFlareWeather.flareData.RadioDistortionIntensity *= 2f;
+                    SolarFlareWeather.flareData.ScreenDistortionIntensity *= 2f;
+                    SolarFlareWeather.flareData.RadioBreakthroughLength /= 5f;
+                }
+                else
+                {
+                    // Decrease the distortion intensity
+                    SolarFlareWeather.flareData.RadioDistortionIntensity /= 2f;
+                    SolarFlareWeather.flareData.ScreenDistortionIntensity /= 2f;
+                    SolarFlareWeather.flareData.RadioBreakthroughLength *= 5f;
+                }
+            }
+        }
     }
 }
 

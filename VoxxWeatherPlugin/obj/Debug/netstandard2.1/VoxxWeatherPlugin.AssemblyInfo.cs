@@ -15,7 +15,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyDescriptionAttribute("A plugin adding new weather types to LC")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+63010bcc2a594d7ab28ec68ddc2a7b9648ad30f5")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+80b9ad9ff15dc83f178fa1c89ebdd99044db3be1")]
 [assembly: System.Reflection.AssemblyProductAttribute("VoxxWeathersPlugin")]
 [assembly: System.Reflection.AssemblyTitleAttribute("VoxxWeathersPlugin")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

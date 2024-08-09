@@ -19,15 +19,14 @@ namespace VoxxWeatherPlugin.Weathers
 
     internal class FlareData
     {
-        internal FlareIntensity Intensity { get; private set; }
-        internal float ScreenDistortionIntensity { get; private set; }
-        internal float RadioDistortionIntensity { get; private set; }
-        internal float RadioBreakthroughLength { get; private set; }
-        internal float FlareSize { get; private set; }
-        internal float dischargeSpeed { get; private set; }
-        internal Color AuroraColor1 { get; private set; }
-        internal Color AuroraColor2 { get; private set; }
-        internal bool IsDoorMalfunction { get; private set; }
+        public FlareIntensity Intensity { get; internal set; }
+        public float ScreenDistortionIntensity { get; internal set; }
+        public float RadioDistortionIntensity { get; internal set; }
+        public float RadioBreakthroughLength { get; internal set; }
+        public float FlareSize { get; internal set; }
+        public Color AuroraColor1 { get; internal set; }
+        public Color AuroraColor2 { get; internal set; }
+        public bool IsDoorMalfunction { get; internal set; }
 
         public FlareData(FlareIntensity intensity)
         {
@@ -42,7 +41,6 @@ namespace VoxxWeatherPlugin.Weathers
                     AuroraColor1 = new Color(0f, 11.98f, 0.69f, 1f); 
                     AuroraColor2 = new Color(0.29f, 8.33f, 8.17f, 1f);
                     FlareSize = 1f;
-                    dischargeSpeed = 180f;
                     IsDoorMalfunction = false;
                     break;
                 case FlareIntensity.Mild:
@@ -52,7 +50,6 @@ namespace VoxxWeatherPlugin.Weathers
                     AuroraColor1 = new Color(0.13f, 8.47f, 8.47f, 1f);
                     AuroraColor2 = new Color(9.46f, 0.25f, 15.85f, 1f);
                     FlareSize = 1.1f;
-                    dischargeSpeed = 120f;
                     IsDoorMalfunction = false;
                     break;
                 case FlareIntensity.Average:
@@ -62,7 +59,6 @@ namespace VoxxWeatherPlugin.Weathers
                     AuroraColor1 = new Color(0.38f, 6.88f, 0f, 1f);
                     AuroraColor2 = new Color(15.55f, 0.83f, 7.32f, 1f);
                     FlareSize = 1.25f;
-                    dischargeSpeed = 60f;
                     IsDoorMalfunction = true;
                     break;
                 case FlareIntensity.Strong:
@@ -72,7 +68,6 @@ namespace VoxxWeatherPlugin.Weathers
                     AuroraColor1 = new Color(5.92f, 0f, 11.98f, 1f);
                     AuroraColor2 = new Color(8.65f, 0.83f, 1.87f, 1f);
                     FlareSize = 1.4f;
-                    dischargeSpeed = 30f;
                     IsDoorMalfunction = true;
                     break;
             }
@@ -95,7 +90,6 @@ namespace VoxxWeatherPlugin.Weathers
             if (radarCameraObject != null)
             {
                 HDAdditionalCameraData radarCameraData = radarCameraObject.GetComponent<HDAdditionalCameraData>();
-                FrameSettings radarCameraSettings = radarCameraData.renderingPathCustomFrameSettings;
                 FrameSettingsOverrideMask radarCameraSettingsMask = radarCameraData.renderingPathCustomFrameSettingsOverrideMask;
                 radarCameraSettingsMask.mask[(uint)FrameSettingsField.CustomPass] = false;
                 radarCameraData.renderingPathCustomFrameSettingsOverrideMask = radarCameraSettingsMask;
@@ -174,6 +168,11 @@ namespace VoxxWeatherPlugin.Weathers
 
         private void Update()
         {
+            if (glitchPass != null && flareData != null)
+            {
+                glitchPass.intensity.value = flareData.ScreenDistortionIntensity;
+            }
+
             if (TimeOfDay.Instance.normalizedTimeOfDay % 0.03f < 1e-4)
             {
                 foreach (Animator poweredLight in RoundManager.Instance.allPoweredLightsAnimators)

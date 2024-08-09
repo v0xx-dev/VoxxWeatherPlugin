@@ -121,25 +121,22 @@ namespace VoxxWeatherPlugin
             effectPermanentObject.hideFlags = HideFlags.HideAndDontSave;
             GameObject.DontDestroyOnLoad(effectPermanentObject);
 
-            ImprovedWeatherEffect heatwaveEffect = new(effectObject, effectPermanentObject) {
-                SunAnimatorBool = "",
-                };
+            ImprovedWeatherEffect heatwaveEffect = ScriptableObject.CreateInstance<ImprovedWeatherEffect>();
+            heatwaveEffect.EffectObject = effectObject;
+            heatwaveEffect.WorldObject = effectPermanentObject;
+            heatwaveEffect.SunAnimatorBool = "";
 
-            Weather HeatwaveWeather = new Weather("Heatwave", heatwaveEffect)
-            {
-                DefaultLevelFilters = new[] {"Experimentation", "Assurance", "Offense", "Embrion", "Artifice",
-                                            "EGypt", "Aquatis", "Affliction", "Penumbra", "EchoReach", "Harloth",
-                                            "Celestria", "Derelict", "Infernis", "Etern", "Atlantica", "Junic",
-                                            "Fission", "Mantif", "Sierra", "Cambrian", "Orion", "Vertigo",
-                                            "Collateral", "Devastation", "RelayStation"},
-                LevelFilteringOption = FilteringOption.Include,
-                Color = new Color(1f, 0.5f, 0f),
-                ScrapAmountMultiplier = 1.2f,
-                ScrapValueMultiplier = 0.9f,
-                DefaultWeight = 100
-            };
+            Weather HeatwaveWeather = ScriptableObject.CreateInstance<Weather>();
+            HeatwaveWeather.Name = "Heatwave";
+            HeatwaveWeather.Effect = heatwaveEffect;
+            HeatwaveWeather.DefaultLevelFilters = new[] { "Gordion" };
+            HeatwaveWeather.LevelFilteringOption = FilteringOption.Exclude;
+            HeatwaveWeather.Color = Color.yellow;
+            HeatwaveWeather.ScrapAmountMultiplier = 1.05f;
+            HeatwaveWeather.ScrapValueMultiplier = 1.25f;
+            HeatwaveWeather.DefaultWeight = 1000;
 
-            WeatherRegistry.WeatherManager.RegisterWeather(HeatwaveWeather);
+            WeatherManager.RegisterWeather(HeatwaveWeather);
             Debug.Log($"{PluginInfo.PLUGIN_GUID}: Heatwave weather registered!");
         }
 
@@ -186,22 +183,23 @@ namespace VoxxWeatherPlugin
             effectPermanentObject.hideFlags = HideFlags.HideAndDontSave;
             GameObject.DontDestroyOnLoad(effectPermanentObject);
 
-            ImprovedWeatherEffect flareWeatherEffect = new(effectObject, effectPermanentObject)
-            {
-                SunAnimatorBool = "",
-            };
+            ImprovedWeatherEffect flareWeatherEffect = ScriptableObject.CreateInstance<ImprovedWeatherEffect>();
+            flareWeatherEffect.EffectObject = effectObject;
+            flareWeatherEffect.WorldObject = effectPermanentObject;
+            flareWeatherEffect.SunAnimatorBool = "";
 
-            Weather FlareWeather = new Weather("Solar Flare", flareWeatherEffect)
-            {
-                DefaultLevelFilters = new[] {"Gordion"},
-                LevelFilteringOption = FilteringOption.Exclude,
-                Color = Color.yellow,
-                ScrapAmountMultiplier = 1.05f,
-                ScrapValueMultiplier = 1.25f,
-                DefaultWeight = 1000
-            };
+            //Weather FlareWeather = new Weather("Solar Flare", flareWeatherEffect)
+            Weather FlareWeather = ScriptableObject.CreateInstance<Weather>();
+            FlareWeather.Name = "Solar Flare";
+            FlareWeather.Effect = flareWeatherEffect;
+            FlareWeather.DefaultLevelFilters = new[] { "Gordion" };
+            FlareWeather.LevelFilteringOption = FilteringOption.Exclude;
+            FlareWeather.Color = Color.yellow;
+            FlareWeather.ScrapAmountMultiplier = 1.05f;
+            FlareWeather.ScrapValueMultiplier = 1.25f;
+            FlareWeather.DefaultWeight = 1000;
 
-            WeatherRegistry.WeatherManager.RegisterWeather(FlareWeather);
+            WeatherManager.RegisterWeather(FlareWeather);
             Debug.Log($"{PluginInfo.PLUGIN_GUID}: Solar flare weather registered!");
         }
     }
