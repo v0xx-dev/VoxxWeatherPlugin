@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Reflection.Emit;
 using UnityEngine.AI;
 using VoxxWeatherPlugin.Behaviours;
+using GameNetcodeStuff;
 
 namespace VoxxWeatherPlugin.Patches
 {
@@ -15,11 +16,50 @@ namespace VoxxWeatherPlugin.Patches
         internal static System.Random seededRandom = new System.Random(42);
         internal static Transform originalTeleporterPosition;
 
+        [HarmonyPatch(typeof(PlayerVoiceIngameSettings), "OnDisable")]
+        [HarmonyPrefix]
+        private static void FilterCacheCleanerPatch(PlayerVoiceIngameSettings __instance)
+        {
+           if (__instance.voiceAudio != null)
+           {
+               WalkieDistortionManager.ClearFilterCache(__instance.voiceAudio);
+           }
+        }
+
+        [HarmonyPatch(typeof(StartOfRound), "UpdatePlayerVoiceEffects")]
+        [HarmonyTranspiler]
+        static IEnumerable<CodeInstruction> VoiceDistorterPatch(IEnumerable<CodeInstruction> instructions)
+        {
+            var codeMatcher = new CodeMatcher(instructions);
+            codeMatcher.MatchForward(false,
+                new CodeMatch(OpCodes.Stloc_S),
+                new CodeMatch(OpCodes.Ldloc_1),
+                new CodeMatch(OpCodes.Ldfld, AccessTools.Field(typeof(PlayerControllerB), "isPlayerDead")),
+                new CodeMatch(OpCodes.Brfalse)
+            );
+
+            if (codeMatcher.IsValid)
+            {
+                Debug.Log("Found voice chat distortion patch location");
+                codeMatcher.Advance(1).Insert(
+                    new CodeInstruction(OpCodes.Ldloc_0),  // Load voiceChatAudioSource
+                    new CodeInstruction(OpCodes.Ldloc_1),  // Load allPlayerScript
+                    new CodeInstruction(OpCodes.Ldloc_S, 4),  // Load walkie talkie flag 
+                    new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(WalkieDistortionManager), "UpdateVoiceChatDistortion"))
+                );
+            }
+            else
+            {
+                Debug.LogError("Failed to find voice chat distortion patch location");
+            }
+            return codeMatcher.InstructionEnumeration();
+        }
+
         [HarmonyPatch(typeof(WalkieTalkie), "Start")]
         [HarmonyPrefix]
         private static void WalkieDistortionPatch(WalkieTalkie __instance)
         {
-           __instance.gameObject.AddComponent<WalkieTargetsManager>();
+           __instance.gameObject.AddComponent<WalkieDistortionManager>();
         }
 
         [HarmonyPatch(typeof(WalkieTalkie), "TimeAllAudioSources")]
@@ -60,13 +100,13 @@ namespace VoxxWeatherPlugin.Patches
 
         internal static AudioSource SplitWalkieTarget(GameObject target)
         {
-            WalkieTargetsManager subTargetsManager = target.transform.parent.gameObject.GetComponent<WalkieTargetsManager>();
+            WalkieDistortionManager subTargetsManager = target.transform.parent.gameObject.GetComponent<WalkieDistortionManager>();
             return subTargetsManager.SplitWalkieTarget(target);
         }
 
         internal static void DisposeWalkieTarget(AudioSource audioSource, GameObject walkieObject)
         {
-            WalkieTargetsManager subTargetsManager = walkieObject.GetComponent<WalkieTargetsManager>();
+            WalkieDistortionManager subTargetsManager = walkieObject.GetComponent<WalkieDistortionManager>();
             subTargetsManager.DisposeWalkieTarget(audioSource);
         }
 
@@ -145,36 +185,39 @@ namespace VoxxWeatherPlugin.Patches
 
         [HarmonyPatch(typeof(TerminalAccessibleObject), "CallFunctionFromTerminal")]
         [HarmonyPrefix]
-        public static void DoorTerminalBlocker(TerminalAccessibleObject __instance)
+        public static bool DoorTerminalBlocker(TerminalAccessibleObject __instance)
         {
             if (SolarFlareWeather.flareData != null)
             {
                 if (SolarFlareWeather.flareData.IsDoorMalfunction && __instance.isBigDoor && seededRandom.NextDouble()<0.9f)
                 {
-                    return;
+                    return false;
                 }
             }
+            return true;
         }
 
         [HarmonyPatch(typeof(RadarBoosterItem), "EnableRadarBooster")]
-        [HarmonyPostfix]
-        public static void SignalBoosterPostfix(RadarBoosterItem __instance)
+        [HarmonyPrefix]
+        public static void SignalBoosterPrefix(RadarBoosterItem __instance, ref bool enable)
         {
             if (SolarFlareWeather.flareData != null)
             {
-                if (!__instance.radarEnabled)
-                {
-                    // Restore the original values
-                    SolarFlareWeather.flareData.RadioDistortionIntensity *= 2f;
-                    SolarFlareWeather.flareData.ScreenDistortionIntensity *= 2f;
-                    SolarFlareWeather.flareData.RadioBreakthroughLength /= 5f;
-                }
-                else
+                if (enable)
                 {
                     // Decrease the distortion intensity
-                    SolarFlareWeather.flareData.RadioDistortionIntensity /= 2f;
-                    SolarFlareWeather.flareData.ScreenDistortionIntensity /= 2f;
-                    SolarFlareWeather.flareData.RadioBreakthroughLength *= 5f;
+                    SolarFlareWeather.flareData.RadioDistortionIntensity /= 3f;
+                    SolarFlareWeather.flareData.ScreenDistortionIntensity /= 3f;
+                    SolarFlareWeather.flareData.RadioFrequencyShift /= 4f;
+                    SolarFlareWeather.flareData.RadioBreakthroughLength += 0.25f;
+                }
+                else if (__instance.radarEnabled)
+                {
+                    // Restore the original values
+                    SolarFlareWeather.flareData.RadioDistortionIntensity *= 3f;
+                    SolarFlareWeather.flareData.ScreenDistortionIntensity *= 3f;
+                    SolarFlareWeather.flareData.RadioFrequencyShift *= 4f;
+                    SolarFlareWeather.flareData.RadioBreakthroughLength -= 0.25f;
                 }
             }
         }

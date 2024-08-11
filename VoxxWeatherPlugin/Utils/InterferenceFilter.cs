@@ -7,14 +7,15 @@ namespace VoxxWeatherPlugin.Utils
     public class InterferenceDistortionFilter : MonoBehaviour
     {
         [SerializeField, Range(0f, 1f)] internal float noiseLevel = 0.02f;
-        [SerializeField] internal float frequencyShift = 180f;
-        [SerializeField] internal float modulationFrequency = 5f;
         [SerializeField, Range(0f, 1f)] internal float distortionChance = 0.35f;
+        [SerializeField] internal float maxFrequencyShift = 250f;
+        [SerializeField] internal float freqModulationPeriod = 30f;
         [SerializeField] internal float minClarityDuration = 0.01f;
         [SerializeField] internal float maxClarityDuration = 1f;
-
+        [SerializeField] internal float freqShiftMultiplier = 1.5f;
+        
         private float phase;
-        private float modulationPhase;
+        private float freqPhase;
         private bool isClarity;
         private int sampleRate;
         private int remainingClaritySamples;
@@ -24,7 +25,7 @@ namespace VoxxWeatherPlugin.Utils
         {
             sampleRate = AudioSettings.outputSampleRate;
             phase = 0;
-            modulationPhase = 0;
+            freqPhase = 0;
             isClarity = false;
             remainingClaritySamples = 0;
             random = new System.Random(42);
@@ -33,14 +34,16 @@ namespace VoxxWeatherPlugin.Utils
         private void OnAudioFilterRead(float[] data, int channels)
         {
             int numSamples = data.Length;
-
+            
             // Process audio samples
             for (int i = 0; i < numSamples; i++)
             {
                 // Check if we need to start a new clarity window
                 if (!isClarity && remainingClaritySamples <= 0)
                 {
-                    if (random.NextDouble() < -Mathf.Log(distortionChance + 1e-12f) / (numSamples))
+                    int averageClarityDuration = (int)(1 + (minClarityDuration + maxClarityDuration) / 2 * sampleRate * channels);
+                    float windowChance = -(1 - 1 / (distortionChance + float.Epsilon)) / averageClarityDuration;
+                    if (random.NextDouble() <  windowChance)
                     {
                         isClarity = true;
                         float clarityDuration = random.NextDouble(minClarityDuration, maxClarityDuration);
@@ -52,24 +55,20 @@ namespace VoxxWeatherPlugin.Utils
                 {
                     float sample = data[i];
 
-                    // Apply frequency shift
+                    // Apply amplitude modulation
+                    freqPhase += 1 / (sampleRate * 2 * freqModulationPeriod);
+                    freqPhase %= 1;
+                    float frequencyShift = maxFrequencyShift * Mathf.Cos(2 * Mathf.PI * freqPhase);
+
                     phase += frequencyShift / sampleRate;
                     phase %= 1;
-                    sample *= Mathf.Cos(2 * Mathf.PI * phase);
-
-                    // Apply amplitude modulation
-                    modulationPhase += modulationFrequency / sampleRate;
-                    modulationPhase %= 1;
-                    float modulation = 0.5f * (1 + Mathf.Sin(2 * Mathf.PI * modulationPhase));
-                    sample *= modulation;
+                    sample *= freqShiftMultiplier * Mathf.Cos(2 * Mathf.PI* phase);
 
                     // Modulate with noise
-                    sample *= random.NextDouble(0, 1f);
+                    sample *= 1 - distortionChance + random.NextDouble(0, distortionChance);
 
                     // Clamp to -1 to 1
-                    sample = Mathf.Clamp(sample, -1f, 1f);
-
-                    data[i] = sample;
+                    data[i] = Mathf.Clamp(sample, -1f, 1f);
 
                     remainingClaritySamples--;
                     if (remainingClaritySamples <= 0)
@@ -79,7 +78,7 @@ namespace VoxxWeatherPlugin.Utils
                 }
                 else
                 {
-                    data[i] *= random.NextDouble(-noiseLevel, noiseLevel);
+                    data[i] = random.NextDouble(-noiseLevel, noiseLevel);
                 }
             }
         }

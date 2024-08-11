@@ -5,11 +5,8 @@ using UnityEngine;
 using WeatherRegistry;
 using UnityEngine.Rendering;
 using VoxxWeatherPlugin.Weathers;
-using VoxxWeatherPlugin.Utils;
-using UnityEngine.Rendering.HighDefinition;
-using System;
+using System.Reflection;
 using UnityEngine.VFX;
-using System.Xml.Linq;
 
 namespace VoxxWeatherPlugin
 {
@@ -25,14 +22,31 @@ namespace VoxxWeatherPlugin
             instance = this;
 
             // Plugin startup logic
-            Logger.LogInfo($"Plugin {PluginInfo.PLUGIN_GUID} is loaded!");
-
+            NetcodePatcher();
             //Apply Harmony patch
-            this.harmony = new Harmony(PluginInfo.PLUGIN_GUID);
-            this.harmony.PatchAll();
+            harmony = new Harmony(PluginInfo.PLUGIN_GUID);
+            harmony.PatchAll();
             Logger.LogInfo($"{PluginInfo.PLUGIN_GUID} patches successfully applied!");
             WeatherTypeLoader.RegisterHeatwaveWeather();
             WeatherTypeLoader.RegisterFlareWeather();
+            Logger.LogInfo($"Plugin {PluginInfo.PLUGIN_GUID} is loaded!");
+        }
+
+        private static void NetcodePatcher()
+        {
+            var types = Assembly.GetExecutingAssembly().GetTypes();
+            foreach (var type in types)
+            {
+                var methods = type.GetMethods(BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
+                foreach (var method in methods)
+                {
+                    var attributes = method.GetCustomAttributes(typeof(RuntimeInitializeOnLoadMethodAttribute), false);
+                    if (attributes.Length > 0)
+                    {
+                        method.Invoke(null, null);
+                    }
+                }
+            }
         }
     }
 
@@ -121,20 +135,23 @@ namespace VoxxWeatherPlugin
             effectPermanentObject.hideFlags = HideFlags.HideAndDontSave;
             GameObject.DontDestroyOnLoad(effectPermanentObject);
 
-            ImprovedWeatherEffect heatwaveEffect = ScriptableObject.CreateInstance<ImprovedWeatherEffect>();
-            heatwaveEffect.EffectObject = effectObject;
-            heatwaveEffect.WorldObject = effectPermanentObject;
-            heatwaveEffect.SunAnimatorBool = "";
+            ImprovedWeatherEffect heatwaveEffect = new(effectObject, effectPermanentObject) {
+                SunAnimatorBool = "",
+                };
 
-            Weather HeatwaveWeather = ScriptableObject.CreateInstance<Weather>();
-            HeatwaveWeather.Name = "Heatwave";
-            HeatwaveWeather.Effect = heatwaveEffect;
-            HeatwaveWeather.DefaultLevelFilters = new[] { "Gordion" };
-            HeatwaveWeather.LevelFilteringOption = FilteringOption.Exclude;
-            HeatwaveWeather.Color = Color.yellow;
-            HeatwaveWeather.ScrapAmountMultiplier = 1.05f;
-            HeatwaveWeather.ScrapValueMultiplier = 1.25f;
-            HeatwaveWeather.DefaultWeight = 1000;
+            Weather HeatwaveWeather = new Weather("Heatwave", heatwaveEffect)
+            {
+                DefaultLevelFilters = new[] {"Experimentation", "Assurance", "Offense", "Embrion", "Artifice",
+                                            "EGypt", "Aquatis", "Affliction", "Penumbra", "EchoReach", "Harloth",
+                                            "Celestria", "Derelict", "Infernis", "Etern", "Atlantica", "Junic",
+                                            "Fission", "Mantif", "Sierra", "Cambrian", "Orion", "Vertigo",
+                                            "Collateral", "Devastation", "RelayStation"},
+                LevelFilteringOption = FilteringOption.Include,
+                Color = new Color(1f, 0.5f, 0f),
+                ScrapAmountMultiplier = 1.2f,
+                ScrapValueMultiplier = 0.9f,
+                DefaultWeight = 100
+            };
 
             WeatherManager.RegisterWeather(HeatwaveWeather);
             Debug.Log($"{PluginInfo.PLUGIN_GUID}: Heatwave weather registered!");
@@ -183,21 +200,20 @@ namespace VoxxWeatherPlugin
             effectPermanentObject.hideFlags = HideFlags.HideAndDontSave;
             GameObject.DontDestroyOnLoad(effectPermanentObject);
 
-            ImprovedWeatherEffect flareWeatherEffect = ScriptableObject.CreateInstance<ImprovedWeatherEffect>();
-            flareWeatherEffect.EffectObject = effectObject;
-            flareWeatherEffect.WorldObject = effectPermanentObject;
-            flareWeatherEffect.SunAnimatorBool = "";
+            ImprovedWeatherEffect flareWeatherEffect = new(effectObject, effectPermanentObject)
+            {
+                SunAnimatorBool = "",
+            };
 
-            //Weather FlareWeather = new Weather("Solar Flare", flareWeatherEffect)
-            Weather FlareWeather = ScriptableObject.CreateInstance<Weather>();
-            FlareWeather.Name = "Solar Flare";
-            FlareWeather.Effect = flareWeatherEffect;
-            FlareWeather.DefaultLevelFilters = new[] { "Gordion" };
-            FlareWeather.LevelFilteringOption = FilteringOption.Exclude;
-            FlareWeather.Color = Color.yellow;
-            FlareWeather.ScrapAmountMultiplier = 1.05f;
-            FlareWeather.ScrapValueMultiplier = 1.25f;
-            FlareWeather.DefaultWeight = 1000;
+            Weather FlareWeather = new Weather("Solar Flare", flareWeatherEffect)
+            {
+                DefaultLevelFilters = new[] {"Gordion"},
+                LevelFilteringOption = FilteringOption.Exclude,
+                Color = Color.yellow,
+                ScrapAmountMultiplier = 1.05f,
+                ScrapValueMultiplier = 1.25f,
+                DefaultWeight = 1000
+            };
 
             WeatherManager.RegisterWeather(FlareWeather);
             Debug.Log($"{PluginInfo.PLUGIN_GUID}: Solar flare weather registered!");

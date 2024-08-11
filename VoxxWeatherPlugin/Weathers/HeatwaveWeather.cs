@@ -166,8 +166,7 @@ namespace VoxxWeatherPlugin.Weathers
                     PlayerTemperatureManager.isInHeatZone = true;
                 }
             }
-
-            if (other.CompareTag("Aluminium") && LayerMask.LayerToName(other.gameObject.layer) == "Vehicle")
+            else if (other.CompareTag("Aluminum") && LayerMask.LayerToName(other.gameObject.layer) == "Vehicle")
             {
                 if (other.TryGetComponent(out VehicleHeatwaveHandler cruiserHandler))
                 {
@@ -188,8 +187,7 @@ namespace VoxxWeatherPlugin.Weathers
                 PlayerTemperatureManager.heatSeverityMultiplier = 1f;
                 PlayerTemperatureManager.isInHeatZone = false;
             }
-
-            if (other.CompareTag("Aluminium") && LayerMask.LayerToName(other.gameObject.layer) == "Vehicle")
+            else if (other.CompareTag("Aluminum") && LayerMask.LayerToName(other.gameObject.layer) == "Vehicle")
             {
                 if (other.TryGetComponent(out VehicleHeatwaveHandler cruiserHandler))
                 {
@@ -275,7 +273,9 @@ namespace VoxxWeatherPlugin.Weathers
                 NavMeshHit navHit;
                 if (NavMesh.SamplePosition(hit.point, out navHit, 3f, -1)) //places only where player can walk
                 {
-                    if (!StartOfRound.Instance.shipBounds.bounds.Contains(navHit.position))
+                    Bounds doubledBounds = new Bounds(StartOfRound.Instance.shipBounds.bounds.center, 
+                                  StartOfRound.Instance.shipBounds.bounds.size * 2f);
+                    if (!doubledBounds.Contains(navHit.position))
                         return (navHit.position, hit.normal);
                 }
             }

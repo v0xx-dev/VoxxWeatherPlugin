@@ -5,7 +5,6 @@ using System.Collections;
 
 namespace VoxxWeatherPlugin.Behaviours
 {
-    
     public class VehicleHeatwaveHandler : NetworkBehaviour
     {
         public VehicleController vehicleController;

@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Reflection.Emit;
 using Unity.Netcode;
 using UnityEngine;
+using VoxxWeatherPlugin.Behaviours;
 using VoxxWeatherPlugin.Utils;
 
 namespace VoxxWeatherPlugin.Patches
@@ -40,7 +41,7 @@ namespace VoxxWeatherPlugin.Patches
                 PlayerTemperatureManager.isInHeatZone = false;
             }
 
-            if (!PlayerTemperatureManager.isInHeatZone || __instance)
+            if (!PlayerTemperatureManager.isInHeatZone)
             {
                 PlayerTemperatureManager.SetHeatSeverity(-Time.deltaTime / timeToCool);
             }
@@ -76,18 +77,19 @@ namespace VoxxWeatherPlugin.Patches
                 {
                     // Store the original jump target
                     object originalJumpTarget = codes[i + 3].operand;
-                    // Replace the original ble.un.s with bgt.s
+                    // Replace the original target
                     Label jumpTarget = generator.DefineLabel();
                     codes[i + 3] = new CodeInstruction(OpCodes.Bgt_S, jumpTarget);
 
-                    // Insert the additional condition for PlayerTemperatureManager.heatSeverity
+                    // Insert the additional condition
                     codes.InsertRange(i + 4, new[]
                     {
                         new CodeInstruction(OpCodes.Ldsfld, AccessTools.Field(typeof(PlayerTemperatureManager), "heatSeverity")),
                         new CodeInstruction(OpCodes.Ldc_R4, 0.85f),
                         new CodeInstruction(OpCodes.Ble_Un_S, originalJumpTarget)
                     });
-                    codes[i + 7].labels.Add(jumpTarget); 
+                    // Connect the new jump target
+                    codes[i + 7].labels.Add(jumpTarget);
 
                     break;
                 }
@@ -95,5 +97,12 @@ namespace VoxxWeatherPlugin.Patches
 
             return codes;
         }
+
+    //     [HarmonyPatch(typeof(VehicleController), "Start")]
+    //     [HarmonyPrefix]
+    //     private static void VehicleHeaterPatch(VehicleController __instance)
+    //     {
+    //         VehicleHeatwaveHandler vehicleHeater = __instance.gameObject.AddComponent<VehicleHeatwaveHandler>();
+    //     }
     }
 }

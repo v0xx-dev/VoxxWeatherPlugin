@@ -21,6 +21,7 @@ namespace VoxxWeatherPlugin.Weathers
         public float ScreenDistortionIntensity { get; internal set; }
         public float RadioDistortionIntensity { get; internal set; }
         public float RadioBreakthroughLength { get; internal set; }
+        public float RadioFrequencyShift { get; internal set; }
         public float FlareSize { get; internal set; }
         public Color AuroraColor1 { get; internal set; }
         public Color AuroraColor2 { get; internal set; }
@@ -34,8 +35,9 @@ namespace VoxxWeatherPlugin.Weathers
             {
                 case FlareIntensity.Weak:
                     ScreenDistortionIntensity = 0.3f;
-                    RadioDistortionIntensity = 0.1f;
-                    RadioBreakthroughLength = 1f;
+                    RadioDistortionIntensity = 0.25f;
+                    RadioBreakthroughLength = 1.25f;
+                    RadioFrequencyShift = 1000f;
                     AuroraColor1 = new Color(0f, 11.98f, 0.69f, 1f); 
                     AuroraColor2 = new Color(0.29f, 8.33f, 8.17f, 1f);
                     FlareSize = 1f;
@@ -43,8 +45,9 @@ namespace VoxxWeatherPlugin.Weathers
                     break;
                 case FlareIntensity.Mild:
                     ScreenDistortionIntensity = 0.5f;
-                    RadioDistortionIntensity = 0.25f;
-                    RadioBreakthroughLength = 0.25f;
+                    RadioDistortionIntensity = 0.5f;
+                    RadioBreakthroughLength = 0.75f;
+                    RadioFrequencyShift = 250f;
                     AuroraColor1 = new Color(0.13f, 8.47f, 8.47f, 1f);
                     AuroraColor2 = new Color(9.46f, 0.25f, 15.85f, 1f);
                     FlareSize = 1.1f;
@@ -52,8 +55,9 @@ namespace VoxxWeatherPlugin.Weathers
                     break;
                 case FlareIntensity.Average:
                     ScreenDistortionIntensity = 0.8f;
-                    RadioDistortionIntensity = 0.5f;
-                    RadioBreakthroughLength = 0.1f;
+                    RadioDistortionIntensity = 0.65f;
+                    RadioBreakthroughLength = 0.5f;
+                    RadioFrequencyShift = 50f;
                     AuroraColor1 = new Color(0.38f, 6.88f, 0f, 1f);
                     AuroraColor2 = new Color(15.55f, 0.83f, 7.32f, 1f);
                     FlareSize = 1.25f;
@@ -61,8 +65,9 @@ namespace VoxxWeatherPlugin.Weathers
                     break;
                 case FlareIntensity.Strong:
                     ScreenDistortionIntensity = 1f;
-                    RadioDistortionIntensity = 0.75f;
-                    RadioBreakthroughLength = 0.05f;
+                    RadioDistortionIntensity = 0.85f;
+                    RadioBreakthroughLength = 0.25f;
+                    RadioFrequencyShift = 10f;
                     AuroraColor1 = new Color(5.92f, 0f, 11.98f, 1f);
                     AuroraColor2 = new Color(8.65f, 0.83f, 1.87f, 1f);
                     FlareSize = 1.4f;
@@ -79,6 +84,7 @@ namespace VoxxWeatherPlugin.Weathers
         internal static FlareData flareData;
         [SerializeField]
         internal GlitchEffect glitchPass;
+        internal CustomPassVolume glitchVolume;
         TerminalAccessibleObject[] bigDoors;
 
         internal void GlitchRadarMap()
@@ -105,14 +111,15 @@ namespace VoxxWeatherPlugin.Weathers
                 if (volumeMainTransform != null)
                 {
                     // Add a Local Custom Pass Volume component.
-                    CustomPassVolume glitchVolume = volumeMainTransform.gameObject.AddComponent<CustomPassVolume>();
+                    glitchVolume = volumeMainTransform.gameObject.AddComponent<CustomPassVolume>();
                     glitchVolume.injectionPoint = CustomPassInjectionPoint.AfterPostProcess;
                     glitchVolume.isGlobal = false;
 
                     // Create a new GlitchEffect pass.
-                    glitchPass = new GlitchEffect();
-                    glitchPass.name = "Glitch Pass";
-                    glitchPass.m_Material = glitchMaterial;
+                    glitchPass = new GlitchEffect{
+                        name = "Glitch Pass",
+                        m_Material = glitchMaterial
+                    };
 
                     // Add the pass to the volume and disable it.
                     glitchVolume.customPasses.Add(glitchPass);
@@ -133,7 +140,7 @@ namespace VoxxWeatherPlugin.Weathers
 
         private void OnEnable()
         {
-            if (glitchPass == null)
+            if (glitchVolume == null)
             {
                 GlitchRadarMap();
             }
@@ -208,7 +215,7 @@ namespace VoxxWeatherPlugin.Weathers
             Transform animatedSun = TimeOfDay.Instance.sunDirect.transform.parent;
             foreach (Transform child in animatedSun)
             {
-                if (child.name == "SunTexture")
+                if (child.name == "SunTexture" && child.gameObject.activeSelf)
                 {
                     sunTexture = child.gameObject;
                     break;
@@ -243,8 +250,8 @@ namespace VoxxWeatherPlugin.Weathers
                 Color baseColor = sunTexture.GetComponent<Renderer>().material.color;
                 Color finalColor = Color.Lerp(baseColor, averageTextureColor, baseColor.a);
                 Color coronaColor2 = finalColor;
-                coronaColor2.r += .15f; // Increase red channel
-                float factor = Mathf.Pow(2, 1.3f);
+                coronaColor2.r += .2f; // Increase red channel
+                float factor = Mathf.Pow(2, 1.3f); //HDR color correction
                 finalColor = new Color(finalColor.r * factor, finalColor.g * factor, finalColor.b * factor, 1f);
                 factor = Mathf.Pow(2, 2.7f);
                 coronaColor2 = new Color(coronaColor2.r * factor, coronaColor2.g * factor, coronaColor2.b * factor, 1f);
@@ -313,7 +320,7 @@ namespace VoxxWeatherPlugin.Weathers
             float h, s, v;
 
             Color.RGBToHSV(new Color(r, g, b), out h, out s, out v);
-            s = Mathf.Clamp01(s + 0.5f); // Increase saturation, clamp to 0-1 range
+            s = Mathf.Clamp01(s + 0.65f); // Increase saturation, clamp to 0-1 range
             Color finalColor = Color.HSVToRGB(h, s, v);
             finalColor.a = 1f;
             return finalColor; 
