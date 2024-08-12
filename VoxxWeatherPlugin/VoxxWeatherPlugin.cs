@@ -46,10 +46,10 @@ namespace VoxxWeatherPlugin
             if (VoxxWeatherPlugin.EnableSolarFlareWeather.Value)    
             {
                 WeatherTypeLoader.RegisterFlareWeather();
-                // harmony.PatchAll(typeof(FlarePatches));
+                harmony.PatchAll(typeof(FlarePatches));
                 if (!VoxxWeatherPlugin.DistortOnlyVoiceDuringSolarFlare.Value)
                 {
-                    //harmony.PatchAll(typeof(FlareOptionalWalkiePatches));
+                    harmony.PatchAll(typeof(FlareOptionalWalkiePatches));
                     Logger.LogInfo($"{PluginInfo.PLUGIN_GUID} optional solar flare patches successfully applied!");
                 }
                 Logger.LogInfo($"{PluginInfo.PLUGIN_GUID} solar flare patches successfully applied!");
@@ -58,11 +58,11 @@ namespace VoxxWeatherPlugin
             if (VoxxWeatherPlugin.EnableHeatwaveWeather.Value)
             {
                 WeatherTypeLoader.RegisterHeatwaveWeather();
-                //harmony.PatchAll(typeof(HeatwavePatches));
+                harmony.PatchAll(typeof(HeatwavePatches));
                 Logger.LogInfo($"{PluginInfo.PLUGIN_GUID} heatwave patches successfully applied!");
             }
 
-            WeatherTypeLoader.RegisterBlizzardWeather();
+            //WeatherTypeLoader.RegisterBlizzardWeather();
 
             Logger.LogInfo($"Plugin {PluginInfo.PLUGIN_GUID} is loaded!");
         }
