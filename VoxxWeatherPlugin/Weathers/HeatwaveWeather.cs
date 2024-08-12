@@ -5,6 +5,7 @@ using UnityEngine;
 using VoxxWeatherPlugin.Utils;
 using UnityEngine.AI;
 using VoxxWeatherPlugin.Behaviours;
+using UnityEngine.VFX;
 
 namespace VoxxWeatherPlugin.Weathers
 {
@@ -166,13 +167,13 @@ namespace VoxxWeatherPlugin.Weathers
                     PlayerTemperatureManager.isInHeatZone = true;
                 }
             }
-            else if (other.CompareTag("Aluminum") && LayerMask.LayerToName(other.gameObject.layer) == "Vehicle")
-            {
-                if (other.TryGetComponent(out VehicleHeatwaveHandler cruiserHandler))
-                {
-                    cruiserHandler.isInHeatwave = true;
-                }
-            }
+            // else if (other.CompareTag("Aluminum") && LayerMask.LayerToName(other.gameObject.layer) == "Vehicle")
+            // {
+            //     if (other.TryGetComponent(out VehicleHeatwaveHandler cruiserHandler))
+            //     {
+            //         cruiserHandler.isInHeatwave = true;
+            //     }
+            // }
         }
 
         private void OnTriggerExit(Collider other)
@@ -187,13 +188,13 @@ namespace VoxxWeatherPlugin.Weathers
                 PlayerTemperatureManager.heatSeverityMultiplier = 1f;
                 PlayerTemperatureManager.isInHeatZone = false;
             }
-            else if (other.CompareTag("Aluminum") && LayerMask.LayerToName(other.gameObject.layer) == "Vehicle")
-            {
-                if (other.TryGetComponent(out VehicleHeatwaveHandler cruiserHandler))
-                {
-                    cruiserHandler.isInHeatwave = false;
-                }
-            }
+            // else if (other.CompareTag("Aluminum") && LayerMask.LayerToName(other.gameObject.layer) == "Vehicle")
+            // {
+            //     if (other.TryGetComponent(out VehicleHeatwaveHandler cruiserHandler))
+            //     {
+            //         cruiserHandler.isInHeatwave = false;
+            //     }
+            // }
         }
     }
 
@@ -210,7 +211,6 @@ namespace VoxxWeatherPlugin.Weathers
         {
             Transform transform = heatwaveParticlePrefab.transform;
             emitterSize = Mathf.Max(transform.localScale.x, transform.localScale.z) * 5f;
-            //Debug.Log($"Emitter size: {emitterSize}");
         }
 
         internal void PopulateLevelWithVFX(ref Vector3 heatwaveZoneSize, ref Vector3 heatwaveZoneLocation, System.Random seededRandom)
@@ -223,7 +223,7 @@ namespace VoxxWeatherPlugin.Weathers
 
             int xCount = Mathf.CeilToInt(heatwaveZoneSize.x / emitterSize);
             int zCount = Mathf.CeilToInt(heatwaveZoneSize.z / emitterSize);
-            //Debug.Log($"Placing {xCount * zCount} emitters...");
+            Debug.LogDebug($"Placing {xCount * zCount} emitters...");
 
             Vector3 startPoint = heatwaveZoneLocation - heatwaveZoneSize * 0.5f;
 
@@ -238,9 +238,9 @@ namespace VoxxWeatherPlugin.Weathers
                     float dx = (float)seededRandom.NextDouble() - 0.5f;
                     float dz = (float)seededRandom.NextDouble() - 0.5f;
                     Vector3 rayOrigin = startPoint + new Vector3((x + dx) * emitterSize, raycastHeight, (z + dz) * emitterSize);
-                    //Debug.Log($"Raycast origin: {rayOrigin}");
+                    //Debug.LogDebug($"Raycast origin: {rayOrigin}");
                     (Vector3 position, Vector3 normal) = CastRayAndSampleNavMesh(rayOrigin);
-                    //Debug.Log($"NavMesh hit position and normal: {position}, {normal}");
+                    //Debug.LogDebug($"NavMesh hit position and normal: {position}, {normal}");
 
                     if (position != Vector3.zero)
                     {

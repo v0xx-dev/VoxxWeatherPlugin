@@ -40,7 +40,6 @@ namespace VoxxWeatherPlugin.Patches
 
             if (codeMatcher.IsValid)
             {
-                Debug.Log("Found voice chat distortion patch location");
                 codeMatcher.Advance(1).Insert(
                     new CodeInstruction(OpCodes.Ldloc_0),  // Load voiceChatAudioSource
                     new CodeInstruction(OpCodes.Ldloc_1),  // Load allPlayerScript
@@ -48,66 +47,8 @@ namespace VoxxWeatherPlugin.Patches
                     new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(WalkieDistortionManager), "UpdateVoiceChatDistortion"))
                 );
             }
-            else
-            {
-                Debug.LogError("Failed to find voice chat distortion patch location");
-            }
+            
             return codeMatcher.InstructionEnumeration();
-        }
-
-        [HarmonyPatch(typeof(WalkieTalkie), "Start")]
-        [HarmonyPrefix]
-        private static void WalkieDistortionPatch(WalkieTalkie __instance)
-        {
-           __instance.gameObject.AddComponent<WalkieDistortionManager>();
-        }
-
-        [HarmonyPatch(typeof(WalkieTalkie), "TimeAllAudioSources")]
-        [HarmonyTranspiler]
-        static IEnumerable<CodeInstruction> RadioDistorterPatch(IEnumerable<CodeInstruction> instructions)
-        {
-            var codeMatcher = new CodeMatcher(instructions);
-
-            // Replace audio source creation logic
-            codeMatcher = codeMatcher.MatchForward(true,
-                new CodeMatch(OpCodes.Ldarg_0),
-                new CodeMatch(OpCodes.Ldfld, AccessTools.Field(typeof(WalkieTalkie), "audioSourcesReceiving")),
-                new CodeMatch(OpCodes.Ldloc_3),
-                new CodeMatch(OpCodes.Ldarg_0),
-                new CodeMatch(OpCodes.Ldfld, AccessTools.Field(typeof(WalkieTalkie), "target")),
-                new CodeMatch(OpCodes.Callvirt, AccessTools.Method(typeof(Component), "get_gameObject"))
-            );
-
-            codeMatcher.Advance(1);
-
-            codeMatcher.SetInstruction(new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(FlarePatches), "SplitWalkieTarget")));
-
-            // Replace audio source disposal logic
-            codeMatcher = codeMatcher.MatchForward(true,
-                new CodeMatch(OpCodes.Ldloc_1),
-                new CodeMatch(OpCodes.Call, AccessTools.Method(typeof(UnityEngine.Object), "Destroy", new[] { typeof(UnityEngine.Object) }))
-            )
-            .Repeat(matcher => {
-                matcher.SetInstruction(new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(FlarePatches), "DisposeWalkieTarget",
-                     new[] { typeof(AudioSource), typeof(GameObject) })));
-                matcher.Insert(new CodeInstruction(OpCodes.Callvirt, AccessTools.Method(typeof(Component), "get_gameObject")));
-                matcher.Insert(new CodeInstruction(OpCodes.Ldarg_0));
-                ;
-             });
-
-            return codeMatcher.InstructionEnumeration();
-        }
-
-        internal static AudioSource SplitWalkieTarget(GameObject target)
-        {
-            WalkieDistortionManager subTargetsManager = target.transform.parent.gameObject.GetComponent<WalkieDistortionManager>();
-            return subTargetsManager.SplitWalkieTarget(target);
-        }
-
-        internal static void DisposeWalkieTarget(AudioSource audioSource, GameObject walkieObject)
-        {
-            WalkieDistortionManager subTargetsManager = walkieObject.GetComponent<WalkieDistortionManager>();
-            subTargetsManager.DisposeWalkieTarget(audioSource);
         }
 
         [HarmonyPatch(typeof(GrabbableObject), "Update")]
@@ -222,6 +163,66 @@ namespace VoxxWeatherPlugin.Patches
             }
         }
     }
+
+    [HarmonyPatch]
+    internal class FlareOptionalWalkiePatches
+    {
+        [HarmonyPatch(typeof(WalkieTalkie), "Start")]
+        [HarmonyPrefix]
+        private static void WalkieDistortionPatch(WalkieTalkie __instance)
+        {
+           __instance.gameObject.AddComponent<WalkieDistortionManager>();
+        }
+
+        [HarmonyPatch(typeof(WalkieTalkie), "TimeAllAudioSources")]
+        [HarmonyTranspiler]
+        static IEnumerable<CodeInstruction> RadioDistorterPatch(IEnumerable<CodeInstruction> instructions)
+        {
+            var codeMatcher = new CodeMatcher(instructions);
+
+            // Replace audio source creation logic
+            codeMatcher = codeMatcher.MatchForward(true,
+                new CodeMatch(OpCodes.Ldarg_0),
+                new CodeMatch(OpCodes.Ldfld, AccessTools.Field(typeof(WalkieTalkie), "audioSourcesReceiving")),
+                new CodeMatch(OpCodes.Ldloc_3),
+                new CodeMatch(OpCodes.Ldarg_0),
+                new CodeMatch(OpCodes.Ldfld, AccessTools.Field(typeof(WalkieTalkie), "target")),
+                new CodeMatch(OpCodes.Callvirt, AccessTools.Method(typeof(Component), "get_gameObject"))
+            );
+
+            codeMatcher.Advance(1);
+
+            codeMatcher.SetInstruction(new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(FlarePatches), "SplitWalkieTarget")));
+
+            // Replace audio source disposal logic
+            codeMatcher = codeMatcher.MatchForward(true,
+                new CodeMatch(OpCodes.Ldloc_1),
+                new CodeMatch(OpCodes.Call, AccessTools.Method(typeof(UnityEngine.Object), "Destroy", new[] { typeof(UnityEngine.Object) }))
+            )
+            .Repeat(matcher => {
+                matcher.SetInstruction(new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(FlarePatches), "DisposeWalkieTarget",
+                     new[] { typeof(AudioSource), typeof(GameObject) })));
+                matcher.Insert(new CodeInstruction(OpCodes.Callvirt, AccessTools.Method(typeof(Component), "get_gameObject")));
+                matcher.Insert(new CodeInstruction(OpCodes.Ldarg_0));
+                ;
+             });
+
+            return codeMatcher.InstructionEnumeration();
+        }
+
+        internal static AudioSource SplitWalkieTarget(GameObject target)
+        {
+            WalkieDistortionManager subTargetsManager = target.transform.parent.gameObject.GetComponent<WalkieDistortionManager>();
+            return subTargetsManager.SplitWalkieTarget(target);
+        }
+
+        internal static void DisposeWalkieTarget(AudioSource audioSource, GameObject walkieObject)
+        {
+            WalkieDistortionManager subTargetsManager = walkieObject.GetComponent<WalkieDistortionManager>();
+            subTargetsManager.DisposeWalkieTarget(audioSource);
+        }
+    }
+
 }
 
 
