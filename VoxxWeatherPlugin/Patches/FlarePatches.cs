@@ -57,11 +57,11 @@ namespace VoxxWeatherPlugin.Patches
         {
             if (SolarFlareWeather.flareData != null)
             {
-                if (__instance.IsOwner && __instance.hasBeenHeld && __instance.itemProperties.requiresBattery)
+                if (__instance.IsOwner && __instance.hasBeenHeld && __instance.itemProperties.requiresBattery && !__instance.isInFactory)
                 {
                     if (__instance.insertedBattery.charge > 0.0 && !__instance.itemProperties.itemIsTrigger)
                     {
-                        __instance.insertedBattery.charge -= 3 * SolarFlareWeather.flareData.ScreenDistortionIntensity * Time.deltaTime / __instance.itemProperties.batteryUsage;
+                        __instance.insertedBattery.charge -= 5 * SolarFlareWeather.flareData.ScreenDistortionIntensity * Time.deltaTime / __instance.itemProperties.batteryUsage;
                     }
                 }
             }

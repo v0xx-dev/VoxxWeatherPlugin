@@ -33,7 +33,7 @@ namespace VoxxWeatherPlugin
             instance = this;
             StaticLogger = Logger; 
             
-            //NetcodePatcher();
+            NetcodePatcher();
 
             InitializeConfig();
             
