@@ -39,30 +39,31 @@ namespace VoxxWeatherPlugin
             
             //NetcodePatcher();
 
-            InitializeConfig();
+            //InitializeConfig();
             
-            harmony = new Harmony(PluginInfo.PLUGIN_GUID);
+            // harmony = new Harmony(PluginInfo.PLUGIN_GUID);
 
-            if (VoxxWeatherPlugin.EnableSolarFlareWeather.Value)    
-            {
-                WeatherTypeLoader.RegisterFlareWeather();
-                harmony.PatchAll(typeof(FlarePatches));
-                if (!VoxxWeatherPlugin.DistortOnlyVoiceDuringSolarFlare.Value)
-                {
-                    harmony.PatchAll(typeof(FlareOptionalWalkiePatches));
-                    Logger.LogInfo($"{PluginInfo.PLUGIN_GUID} optional solar flare patches successfully applied!");
-                }
-                Logger.LogInfo($"{PluginInfo.PLUGIN_GUID} solar flare patches successfully applied!");
-            }
+            // if (VoxxWeatherPlugin.EnableSolarFlareWeather.Value)    
+            // {
+            //     WeatherTypeLoader.RegisterFlareWeather();
+            //     harmony.PatchAll(typeof(FlarePatches));
+            //     if (!VoxxWeatherPlugin.DistortOnlyVoiceDuringSolarFlare.Value)
+            //     {
+            //         harmony.PatchAll(typeof(FlareOptionalWalkiePatches));
+            //         Logger.LogInfo($"{PluginInfo.PLUGIN_GUID} optional solar flare patches successfully applied!");
+            //     }
+            //     Logger.LogInfo($"{PluginInfo.PLUGIN_GUID} solar flare patches successfully applied!");
+            // }
 
-            if (VoxxWeatherPlugin.EnableHeatwaveWeather.Value)
-            {
-                WeatherTypeLoader.RegisterHeatwaveWeather();
-                harmony.PatchAll(typeof(HeatwavePatches));
-                Logger.LogInfo($"{PluginInfo.PLUGIN_GUID} heatwave patches successfully applied!");
-            }
+            // if (VoxxWeatherPlugin.EnableHeatwaveWeather.Value)
+            // {
+            //     WeatherTypeLoader.RegisterHeatwaveWeather();
+            //     harmony.PatchAll(typeof(HeatwavePatches));
+            //     Logger.LogInfo($"{PluginInfo.PLUGIN_GUID} heatwave patches successfully applied!");
+            // }
 
-            //WeatherTypeLoader.RegisterBlizzardWeather();
+            WeatherTypeLoader.RegisterBlizzardWeather();
+            WeatherTypeLoader.RegisterSnowfallWeather();
 
             Logger.LogInfo($"Plugin {PluginInfo.PLUGIN_GUID} is loaded!");
         }
@@ -319,6 +320,40 @@ namespace VoxxWeatherPlugin
 
             WeatherManager.RegisterWeather(BlizzardWeather);
             Debug.Log($"{PluginInfo.PLUGIN_GUID}: Blizzard weather registered!");
+
+        }
+
+        public static void RegisterSnowfallWeather()
+        {
+            GameObject blizzardVFXObject = new GameObject("SnowfallVFX");
+            blizzardVFXObject.SetActive(false);
+            GameObject effectObject = GameObject.Instantiate(blizzardVFXObject);
+            effectObject.hideFlags = HideFlags.HideAndDontSave;
+            GameObject.DontDestroyOnLoad(effectObject);
+
+            GameObject blizzardEffect = new GameObject("SnowfallEffect");
+            blizzardEffect.SetActive(false);
+            GameObject effectPermanentObject = GameObject.Instantiate(blizzardEffect);
+            effectPermanentObject.hideFlags = HideFlags.HideAndDontSave;
+            GameObject.DontDestroyOnLoad(effectPermanentObject);
+
+            ImprovedWeatherEffect blizzardWeatherEffect = new(effectObject, effectPermanentObject)
+            {
+                SunAnimatorBool = "overcast",
+            };
+
+            Weather SnowfallWeather = new Weather("Snowfall", blizzardWeatherEffect)
+            {
+                DefaultLevelFilters = new[] {"Vow", "March", "Adamance"},
+                LevelFilteringOption = FilteringOption.Include,
+                Color = Color.blue,
+                ScrapAmountMultiplier = 1.25f,
+                ScrapValueMultiplier = 1.2f,
+                DefaultWeight = 1000
+            };
+
+            WeatherManager.RegisterWeather(SnowfallWeather);
+            Debug.Log($"{PluginInfo.PLUGIN_GUID}: Snowfall weather registered!");
 
         }
     }
