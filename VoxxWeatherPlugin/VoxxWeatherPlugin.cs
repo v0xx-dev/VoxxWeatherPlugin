@@ -5,8 +5,11 @@ using UnityEngine;
 using WeatherRegistry;
 using UnityEngine.Rendering;
 using VoxxWeatherPlugin.Weathers;
+using VoxxWeatherPlugin.Patches;
 using System.Reflection;
 using UnityEngine.VFX;
+using BepInEx.Logging;
+using BepInEx.Configuration;
 
 namespace VoxxWeatherPlugin
 {
@@ -16,19 +19,51 @@ namespace VoxxWeatherPlugin
     {
         private Harmony harmony;
         public static VoxxWeatherPlugin instance;
+        internal static ManualLogSource StaticLogger;
+
+        // Config entries
+        public static ConfigEntry<bool> EnableHeatwaveWeather;
+        public static ConfigEntry<bool> EnableSolarFlareWeather;
+        public static ConfigEntry<uint> AuroraHeight;
+        public static ConfigEntry<float> AuroraSpawnAreaBox;
+        public static ConfigEntry<float> AuroraVisibilityThreshold;
+        public static ConfigEntry<float> AuroraSpawnRate;
+        public static ConfigEntry<float> AuroraSize;
+        public static ConfigEntry<uint> HeatwaveParticlesSpawnRate;
+        public static ConfigEntry<bool> DistortOnlyVoiceDuringSolarFlare;
 
         private void Awake()
         {
             instance = this;
+            StaticLogger = Logger; 
+            
+            //NetcodePatcher();
 
-            // Plugin startup logic
-            NetcodePatcher();
-            //Apply Harmony patch
+            InitializeConfig();
+            
             harmony = new Harmony(PluginInfo.PLUGIN_GUID);
-            harmony.PatchAll();
-            Logger.LogInfo($"{PluginInfo.PLUGIN_GUID} patches successfully applied!");
-            WeatherTypeLoader.RegisterHeatwaveWeather();
-            WeatherTypeLoader.RegisterFlareWeather();
+
+            if (VoxxWeatherPlugin.EnableSolarFlareWeather.Value)    
+            {
+                WeatherTypeLoader.RegisterFlareWeather();
+                // harmony.PatchAll(typeof(FlarePatches));
+                if (!VoxxWeatherPlugin.DistortOnlyVoiceDuringSolarFlare.Value)
+                {
+                    //harmony.PatchAll(typeof(FlareOptionalWalkiePatches));
+                    Logger.LogInfo($"{PluginInfo.PLUGIN_GUID} optional solar flare patches successfully applied!");
+                }
+                Logger.LogInfo($"{PluginInfo.PLUGIN_GUID} solar flare patches successfully applied!");
+            }
+
+            if (VoxxWeatherPlugin.EnableHeatwaveWeather.Value)
+            {
+                WeatherTypeLoader.RegisterHeatwaveWeather();
+                //harmony.PatchAll(typeof(HeatwavePatches));
+                Logger.LogInfo($"{PluginInfo.PLUGIN_GUID} heatwave patches successfully applied!");
+            }
+
+            WeatherTypeLoader.RegisterBlizzardWeather();
+
             Logger.LogInfo($"Plugin {PluginInfo.PLUGIN_GUID} is loaded!");
         }
 
@@ -48,6 +83,31 @@ namespace VoxxWeatherPlugin
                 }
             }
         }
+
+        private void InitializeConfig()
+        {
+            EnableHeatwaveWeather = Config.Bind("Weather", "EnableHeatwaveWeather", true, "Enable or disable Heatwave weather");
+            EnableSolarFlareWeather = Config.Bind("Weather", "EnableSolarFlareWeather", true, "Enable or disable Solar Flare weather");
+            HeatwaveParticlesSpawnRate = Config.Bind("Heatwave", "ParticlesSpawnRate", (uint)20, "Spawn rate of Heatwave particles. Particles per second. Capped at 42");
+            AuroraHeight = Config.Bind("SolarFlare", "AuroraHeight", (uint)120, "Height of the Aurora effect above the ground");
+            AuroraSpawnAreaBox = Config.Bind("SolarFlare", "AuroraSpawnArea", 500f, "Size of the Aurora spawn area. The Aurora effect will spawn randomly within this square area. VFX may disappear at certain angles if the area is too small or too large.");
+            AuroraVisibilityThreshold = Config.Bind("Aurora", "AuroraVisibilityThreshold", 8f, "Light threshold when Aurora becomes visible (in Lux). Increase to make it more visible.");
+            AuroraSpawnRate = Config.Bind("SolarFlare", "AuroraSpawnRate", 0.1f, "Spawn rate of Aurora effects. Auroras per second. Capped at 32");
+            AuroraSize = Config.Bind("SolarFlare", "AuroraSize", 100f, "Size of the Aurora 'strips' in the sky");
+            DistortOnlyVoiceDuringSolarFlare = Config.Bind("SolarFlare", "DistortOnlyVoice", true, "Distort only player voice during Solar Flare (true) or all sounds (false) on a walkie-talkie");
+        }
+    }
+
+    public static class Debug
+    {
+        private static ManualLogSource Logger => VoxxWeatherPlugin.StaticLogger;
+
+        public static void Log(string message) => Logger.LogInfo(message);
+        public static void LogError(string message) => Logger.LogError(message);
+        public static void LogWarning(string message) => Logger.LogWarning(message);
+        public static void LogDebug(string message) => Logger.LogDebug(message);
+        public static void LogMessage(string message) => Logger.LogMessage(message);
+        public static void LogFatal(string message) => Logger.LogFatal(message);
     }
 
     public class WeatherAssetLoader
@@ -72,7 +132,7 @@ namespace VoxxWeatherPlugin
                 return loadedBundles[bundleName];
             }
 
-            string dllPath = System.Reflection.Assembly.GetExecutingAssembly().Location;
+            string dllPath = Assembly.GetExecutingAssembly().Location;
             string dllDirectory = System.IO.Path.GetDirectoryName(dllPath);
             string bundlePath = System.IO.Path.Combine(dllDirectory, bundleName);
             AssetBundle bundle = AssetBundle.LoadFromFile(bundlePath);
@@ -108,6 +168,7 @@ namespace VoxxWeatherPlugin
     public class WeatherTypeLoader
     {
         internal static string bundleName = "voxxweather.assetbundle";
+        
         public static void RegisterHeatwaveWeather()
         {
             GameObject vfxPrefab = WeatherAssetLoader.LoadAsset<GameObject>(bundleName, "HeatwaveParticlePrefab");
@@ -122,6 +183,9 @@ namespace VoxxWeatherPlugin
             heatwaveVFX.SetActive(false);
             GameObject effectObject = GameObject.Instantiate(heatwaveVFX);
             HeatwaveVFXManager VFXmanager = effectObject.AddComponent<HeatwaveVFXManager>();
+            
+            VisualEffect vfx = vfxPrefab.GetComponent<VisualEffect>();
+            vfx.SetUInt("particleSpawnRate", VoxxWeatherPlugin.HeatwaveParticlesSpawnRate.Value);
             VFXmanager.heatwaveParticlePrefab = vfxPrefab;
             effectObject.hideFlags = HideFlags.HideAndDontSave;
             GameObject.DontDestroyOnLoad(effectObject);
@@ -177,6 +241,10 @@ namespace VoxxWeatherPlugin
             auroraVFXObject.SetActive(false);
             VisualEffect loadedVFX = auroraVFXObject.AddComponent<VisualEffect>();
             loadedVFX.visualEffectAsset = auroraVFX;
+            loadedVFX.SetUInt("spawnHeight", VoxxWeatherPlugin.AuroraHeight.Value);
+            loadedVFX.SetFloat("spawnBoxSize", VoxxWeatherPlugin.AuroraSpawnAreaBox.Value);
+            loadedVFX.SetFloat("auroraSize", VoxxWeatherPlugin.AuroraSize.Value);
+            loadedVFX.SetFloat("particleSpawnRate", VoxxWeatherPlugin.AuroraSpawnRate.Value);
             GameObject.DontDestroyOnLoad(auroraVFXObject);
             auroraVFXObject.transform.SetParent(effectObject.transform);
 
@@ -187,6 +255,7 @@ namespace VoxxWeatherPlugin
             coronaVFXObject.transform.SetParent(effectObject.transform);
 
             SolarFlareVFXManager VFXmanager = effectObject.AddComponent<SolarFlareVFXManager>();
+            VFXmanager.auroraSunThreshold = VoxxWeatherPlugin.AuroraVisibilityThreshold.Value;
             SolarFlareVFXManager.flarePrefab = coronaVFXObject;
             SolarFlareVFXManager.auroraPrefab = auroraVFXObject;
             effectObject.hideFlags = HideFlags.HideAndDontSave;
@@ -210,13 +279,47 @@ namespace VoxxWeatherPlugin
                 DefaultLevelFilters = new[] {"Gordion"},
                 LevelFilteringOption = FilteringOption.Exclude,
                 Color = Color.yellow,
-                ScrapAmountMultiplier = 1.05f,
+                ScrapAmountMultiplier = 0.95f,
                 ScrapValueMultiplier = 1.25f,
                 DefaultWeight = 1000
             };
 
             WeatherManager.RegisterWeather(FlareWeather);
             Debug.Log($"{PluginInfo.PLUGIN_GUID}: Solar flare weather registered!");
+        }
+
+        public static void RegisterBlizzardWeather()
+        {
+            GameObject blizzardVFXObject = new GameObject("BlizzardVFX");
+            blizzardVFXObject.SetActive(false);
+            GameObject effectObject = GameObject.Instantiate(blizzardVFXObject);
+            effectObject.hideFlags = HideFlags.HideAndDontSave;
+            GameObject.DontDestroyOnLoad(effectObject);
+
+            GameObject blizzardEffect = new GameObject("BlizzardEffect");
+            blizzardEffect.SetActive(false);
+            GameObject effectPermanentObject = GameObject.Instantiate(blizzardEffect);
+            effectPermanentObject.hideFlags = HideFlags.HideAndDontSave;
+            GameObject.DontDestroyOnLoad(effectPermanentObject);
+
+            ImprovedWeatherEffect blizzardWeatherEffect = new(effectObject, effectPermanentObject)
+            {
+                SunAnimatorBool = "overcast",
+            };
+
+            Weather BlizzardWeather = new Weather("Blizzard", blizzardWeatherEffect)
+            {
+                DefaultLevelFilters = new[] {"Rend", "Dine", "Artifice", "Titan"},
+                LevelFilteringOption = FilteringOption.Include,
+                Color = Color.cyan,
+                ScrapAmountMultiplier = 1.25f,
+                ScrapValueMultiplier = 1.2f,
+                DefaultWeight = 1000
+            };
+
+            WeatherManager.RegisterWeather(BlizzardWeather);
+            Debug.Log($"{PluginInfo.PLUGIN_GUID}: Blizzard weather registered!");
+
         }
     }
 
