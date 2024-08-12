@@ -264,7 +264,7 @@ namespace VoxxWeatherPlugin
             GameObject flareEffect = new GameObject("SolarFlareEffect");
             flareEffect.SetActive(false);
             GameObject effectPermanentObject = GameObject.Instantiate(flareEffect);
-            SolarFlareWeather flareScript = effectPermanentObject.AddComponent<SolarFlareWeather>();
+            SolarFlareWeather _ = effectPermanentObject.AddComponent<SolarFlareWeather>();
             SolarFlareWeather.glitchMaterial = glitchPassMaterial;
             effectPermanentObject.hideFlags = HideFlags.HideAndDontSave;
             GameObject.DontDestroyOnLoad(effectPermanentObject);
