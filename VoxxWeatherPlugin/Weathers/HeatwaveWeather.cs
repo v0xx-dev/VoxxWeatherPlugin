@@ -21,8 +21,8 @@ namespace VoxxWeatherPlugin.Weathers
 
         private System.Random seededRandom;
 
-        private float timeUntilStrokeMin = 40f; // Minimum time until a heatstroke occurs
-        private float timeUntilStrokeMax = 80f; // Maximum time until a heatstroke occurs
+        private float timeUntilStrokeMin => VoxxWeatherPlugin.TimeUntilStrokeMin.Value; // Minimum time until a heatstroke occurs
+        private float timeUntilStrokeMax => VoxxWeatherPlugin.TimeUntilStrokeMax.Value; // Maximum time until a heatstroke occurs
         [SerializeField] private float timeInHeatZoneMax = 50f; // Time before maximum effects are applied
 
         private void Awake()
@@ -67,7 +67,7 @@ namespace VoxxWeatherPlugin.Weathers
             Debug.Log($"Heatwave zone placed!");
 
             // Set exhaustion time for the player
-            timeInHeatZoneMax = (float)seededRandom.Next((int)timeUntilStrokeMin, (int)timeUntilStrokeMax);
+            timeInHeatZoneMax = Mathf.Clamp(seededRandom.NextDouble(timeUntilStrokeMin, timeUntilStrokeMax), 1f, 9999f);
             Debug.Log($"Set time until heatstroke: {timeInHeatZoneMax} seconds");
         }
 

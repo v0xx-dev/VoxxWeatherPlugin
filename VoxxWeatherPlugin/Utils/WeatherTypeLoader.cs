@@ -1,4 +1,3 @@
-using System;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.VFX;
@@ -68,7 +67,6 @@ namespace VoxxWeatherPlugin.Utils
             VisualEffectAsset auroraVFX = WeatherAssetLoader.LoadAsset<VisualEffectAsset>(bundleName, "AuroraVFX");
             VisualEffectAsset coronaVFX = WeatherAssetLoader.LoadAsset<VisualEffectAsset>(bundleName, "CoronaVFX");
             Material glitchPassMaterial = WeatherAssetLoader.LoadAsset<Material>(bundleName, "GlitchPassMaterial");
-
             if (auroraVFX == null || coronaVFX == null || glitchPassMaterial == null)
             {
                 Debug.LogError("Failed to load Solar Flare Weather assets. Weather registration failed.");
@@ -123,7 +121,7 @@ namespace VoxxWeatherPlugin.Utils
                 Color = Color.yellow,
                 ScrapAmountMultiplier = 0.95f,
                 ScrapValueMultiplier = 1.25f,
-                DefaultWeight = 1000
+                DefaultWeight = 100
             };
 
             WeatherManager.RegisterWeather(FlareWeather);

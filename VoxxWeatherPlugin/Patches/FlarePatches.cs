@@ -15,6 +15,10 @@ namespace VoxxWeatherPlugin.Patches
         internal static System.Random random = new System.Random();
         internal static System.Random seededRandom = new System.Random(42);
         internal static Transform originalTeleporterPosition;
+        internal static float batteryDrainMultiplier => Mathf.Clamp(VoxxWeatherPlugin.BatteryDrainMultiplier.Value, 0, 99);
+        internal static bool drainBatteryInFacility => VoxxWeatherPlugin.DrainBatteryInFacility.Value;
+        internal static bool doorMalfunctionEnabled => VoxxWeatherPlugin.DoorMalfunctionEnabled.Value;
+
 
         [HarmonyPatch(typeof(PlayerVoiceIngameSettings), "OnDisable")]
         [HarmonyPrefix]
@@ -57,11 +61,11 @@ namespace VoxxWeatherPlugin.Patches
         {
             if (SolarFlareWeather.flareData != null)
             {
-                if (__instance.IsOwner && __instance.hasBeenHeld && __instance.itemProperties.requiresBattery && !__instance.isInFactory)
+                if (__instance.IsOwner && __instance.hasBeenHeld && __instance.itemProperties.requiresBattery && (!__instance.isInFactory || drainBatteryInFacility))
                 {
                     if (__instance.insertedBattery.charge > 0.0 && !__instance.itemProperties.itemIsTrigger)
                     {
-                        __instance.insertedBattery.charge -= 5 * SolarFlareWeather.flareData.ScreenDistortionIntensity * Time.deltaTime / __instance.itemProperties.batteryUsage;
+                        __instance.insertedBattery.charge -= 2 * SolarFlareWeather.flareData.ScreenDistortionIntensity * batteryDrainMultiplier * Time.deltaTime / __instance.itemProperties.batteryUsage;
                     }
                 }
             }
@@ -74,7 +78,7 @@ namespace VoxxWeatherPlugin.Patches
             if (SolarFlareWeather.flareData != null)
             {
                 float distortionIntensity = SolarFlareWeather.flareData.RadioDistortionIntensity * 0.5f;
-                char[] messageChars = signalMessage.Substring(0, Mathf.Min(signalMessage.Length, 10)).ToCharArray();
+                char[] messageChars = signalMessage.ToCharArray();
 
                 for (int i = 0; i < messageChars.Length; i++)
                 {
@@ -128,9 +132,9 @@ namespace VoxxWeatherPlugin.Patches
         [HarmonyPrefix]
         public static bool DoorTerminalBlocker(TerminalAccessibleObject __instance)
         {
-            if (SolarFlareWeather.flareData != null)
+            if (SolarFlareWeather.flareData != null && doorMalfunctionEnabled)
             {
-                if (SolarFlareWeather.flareData.IsDoorMalfunction && __instance.isBigDoor && seededRandom.NextDouble()<0.9f)
+                if (SolarFlareWeather.flareData.IsDoorMalfunction && __instance.isBigDoor && seededRandom.NextDouble() < 0.9f)
                 {
                     return false;
                 }
@@ -192,7 +196,7 @@ namespace VoxxWeatherPlugin.Patches
 
             codeMatcher.Advance(1);
 
-            codeMatcher.SetInstruction(new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(FlarePatches), "SplitWalkieTarget")));
+            codeMatcher.SetInstruction(new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(FlareOptionalWalkiePatches), "SplitWalkieTarget")));
 
             // Replace audio source disposal logic
             codeMatcher = codeMatcher.MatchForward(true,
@@ -200,7 +204,7 @@ namespace VoxxWeatherPlugin.Patches
                 new CodeMatch(OpCodes.Call, AccessTools.Method(typeof(UnityEngine.Object), "Destroy", new[] { typeof(UnityEngine.Object) }))
             )
             .Repeat(matcher => {
-                matcher.SetInstruction(new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(FlarePatches), "DisposeWalkieTarget",
+                matcher.SetInstruction(new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(FlareOptionalWalkiePatches), "DisposeWalkieTarget",
                      new[] { typeof(AudioSource), typeof(GameObject) })));
                 matcher.Insert(new CodeInstruction(OpCodes.Callvirt, AccessTools.Method(typeof(Component), "get_gameObject")));
                 matcher.Insert(new CodeInstruction(OpCodes.Ldarg_0));
