@@ -6,6 +6,7 @@ using System.Reflection.Emit;
 using UnityEngine.AI;
 using VoxxWeatherPlugin.Behaviours;
 using GameNetcodeStuff;
+using VoxxWeatherPlugin.Utils;
 
 namespace VoxxWeatherPlugin.Patches
 {

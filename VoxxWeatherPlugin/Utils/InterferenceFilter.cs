@@ -14,20 +14,16 @@ namespace VoxxWeatherPlugin.Utils
         [SerializeField] internal float maxClarityDuration = 1f;
         [SerializeField] internal float freqShiftMultiplier = 1.5f;
         
-        private float phase;
-        private float freqPhase;
-        private bool isClarity;
+        private float phase = 0;
+        private float freqPhase = 0;
+        private bool isClarity = false;
+        private int remainingClaritySamples = 0;
         private int sampleRate;
-        private int remainingClaritySamples;
         private System.Random random;
 
         private void Start()
         {
             sampleRate = AudioSettings.outputSampleRate;
-            phase = 0;
-            freqPhase = 0;
-            isClarity = false;
-            remainingClaritySamples = 0;
             random = new System.Random(42);
         }
 

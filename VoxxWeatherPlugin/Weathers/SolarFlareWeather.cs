@@ -86,20 +86,20 @@ namespace VoxxWeatherPlugin.Weathers
         internal static Material glitchMaterial;
         [SerializeField]
         internal GlitchEffect glitchPass;
-        [SerializeField]
-        internal  AudioClip staticElectricitySound;
+        // [SerializeField]
+        // internal  AudioClip staticElectricitySound;
         internal static FlareData flareData;
         internal CustomPassVolume glitchVolume;
         internal TerminalAccessibleObject[] bigDoors;
-        internal Turret[] turrets;
-        internal EnemyAINestSpawnObject[] radMechNests;
-        internal float turretMalfunctionDelay = 1f;
-        internal float turretMalfunctionChance = 0.1f;
-        internal float radMechReactivateDelay = 1f;
-        internal float radMechStunDuration = 1f;
+        // internal Turret[] turrets;
+        // internal EnemyAINestSpawnObject[] radMechNests;
+        // internal float turretMalfunctionDelay = 1f;
+        // internal float turretMalfunctionChance = 0.1f;
+        // internal float radMechReactivateDelay = 1f;
+        // internal float radMechStunDuration = 1f;
         
-        internal float radMechReactivationChance = 0.1f;
-        internal float radMechMalfunctionChance = 0.1f;
+        // internal float radMechReactivationChance = 0.1f;
+        // internal float radMechMalfunctionChance = 0.1f;
         internal bool isDoorMalfunctionEnabled => VoxxWeatherPlugin.DoorMalfunctionEnabled.Value;
         internal float doorMalfunctionChance => Mathf.Clamp01(VoxxWeatherPlugin.DoorMalfunctionChance.Value);
 
@@ -161,15 +161,15 @@ namespace VoxxWeatherPlugin.Weathers
                 GlitchRadarMap();
             }
 
-            if (staticElectricitySound == null)
-            {
-                staticElectricitySound = StartOfRound.Instance.allItemsList.itemsList
-                    .FirstOrDefault(item => item.name == "Zap gun")?
-                    .spawnPrefab?
-                    .transform.Find("AimDirection")?
-                    .gameObject.GetComponent<AudioSource>()?
-                    .clip;
-            }
+            // if (staticElectricitySound == null)
+            // {
+            //     staticElectricitySound = StartOfRound.Instance.allItemsList.itemsList
+            //         .FirstOrDefault(item => item.name == "Zap gun")?
+            //         .spawnPrefab?
+            //         .transform.Find("AimDirection")?
+            //         .gameObject.GetComponent<AudioSource>()?
+            //         .clip;
+            // }
 
             System.Random seededRandom = new System.Random(StartOfRound.Instance.randomMapSeed);
 
@@ -187,17 +187,17 @@ namespace VoxxWeatherPlugin.Weathers
             TerminalAccessibleObject[] terminalObjects = FindObjectsOfType<TerminalAccessibleObject>();
             bigDoors = terminalObjects.Where(obj => obj.isBigDoor).ToArray();
 
-            turrets = FindObjectsOfType<Turret>();
-            foreach (Turret turret in turrets)
-            {
-                CreateStaticParticle(turret);
-            }
+            // turrets = FindObjectsOfType<Turret>();
+            // foreach (Turret turret in turrets)
+            // {
+            //     CreateStaticParticle(turret);
+            // }
             
-            radMechNests = FindObjectsOfType<EnemyAINestSpawnObject>().Where(obj => obj.enemyType.enemyName == "RadMech").ToArray();
-            foreach (EnemyAINestSpawnObject radMechNest in radMechNests)
-            {
-                CreateStaticParticle(radMechNest);
-            }
+            // radMechNests = FindObjectsOfType<EnemyAINestSpawnObject>().Where(obj => obj.enemyType.enemyName == "RadMech").ToArray();
+            // foreach (EnemyAINestSpawnObject radMechNest in radMechNests)
+            // {
+            //     CreateStaticParticle(radMechNest);
+            // }
         }
 
         private void OnDisable()
@@ -208,8 +208,8 @@ namespace VoxxWeatherPlugin.Weathers
             }
             flareData = null;
             bigDoors = null;
-            turrets = null;
-            radMechNests = null;
+            // turrets = null;
+            // radMechNests = null;
             SolarFlareVFXManager.ResetVFX();
         }
 
@@ -222,14 +222,14 @@ namespace VoxxWeatherPlugin.Weathers
 
             if (TimeOfDay.Instance.normalizedTimeOfDay % 0.03f < 1e-4)
             {
-                EnemyAI[] radMechs = RoundManager.Instance.SpawnedEnemies.Where(enemy => enemy is RadMechAI).ToArray();
-                foreach (RadMechAI radMech in radMechs)
-                {
-                    if (UnityEngine.Random.value < radMechMalfunctionChance && radMech != null)
-                    {
-                        StartCoroutine(ElectricMalfunctionCoroutine(radMech));
-                    }
-                }
+                // EnemyAI[] radMechs = RoundManager.Instance.SpawnedEnemies.Where(enemy => enemy is RadMechAI).ToArray();
+                // foreach (RadMechAI radMech in radMechs)
+                // {
+                //     if (UnityEngine.Random.value < radMechMalfunctionChance && radMech != null)
+                //     {
+                //         StartCoroutine(ElectricMalfunctionCoroutine(radMech));
+                //     }
+                // }
 
                 foreach (Animator poweredLight in RoundManager.Instance.allPoweredLightsAnimators)
                 {
@@ -248,204 +248,205 @@ namespace VoxxWeatherPlugin.Weathers
                     }
                 }
 
-                foreach (Turret turret in turrets)
-                {
-                    if (UnityEngine.Random.value < turretMalfunctionChance && turret != null)
-                    {
-                        StartCoroutine(ElectricMalfunctionCoroutine(turret));
-                    }
-                }
+                // foreach (Turret turret in turrets)
+                // {
+                //     if (UnityEngine.Random.value < turretMalfunctionChance && turret != null)
+                //     {
+                //         StartCoroutine(ElectricMalfunctionCoroutine(turret));
+                //     }
+                // }
 
-                foreach (EnemyAINestSpawnObject radMechNest in radMechNests)
-                {
-                    if (UnityEngine.Random.value < radMechReactivationChance && radMechNest != null)
-                    {
-                        StartCoroutine(ElectricMalfunctionCoroutine(radMechNest));
-                    }
-                }
+                // foreach (EnemyAINestSpawnObject radMechNest in radMechNests)
+                // {
+                //     if (UnityEngine.Random.value < radMechReactivationChance && radMechNest != null)
+                //     {
+                //         StartCoroutine(ElectricMalfunctionCoroutine(radMechNest));
+                //     }
+                // }
             }
         }
 
-        internal GameObject CreateStaticParticle<T>(T inputClass) where T : MonoBehaviour
-        {
-            ParticleSystem staticParticles = Instantiate(StartOfRound.Instance.magnetParticle, parent: inputClass.transform);
-            staticParticles?.Stop();
-            staticParticles.transform.localPosition = Vector3.zero;
-            var main = staticParticles.main;
-            main.playOnAwake = false;
-            main.loop = true;
-            var noise = staticParticles.noise;
-            noise.enabled = false;
+        // internal GameObject CreateStaticParticle<T>(T inputClass) where T : MonoBehaviour
+        // {
+        //     ParticleSystem staticParticles = Instantiate(StartOfRound.Instance.magnetParticle, parent: inputClass.transform);
+        //     staticParticles?.Stop();
+        //     staticParticles.transform.localPosition = Vector3.zero;
+        //     var main = staticParticles.main;
+        //     main.playOnAwake = false;
+        //     main.loop = true;
+        //     var noise = staticParticles.noise;
+        //     noise.enabled = false;
 
-            AudioSource audioSource = staticParticles.gameObject.AddComponent<AudioSource>();
-            audioSource.clip = staticElectricitySound;
-            audioSource.volume = 0f;
-            audioSource.loop = true;
-            audioSource.playOnAwake = false;
-            audioSource.spatialBlend = 1f;
-            audioSource.rolloffMode = AudioRolloffMode.Linear;
-            audioSource.maxDistance = 15f;
-            audioSource.minDistance = 2f;
+        //     AudioSource audioSource = staticParticles.gameObject.AddComponent<AudioSource>();
+        //     audioSource.clip = staticElectricitySound;
+        //     audioSource.volume = 0f;
+        //     audioSource.loop = true;
+        //     audioSource.playOnAwake = false;
+        //     audioSource.spatialBlend = 1f;
+        //     audioSource.rolloffMode = AudioRolloffMode.Linear;
+        //     audioSource.maxDistance = 15f;
+        //     audioSource.minDistance = 2f;
 
-            for (int i = 0; i < staticParticles.transform.childCount; i++)
-            {
-                DestroyImmediate(staticParticles.transform.GetChild(i).gameObject);
-            }
+        //     for (int i = 0; i < staticParticles.transform.childCount; i++)
+        //     {
+        //         DestroyImmediate(staticParticles.transform.GetChild(i).gameObject);
+        //     }
             
-            var shapeModule = staticParticles.shape;
-            switch (inputClass)
-            {
-                case RadMechAI radMechAI:
-                    if (radMechAI.skinnedMeshRenderers.Length > 0)
-                    {
-                        shapeModule.shapeType = ParticleSystemShapeType.SkinnedMeshRenderer;
-                        shapeModule.skinnedMeshRenderer = radMechAI.skinnedMeshRenderers[0];
-                    }
-                    break;
-                case Turret turret:
-                    turret.transform.parent.Find("MeshContainer/Mount").TryGetComponent(out MeshRenderer meshRenderer);
-                    if (meshRenderer != null)
-                    {
-                        staticParticles.transform.localScale = Vector3.one * 0.4f;
-                        shapeModule.shapeType = ParticleSystemShapeType.MeshRenderer;
-                        shapeModule.meshRenderer = meshRenderer;
-                    }
-                    break;
-                case EnemyAINestSpawnObject radMechNest:
-                    SkinnedMeshRenderer skinnedMeshRenderer = radMechNest.GetComponentInChildren<SkinnedMeshRenderer>();
-                    if (skinnedMeshRenderer != null)
-                    {
-                        shapeModule.shapeType = ParticleSystemShapeType.SkinnedMeshRenderer;
-                        shapeModule.skinnedMeshRenderer = skinnedMeshRenderer;
-                    }
-                    break;
-                default:
-                    Debug.LogWarning($"Unsupported type for CreateStaticParticle: {typeof(T)}");
-                    return null;
-            }
+        //     var shapeModule = staticParticles.shape;
+        //     switch (inputClass)
+        //     {
+        //         case RadMechAI radMechAI:
+        //             if (radMechAI.skinnedMeshRenderers.Length > 0)
+        //             {
+        //                 shapeModule.shapeType = ParticleSystemShapeType.SkinnedMeshRenderer;
+        //                 shapeModule.skinnedMeshRenderer = radMechAI.skinnedMeshRenderers[0];
+        //             }
+        //             break;
+        //         case Turret turret:
+        //             turret.transform.parent.Find("MeshContainer/Mount").TryGetComponent(out MeshRenderer meshRenderer);
+        //             if (meshRenderer != null)
+        //             {
+        //                 staticParticles.transform.localScale = Vector3.one * 0.4f;
+        //                 shapeModule.shapeType = ParticleSystemShapeType.MeshRenderer;
+        //                 shapeModule.meshRenderer = meshRenderer;
+        //             }
+        //             break;
+        //         case EnemyAINestSpawnObject radMechNest:
+        //             SkinnedMeshRenderer skinnedMeshRenderer = radMechNest.GetComponentInChildren<SkinnedMeshRenderer>();
+        //             if (skinnedMeshRenderer != null)
+        //             {
+        //                 shapeModule.shapeType = ParticleSystemShapeType.SkinnedMeshRenderer;
+        //                 shapeModule.skinnedMeshRenderer = skinnedMeshRenderer;
+        //             }
+        //             break;
+        //         default:
+        //             Debug.LogWarning($"Unsupported type for CreateStaticParticle: {typeof(T)}");
+        //             return null;
+        //     }
 
-            return staticParticles.gameObject;
-        }
+        //     return staticParticles.gameObject;
+        // }
 
-        internal IEnumerator ElectricMalfunctionCoroutine<T>(T electricalObject) where T : MonoBehaviour
-        {
-            float malfunctionDuration = 0f;
-            Action malfunctionAction = null;
+        // internal IEnumerator ElectricMalfunctionCoroutine<T>(T electricalObject) where T : MonoBehaviour
+        // {
+        //     float malfunctionDuration = 0f;
+        //     Action malfunctionAction = null;
 
-            ParticleSystem staticParticles = null;
-            AudioSource electricAudio = null;
-            foreach (Transform child in electricalObject.transform)
-            {
-                if (child.name.StartsWith("MagnetParticle"))
-                {
-                    staticParticles = child.GetComponent<ParticleSystem>();
-                    electricAudio = child.GetComponent<AudioSource>();
-                    break;
-                }
-            }
+        //     ParticleSystem staticParticles = null;
+        //     AudioSource electricAudio = null;
+        //     foreach (Transform child in electricalObject.transform)
+        //     {
+        //         if (child.name.StartsWith("MagnetParticle"))
+        //         {
+        //             staticParticles = child.GetComponent<ParticleSystem>();
+        //             electricAudio = child.GetComponent<AudioSource>();
+        //             break;
+        //         }
+        //     }
 
-            if (staticParticles != null && staticParticles.isPlaying)
-            {
-                yield break; // Exit the coroutine if particles are already playing (meaning another coroutine is running)
-            }
+        //     if (staticParticles != null && staticParticles.isPlaying)
+        //     {
+        //         yield break; // Exit the coroutine if particles are already playing (meaning another coroutine is running)
+        //     }
 
-            if ((staticParticles == null || electricAudio == null) && electricalObject is not RadMechAI)
-            {
-                Debug.LogWarning("Static particles or audio not found for " + electricalObject.name);
-            }
+        //     if ((staticParticles == null || electricAudio == null) && electricalObject is not RadMechAI)
+        //     {
+        //         Debug.LogWarning("Static particles or audio not found for " + electricalObject.name);
+        //     }
 
-            switch (electricalObject)
-            {
-                case RadMechAI radMech:
-                    malfunctionDuration = radMechStunDuration;
-                    malfunctionAction = () => 
-                    {
-                        radMech.SetEnemyStunned(true, radMechStunDuration);
-                        staticParticles?.Stop(); 
-                    };
-                    break;
+        //     switch (electricalObject)
+        //     {
+        //         case RadMechAI radMech:
+        //             malfunctionDuration = radMechStunDuration;
+        //             malfunctionAction = () => 
+        //             {
+        //                 radMech.SetEnemyStunned(true, radMechStunDuration);
+        //                 staticParticles?.Stop(); 
+        //             };
+        //             break;
 
-                case EnemyAINestSpawnObject radMechNest:
-                    malfunctionDuration = radMechReactivateDelay;
-                    malfunctionAction = () =>
-                    {
-                        staticParticles?.Stop();
-                        if (GameNetworkManager.Instance.isHostingGame)
-                        {
-                            Vector3 nestPosition = radMechNest.transform.position;
-                            float nestAngle = radMechNest.transform.rotation.eulerAngles.y;
-                            EnemyType radMechType = radMechNest.enemyType;
-                            Destroy(radMechNest.gameObject);
-                            RoundManager.Instance.SpawnEnemyGameObject(nestPosition, nestAngle, -1, radMechType);
-                            RoundManager.Instance.currentOutsideEnemyPower += radMechType.PowerLevel;
-                        }
-                    };
-                    break;
+        //         case EnemyAINestSpawnObject radMechNest:
+        //             malfunctionDuration = radMechReactivateDelay;
+        //             malfunctionAction = () =>
+        //             {
+        //                 staticParticles?.Stop();
+        //                 if (GameNetworkManager.Instance.isHostingGame)
+        //                 {
+        //                     Vector3 nestPosition = radMechNest.transform.position;
+        //                     float nestAngle = radMechNest.transform.rotation.eulerAngles.y;
+        //                     EnemyType radMechType = radMechNest.enemyType;
+        //                     Destroy(radMechNest.gameObject);
+        //                     RoundManager.Instance.SpawnEnemyGameObject(nestPosition, nestAngle, -1, radMechType);
+        //                     RoundManager.Instance.currentOutsideEnemyPower += radMechType.PowerLevel;
+        //                 }
+        //             };
+        //             break;
 
-                case Turret turret:
-                    malfunctionDuration = turretMalfunctionDelay;
-                    malfunctionAction = () =>
-                    {
-                        staticParticles?.Stop();
-                        if (GameNetworkManager.Instance.isHostingGame)
-                        {
-                            (turret as IHittable).Hit(1, Vector3.down);
-                        }
-                    };
-                    break;
+        //         case Turret turret:
+        //             malfunctionDuration = turretMalfunctionDelay;
+        //             malfunctionAction = () =>
+        //             {
+        //                 staticParticles?.Stop();
+        //                 if (GameNetworkManager.Instance.isHostingGame)
+        //                 {
+        //                     (turret as IHittable).Hit(1, Vector3.down);
+        //                 }
+        //             };
+        //             break;
 
-                default:
-                    Debug.LogWarning("ElectricMalfunctionCoroutine called with an unsupported type: " + electricalObject.GetType());
-                    yield break;
-            }
+        //         default:
+        //             Debug.LogWarning("ElectricMalfunctionCoroutine called with an unsupported type: " + electricalObject.GetType());
+        //             yield break;
+        //     }
 
-            if (malfunctionDuration > 0f) 
-            {
-                if (staticParticles == null) 
-                {
-                    GameObject particleContainer = CreateStaticParticle(electricalObject); // You might need to adjust this method
-                    staticParticles = particleContainer.GetComponent<ParticleSystem>();
-                    electricAudio = particleContainer.GetComponent<AudioSource>();
-                }
+        //     if (malfunctionDuration > 0f) 
+        //     {
+        //         if (staticParticles == null) 
+        //         {
+        //             GameObject particleContainer = CreateStaticParticle(electricalObject); // You might need to adjust this method
+        //             staticParticles = particleContainer.GetComponent<ParticleSystem>();
+        //             electricAudio = particleContainer.GetComponent<AudioSource>();
+        //         }
 
-                StartCoroutine(FadeAudio(electricAudio, malfunctionDuration * 0.1f, 0f, true));
-                staticParticles?.Play();
-                yield return new WaitForSeconds(malfunctionDuration);
-                StartCoroutine(FadeAudio(electricAudio, malfunctionDuration * 0.1f, malfunctionDuration * 0.95f, false));
+        //         StartCoroutine(FadeAudio(electricAudio, malfunctionDuration * 0.1f, 0f, true));
+        //         staticParticles?.Play();
+        //         yield return new WaitForSeconds(malfunctionDuration);
+        //         StartCoroutine(FadeAudio(electricAudio, malfunctionDuration * 0.1f, malfunctionDuration * 0.95f, false));
 
-                // Execute the type-specific action
-                malfunctionAction?.Invoke(); 
-            }
-        }
+        //         // Execute the type-specific action
+        //         malfunctionAction?.Invoke(); 
+        //     }
+        // }
 
-        private IEnumerator FadeAudio(AudioSource audioSource, float duration, float delay, bool fadeIn)
-        {
-            float targetVolume = fadeIn ? 1f : 0f;
-            float currentTime = 0f;
+        // private IEnumerator FadeAudio(AudioSource audioSource, float duration, float delay, bool fadeIn)
+        // {
+        //     float targetVolume = fadeIn ? 1f : 0f;
+        //     float currentTime = 0f;
 
-            if (delay > 0)
-            {
-                yield return new WaitForSeconds(delay);
-            }
+        //     if (delay > 0)
+        //     {
+        //         yield return new WaitForSeconds(delay);
+        //     }
 
-            if (fadeIn)
-            {
-                audioSource.volume = 0f; // Start at zero volume for fade-in
-                audioSource?.Play(); 
-            }
+        //     if (fadeIn)
+        //     {
+        //         audioSource.volume = 0f; // Start at zero volume for fade-in
+        //         audioSource?.Play(); 
+        //     }
 
-            while (currentTime < duration && audioSource != null)
-            {
-                currentTime += Time.deltaTime;
-                audioSource.volume = Mathf.Lerp(audioSource.volume, targetVolume, currentTime / duration);
-                yield return null;
-            }
+        //     while (currentTime < duration && audioSource != null)
+        //     {
+        //         currentTime += Time.deltaTime;
+        //         audioSource.volume = Mathf.Lerp(audioSource.volume, targetVolume, currentTime / duration);
+        //         yield return null;
+        //     }
 
-            if (!fadeIn)
-            {
-                audioSource?.Stop(); // Stop playback after fading out
-            }
-        }
+        //     if (!fadeIn)
+        //     {
+        //         audioSource?.Stop(); // Stop playback after fading out
+        //     }
+        // }
+    
     }
 
     

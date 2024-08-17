@@ -1,11 +1,9 @@
 ﻿using GameNetcodeStuff;
 using HarmonyLib;
-using System;
 using System.Collections.Generic;
 using System.Reflection.Emit;
 using Unity.Netcode;
 using UnityEngine;
-using VoxxWeatherPlugin.Behaviours;
 using VoxxWeatherPlugin.Utils;
 
 namespace VoxxWeatherPlugin.Patches
@@ -94,7 +92,6 @@ namespace VoxxWeatherPlugin.Patches
                     break;
                 }
             }
-
             return codes;
         }
 

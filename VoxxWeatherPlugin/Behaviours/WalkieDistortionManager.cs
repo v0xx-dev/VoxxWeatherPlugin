@@ -42,7 +42,7 @@ namespace VoxxWeatherPlugin.Behaviours
                     Destroy(subTarget);
                 }
                 else
-                    Debug.LogError("Failed to dispose walkie target: target not found in dictionary.");
+                    Debug.LogError("Failed to dispose walkie target: target not found in cache!");
             }
             else
                 Destroy(audioSource);
@@ -50,11 +50,11 @@ namespace VoxxWeatherPlugin.Behaviours
 
         public static void UpdateVoiceChatDistortion(AudioSource voiceSource, PlayerControllerB allPlayerScript, bool isUsingWalkieTalkie)
         {
-            bool shouldEnableDistortion = !allPlayerScript.isPlayerDead 
-                                        && isUsingWalkieTalkie 
-                                        && SolarFlareWeather.flareData != null;
+
+            bool shouldEnableDistortion = !allPlayerScript.isPlayerDead && isUsingWalkieTalkie && SolarFlareWeather.flareData != null;
 
             InterferenceDistortionFilter interferenceFilter = GetOrAddFilter(voiceSource);
+
             if (interferenceFilter == null)
             {
                 return;
@@ -72,15 +72,21 @@ namespace VoxxWeatherPlugin.Behaviours
 
         private static void EnableVoiceChatDistortion(InterferenceDistortionFilter interferenceFilter)
         {
-            interferenceFilter.enabled = true;
-            interferenceFilter.distortionChance = SolarFlareWeather.flareData.RadioDistortionIntensity;
-            interferenceFilter.maxClarityDuration = SolarFlareWeather.flareData.RadioBreakthroughLength;
-            interferenceFilter.maxFrequencyShift = SolarFlareWeather.flareData.RadioFrequencyShift;
+            if (!interferenceFilter.enabled)
+            {
+                interferenceFilter.enabled = true;
+                interferenceFilter.distortionChance = SolarFlareWeather.flareData.RadioDistortionIntensity;
+                interferenceFilter.maxClarityDuration = SolarFlareWeather.flareData.RadioBreakthroughLength;
+                interferenceFilter.maxFrequencyShift = SolarFlareWeather.flareData.RadioFrequencyShift;
+            }
         }
 
         private static void DisableVoiceChatDistortion(InterferenceDistortionFilter interferenceFilter)
         {
-            interferenceFilter.enabled = false;
+            if (interferenceFilter.enabled)
+            {
+                interferenceFilter.enabled = false;
+            }
         }
 
         private static InterferenceDistortionFilter GetOrAddFilter(AudioSource voiceSource)
@@ -91,7 +97,9 @@ namespace VoxxWeatherPlugin.Behaviours
                 return null;
             }
 
-            if (!cachedFilters.TryGetValue(voiceSource, out InterferenceDistortionFilter filter))
+            InterferenceDistortionFilter filter;
+
+            if (!cachedFilters.TryGetValue(voiceSource, out filter))
             {
                 filter = voiceSource.GetComponent<InterferenceDistortionFilter>();
                 if (filter == null)
@@ -107,6 +115,10 @@ namespace VoxxWeatherPlugin.Behaviours
         {
             if (voiceSource != null)
             {
+                if (cachedFilters.TryGetValue(voiceSource, out InterferenceDistortionFilter filter))
+                {
+                    Destroy(filter);
+                }
                 cachedFilters.Remove(voiceSource);
             }
             else

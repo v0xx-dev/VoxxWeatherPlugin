@@ -3,8 +3,8 @@ using HarmonyLib;
 using UnityEngine;
 using VoxxWeatherPlugin.Patches;
 using VoxxWeatherPlugin.Utils;
-using System.Reflection;
 using BepInEx.Logging;
+using System.Reflection;
 using BepInEx.Configuration;
 
 namespace VoxxWeatherPlugin
