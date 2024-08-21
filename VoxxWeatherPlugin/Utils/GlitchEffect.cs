@@ -33,8 +33,7 @@ namespace VoxxWeatherPlugin.Utils
         int m_BlockStride = 1;
         float m_BlockTime;
 
-        RTHandle tempColorBuffer;
-        bool bufferNeedsUpdate = true;
+        RTHandle tempColorBuffer = null;
 
         static class ShaderIDs
         {
@@ -59,7 +58,7 @@ namespace VoxxWeatherPlugin.Utils
                 return;
             }
 
-            if (bufferNeedsUpdate || tempColorBuffer == null)
+            if (tempColorBuffer == null)
             {
                 UpdateTempBuffer(ctx);
             }
@@ -71,7 +70,7 @@ namespace VoxxWeatherPlugin.Utils
             }
             else if (tempColorBuffer.rt.width != ctx.cameraColorBuffer.rt.width || tempColorBuffer.rt.height != ctx.cameraColorBuffer.rt.height)
             {
-                bufferNeedsUpdate = true;
+                UpdateTempBuffer(ctx);
             }
 
             HDUtils.BlitCameraTexture(ctx.cmd, ctx.cameraColorBuffer, tempColorBuffer);
@@ -132,8 +131,6 @@ namespace VoxxWeatherPlugin.Utils
             );
 
             Debug.Log("GlitchPass: Allocated temp color buffer!");
-
-            bufferNeedsUpdate = false;
         }
     }
 }
