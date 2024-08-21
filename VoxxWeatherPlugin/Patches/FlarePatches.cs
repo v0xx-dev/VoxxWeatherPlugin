@@ -7,6 +7,7 @@ using UnityEngine.AI;
 using VoxxWeatherPlugin.Behaviours;
 using GameNetcodeStuff;
 using VoxxWeatherPlugin.Utils;
+using System.Runtime.CompilerServices;
 
 namespace VoxxWeatherPlugin.Patches
 {
@@ -93,7 +94,7 @@ namespace VoxxWeatherPlugin.Patches
             }
         }
 
-        [HarmonyPatch(typeof(ShipTeleporter), "PressTeleportButtonClientRpc")]
+        [HarmonyPatch(typeof(ShipTeleporter), "beamUpPlayer", MethodType.Enumerator)]
         [HarmonyPrefix]
         public static void TeleporterDistortionPrefix(ShipTeleporter __instance)
         {
@@ -101,10 +102,11 @@ namespace VoxxWeatherPlugin.Patches
             {
                 // Store the original teleporter position
                 originalTeleporterPosition = __instance.teleporterPosition;
+                PlayerControllerB playerToBeamUp = StartOfRound.Instance.mapScreen.targetedPlayer;
 
-                // Randomly teleport to an AI node >:D
+                // Randomly teleport alive player to an AI node >:D
                 GameObject[] outsideAINodes = RoundManager.Instance.outsideAINodes;
-                if (outsideAINodes.Length > 0)
+                if (outsideAINodes.Length > 0 && !playerToBeamUp.isPlayerDead)
                 {
                     int randomIndex = seededRandom.Next(0, outsideAINodes.Length);
                     Transform distortedPosition = outsideAINodes[randomIndex].transform;
@@ -118,7 +120,7 @@ namespace VoxxWeatherPlugin.Patches
             } 
         }
 
-        [HarmonyPatch(typeof(ShipTeleporter), "PressTeleportButtonClientRpc")]
+        [HarmonyPatch(typeof(ShipTeleporter), "beamUpPlayer", MethodType.Enumerator)]
         [HarmonyPostfix]
         public static void TeleporterDistortionPostfix(ShipTeleporter __instance)
         {

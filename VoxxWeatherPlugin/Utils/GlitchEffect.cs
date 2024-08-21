@@ -59,9 +59,19 @@ namespace VoxxWeatherPlugin.Utils
                 return;
             }
 
-            if (bufferNeedsUpdate || tempColorBuffer == null || tempColorBuffer.rt.width != ctx.cameraColorBuffer.rt.width || tempColorBuffer.rt.height != ctx.cameraColorBuffer.rt.height)
+            if (bufferNeedsUpdate || tempColorBuffer == null)
             {
                 UpdateTempBuffer(ctx);
+            }
+
+            if (tempColorBuffer == null)
+            {
+                Debug.LogError("Failed to allocate temp color buffer!");
+                return;
+            }
+            else if (tempColorBuffer.rt.width != ctx.cameraColorBuffer.rt.width || tempColorBuffer.rt.height != ctx.cameraColorBuffer.rt.height)
+            {
+                bufferNeedsUpdate = true;
             }
 
             HDUtils.BlitCameraTexture(ctx.cmd, ctx.cameraColorBuffer, tempColorBuffer);
