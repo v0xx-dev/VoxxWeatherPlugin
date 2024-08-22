@@ -6,8 +6,6 @@ using System.Reflection.Emit;
 using UnityEngine.AI;
 using VoxxWeatherPlugin.Behaviours;
 using GameNetcodeStuff;
-using VoxxWeatherPlugin.Utils;
-using System.Runtime.CompilerServices;
 
 namespace VoxxWeatherPlugin.Patches
 {
@@ -24,7 +22,7 @@ namespace VoxxWeatherPlugin.Patches
 
         [HarmonyPatch(typeof(PlayerVoiceIngameSettings), "OnDisable")]
         [HarmonyPrefix]
-        private static void FilterCacheCleanerPatch(PlayerVoiceIngameSettings __instance)
+        static void FilterCacheCleanerPatch(PlayerVoiceIngameSettings __instance)
         {
            if (__instance.voiceAudio != null)
            {
@@ -59,7 +57,7 @@ namespace VoxxWeatherPlugin.Patches
 
         [HarmonyPatch(typeof(GrabbableObject), "Update")]
         [HarmonyPrefix]
-        private static void GrabbableDischargePatch(GrabbableObject __instance)
+        static void GrabbableDischargePatch(GrabbableObject __instance)
         {
             if (SolarFlareWeather.flareData != null)
             {
@@ -75,7 +73,7 @@ namespace VoxxWeatherPlugin.Patches
 
         [HarmonyPatch(typeof(HUDManager), "UseSignalTranslatorClientRpc")]
         [HarmonyPrefix]
-        private static void SignalTranslatorDistortionPatch(ref string signalMessage)
+        static void SignalTranslatorDistortionPatch(ref string signalMessage)
         {
             if (SolarFlareWeather.flareData != null)
             {
@@ -95,18 +93,54 @@ namespace VoxxWeatherPlugin.Patches
         }
 
         [HarmonyPatch(typeof(ShipTeleporter), "beamUpPlayer", MethodType.Enumerator)]
-        [HarmonyPrefix]
-        public static void TeleporterDistortionPrefix(ShipTeleporter __instance)
+        [HarmonyTranspiler]
+        static IEnumerable<CodeInstruction> TeleporterDistortionTranspiler(IEnumerable<CodeInstruction> instructions)
+        {
+            var matcher = new CodeMatcher(instructions)
+                .MatchForward(false,
+                    new CodeMatch(OpCodes.Ldarg_0),                   
+                    new CodeMatch(OpCodes.Ldfld),
+                    new CodeMatch(OpCodes.Ldloc_1),                       
+                    new CodeMatch(OpCodes.Ldfld, 
+                        AccessTools.Field(typeof(ShipTeleporter), "teleporterPosition")), 
+                    new CodeMatch(OpCodes.Callvirt, 
+                        AccessTools.Method(typeof(Transform), "get_position")), 
+                    new CodeMatch(OpCodes.Ldc_I4_1),                      
+                    new CodeMatch(OpCodes.Ldc_R4, 160f),                  
+                    new CodeMatch(OpCodes.Ldc_I4_0),                      
+                    new CodeMatch(OpCodes.Ldc_I4_1),                      
+                    new CodeMatch(OpCodes.Callvirt, 
+                        AccessTools.Method(typeof(PlayerControllerB), "TeleportPlayer"))
+                );
+
+            matcher.Insert(
+                new CodeInstruction(OpCodes.Ldloc_1), // Load `shipTeleporter` onto the stack
+                new CodeInstruction(OpCodes.Call, 
+                    AccessTools.Method(typeof(FlarePatches), "TeleporterPositionDistorter"))
+            );
+
+            // Move to the end of the matched block
+            matcher.Advance(12); 
+
+            matcher.Insert(
+                new CodeInstruction(OpCodes.Ldloc_1),
+                new CodeInstruction(OpCodes.Call, 
+                    AccessTools.Method(typeof(FlarePatches), "TeleporterPositionRestorer"))
+            );
+
+            // Return the modified instructions
+            return matcher.InstructionEnumeration();
+        }
+
+        static void TeleporterPositionDistorter(ShipTeleporter teleporter)
         {
             if (SolarFlareWeather.flareData != null)
             {
                 // Store the original teleporter position
-                originalTeleporterPosition = __instance.teleporterPosition;
-                PlayerControllerB playerToBeamUp = StartOfRound.Instance.mapScreen.targetedPlayer;
-
+                originalTeleporterPosition = teleporter.teleporterPosition;
                 // Randomly teleport alive player to an AI node >:D
                 GameObject[] outsideAINodes = RoundManager.Instance.outsideAINodes;
-                if (outsideAINodes.Length > 0 && !playerToBeamUp.isPlayerDead)
+                if (outsideAINodes.Length > 0)
                 {
                     int randomIndex = seededRandom.Next(0, outsideAINodes.Length);
                     Transform distortedPosition = outsideAINodes[randomIndex].transform;
@@ -114,26 +148,24 @@ namespace VoxxWeatherPlugin.Patches
                     if (NavMesh.SamplePosition(distortedPosition.position, out hit, 10f, NavMesh.AllAreas))
                     {
                         distortedPosition.position = hit.position;
-                        __instance.teleporterPosition = distortedPosition;
+                        teleporter.teleporterPosition = distortedPosition;
                     }
                 }
             } 
         }
 
-        [HarmonyPatch(typeof(ShipTeleporter), "beamUpPlayer", MethodType.Enumerator)]
-        [HarmonyPostfix]
-        public static void TeleporterDistortionPostfix(ShipTeleporter __instance)
+        static void TeleporterPositionRestorer(ShipTeleporter teleporter)
         {
             if (SolarFlareWeather.flareData != null)
             {
                 // Restore the original teleporter position
-                __instance.teleporterPosition = originalTeleporterPosition;
+                teleporter.teleporterPosition = originalTeleporterPosition;
             }
         }
 
         [HarmonyPatch(typeof(TerminalAccessibleObject), "CallFunctionFromTerminal")]
         [HarmonyPrefix]
-        public static bool DoorTerminalBlocker(TerminalAccessibleObject __instance)
+        static bool DoorTerminalBlocker(TerminalAccessibleObject __instance)
         {
             if (SolarFlareWeather.flareData != null && doorMalfunctionEnabled)
             {
@@ -147,7 +179,7 @@ namespace VoxxWeatherPlugin.Patches
 
         [HarmonyPatch(typeof(RadarBoosterItem), "EnableRadarBooster")]
         [HarmonyPrefix]
-        public static void SignalBoosterPrefix(RadarBoosterItem __instance, ref bool enable)
+        static void SignalBoosterPrefix(RadarBoosterItem __instance, ref bool enable)
         {
             if (SolarFlareWeather.flareData != null)
             {
