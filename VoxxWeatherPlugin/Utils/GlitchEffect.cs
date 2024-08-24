@@ -63,14 +63,9 @@ namespace VoxxWeatherPlugin.Utils
                 UpdateTempBuffer(ctx);
             }
 
-            if (tempColorBuffer == null)
+            if (DebugCheckBuffers(ctx))
             {
-                Debug.LogError("Failed to allocate temp color buffer!");
                 return;
-            }
-            else if (tempColorBuffer.rt.width != ctx.cameraColorBuffer.rt.width || tempColorBuffer.rt.height != ctx.cameraColorBuffer.rt.height)
-            {
-                UpdateTempBuffer(ctx);
             }
 
             HDUtils.BlitCameraTexture(ctx.cmd, ctx.cameraColorBuffer, tempColorBuffer);
@@ -113,10 +108,77 @@ namespace VoxxWeatherPlugin.Utils
             base.Cleanup();
         }
 
+        internal bool DebugCheckBuffers(CustomPassContext ctx)
+        {
+            bool hasIssue = false;
+
+            // Check tempColorBuffer
+            if (tempColorBuffer == null)
+            {
+                Debug.LogError($"[Frame {Time.frameCount}] tempColorBuffer is null");
+                hasIssue = true;
+            }
+            else if (tempColorBuffer.rt == null)
+            {
+                Debug.LogError($"[Frame {Time.frameCount}] tempColorBuffer.rt is null");
+                hasIssue = true;
+            }
+
+            // Check ctx.cameraColorBuffer
+            if (ctx.cameraColorBuffer == null)
+            {
+                Debug.LogError($"[Frame {Time.frameCount}] ctx.cameraColorBuffer is null");
+                hasIssue = true;
+            }
+            else if (ctx.cameraColorBuffer.rt == null)
+            {
+                Debug.LogError($"[Frame {Time.frameCount}] ctx.cameraColorBuffer.rt is null");
+                hasIssue = true;
+            }
+
+            // Check camera information
+            if (ctx.hdCamera == null || ctx.hdCamera?.camera == null)
+            {
+                Debug.LogError($"[Frame {Time.frameCount}] ctx.hdCamera or ctx.hdCamera.camera is null. " +
+                               $"ctx.hdCamera: {ctx.hdCamera == null}, ctx.hdCamera.camera: {ctx.hdCamera?.camera == null}");
+                hasIssue = true;
+            }
+            else
+            {
+                if (!ctx.hdCamera.camera.enabled)
+                {
+                    Debug.LogWarning($"[Frame {Time.frameCount}] Camera {ctx.hdCamera.camera.name} is disabled");
+                    hasIssue = true;
+                }
+                if (ctx.hdCamera.camera.targetTexture == null)
+                {
+                    Debug.LogWarning($"[Frame {Time.frameCount}] Camera {ctx.hdCamera.camera.name} has no target texture");
+                    hasIssue = true;
+                }
+            }
+
+            // Check if dimensions match
+            if (tempColorBuffer?.rt != null && ctx.cameraColorBuffer?.rt != null)
+            {
+                if (tempColorBuffer.rt.width != ctx.cameraColorBuffer.rt.width ||
+                    tempColorBuffer.rt.height != ctx.cameraColorBuffer.rt.height)
+                {
+                    Debug.LogWarning($"[Frame {Time.frameCount}] Buffer dimensions do not match! " +
+                                    $"tempColorBuffer: {tempColorBuffer.rt.width}x{tempColorBuffer.rt.height}, " +
+                                    $"cameraColorBuffer: {ctx.cameraColorBuffer.rt.width}x{ctx.cameraColorBuffer.rt.height}");
+                    hasIssue = true;
+                    UpdateTempBuffer(ctx);
+                }
+            }
+
+            return hasIssue;
+        }
+
         private void UpdateTempBuffer(CustomPassContext ctx)
         {
             if (tempColorBuffer != null)
             {
+                Debug.Log("GlitchPass: Releasing temp color buffer!");
                 tempColorBuffer.Release();
             }
 

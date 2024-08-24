@@ -4,7 +4,7 @@
         <TargetFramework>netstandard2.1</TargetFramework>
         <AssemblyName>voxx.LethalElementsPlugin</AssemblyName>
         <Description>A plugin adding new weather types to Lethal Company</Description>
-        <Version>1.2.0</Version>
+        <Version>1.1.7</Version>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <LangVersion>latest</LangVersion>
     </PropertyGroup>
