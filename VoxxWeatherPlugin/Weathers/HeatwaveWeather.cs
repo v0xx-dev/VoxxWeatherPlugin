@@ -4,8 +4,6 @@ using UnityEngine.Rendering;
 using UnityEngine;
 using VoxxWeatherPlugin.Utils;
 using UnityEngine.AI;
-using VoxxWeatherPlugin.Behaviours;
-using UnityEngine.VFX;
 
 namespace VoxxWeatherPlugin.Weathers
 {
@@ -73,8 +71,7 @@ namespace VoxxWeatherPlugin.Weathers
 
         private void CalculateZoneSize()
         {
-            List<Vector3> keyLocationCoords = new List<Vector3>();
-            keyLocationCoords.Add(StartOfRound.Instance.shipInnerRoomBounds.bounds.center);
+            List<Vector3> keyLocationCoords = [StartOfRound.Instance.shipInnerRoomBounds.bounds.center];
 
             // Store positions of all the outside AI nodes in the scene
             foreach (GameObject node in RoundManager.Instance.outsideAINodes)
@@ -112,10 +109,11 @@ namespace VoxxWeatherPlugin.Weathers
             Vector3 zoneSize = maxCoords - minCoords;
             Vector3 zoneCenter = (minCoords + maxCoords) / 2f;
 
-            Debug.Log($"Heatwave zone size: {zoneSize}");
-
+            // Increase the size of the heatwave zone by 25%
             heatwaveZoneSize = zoneSize*1.25f;
             heatwaveZoneLocation = zoneCenter;
+
+            Debug.Log($"Heatwave zone size: {heatwaveZoneSize}");
 
         }
 

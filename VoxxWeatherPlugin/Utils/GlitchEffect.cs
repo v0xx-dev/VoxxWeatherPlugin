@@ -2,6 +2,7 @@
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.HighDefinition;
 using System;
+using UnityEngine.Experimental.Rendering;
 
 namespace VoxxWeatherPlugin.Utils
 {
@@ -58,11 +59,6 @@ namespace VoxxWeatherPlugin.Utils
                 return;
             }
 
-            if (tempColorBuffer == null)
-            {
-                UpdateTempBuffer(ctx);
-            }
-
             if (DebugCheckBuffers(ctx))
             {
                 return;
@@ -115,12 +111,14 @@ namespace VoxxWeatherPlugin.Utils
             // Check tempColorBuffer
             if (tempColorBuffer == null)
             {
-                Debug.LogError($"[Frame {Time.frameCount}] tempColorBuffer is null");
+                Debug.LogWarning($"[Frame {Time.frameCount}] tempColorBuffer is null, allocating new buffer");
+                UpdateTempBuffer(ctx);
                 hasIssue = true;
             }
             else if (tempColorBuffer.rt == null)
             {
-                Debug.LogError($"[Frame {Time.frameCount}] tempColorBuffer.rt is null");
+                Debug.LogWarning($"[Frame {Time.frameCount}] tempColorBuffer.rt is null");
+                UpdateTempBuffer(ctx);
                 hasIssue = true;
             }
 
@@ -143,18 +141,10 @@ namespace VoxxWeatherPlugin.Utils
                                $"ctx.hdCamera: {ctx.hdCamera == null}, ctx.hdCamera.camera: {ctx.hdCamera?.camera == null}");
                 hasIssue = true;
             }
-            else
+            else if (!ctx.hdCamera.camera.enabled)
             {
-                if (!ctx.hdCamera.camera.enabled)
-                {
-                    Debug.LogWarning($"[Frame {Time.frameCount}] Camera {ctx.hdCamera.camera.name} is disabled");
-                    hasIssue = true;
-                }
-                if (ctx.hdCamera.camera.targetTexture == null)
-                {
-                    Debug.LogWarning($"[Frame {Time.frameCount}] Camera {ctx.hdCamera.camera.name} has no target texture");
-                    hasIssue = true;
-                }
+                Debug.LogError($"[Frame {Time.frameCount}] Camera {ctx.hdCamera.camera.name} is disabled");
+                hasIssue = true;
             }
 
             // Check if dimensions match
@@ -187,7 +177,7 @@ namespace VoxxWeatherPlugin.Utils
                 ctx.cameraColorBuffer.rt.height,
                 TextureXR.slices,
                 dimension: TextureXR.dimension,
-                colorFormat: ctx.cameraColorBuffer.rt.graphicsFormat,
+                colorFormat: GraphicsFormat.B10G11R11_UFloatPack32,
                 useDynamicScale: true,
                 name: "Glitch Buffer"
             );

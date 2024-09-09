@@ -7,9 +7,12 @@ namespace VoxxWeatherPlugin.Utils
         // Extension method for System.Random
         public static float NextDouble(this Random random, float min, float max)
         {
-            if (min >= max)
+            if (min > max)
             {
-                throw new ArgumentException("Minimum value must be less than maximum value.");
+                float temp = max;
+                max = min;
+                min = temp;
+                Debug.LogWarning("Minimum value for random range must be less than maximum value. Switching them around!");
             }
             return (float)random.NextDouble() * (max - min) + min;
         }

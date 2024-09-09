@@ -20,6 +20,10 @@
       <DebugType>portable</DebugType>
     </PropertyGroup>
 
+    <PropertyGroup>
+      <Nullable>enable</Nullable>
+    </PropertyGroup>
+
     <ItemGroup>
         <PackageReference Include="BepInEx.Analyzers" Version="1.*" PrivateAssets="all" />
         <PackageReference Include="BepInEx.AssemblyPublicizer.MSBuild" Version="0.4.2">

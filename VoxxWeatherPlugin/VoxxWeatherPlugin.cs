@@ -33,6 +33,7 @@ namespace VoxxWeatherPlugin
         public static ConfigEntry<bool> DrainBatteryInFacility;
         public static ConfigEntry<bool> DoorMalfunctionEnabled;
         public static ConfigEntry<float> DoorMalfunctionChance;
+        public static ConfigEntry<float> NoiseStaticLevel;
 
         private void Awake()
         {
@@ -91,19 +92,20 @@ namespace VoxxWeatherPlugin
         {
             EnableHeatwaveWeather = Config.Bind("Weather", "EnableHeatwaveWeather", true, "Enable or disable Heatwave weather");
             EnableSolarFlareWeather = Config.Bind("Weather", "EnableSolarFlareWeather", true, "Enable or disable Solar Flare weather");
-            HeatwaveParticlesSpawnRate = Config.Bind("Heatwave", "ParticlesSpawnRate", (uint)20, "Spawn rate of Heatwave particles. Particles per second. Capped at 42");
-            TimeUntilStrokeMin = Config.Bind("Heatwave", "TimeUntilStrokeMin", 40f, "Minimal time in seconds until heatstroke (min). Range 1 - 9999");
-            TimeUntilStrokeMax = Config.Bind("Heatwave", "TimeUntilStrokeMax", 80f, "Maximal time in seconds until heatstroke (max). Range 1 - 9999, must be higher than min! Actual time is random between min and max");
+            HeatwaveParticlesSpawnRate = Config.Bind("Heatwave", "ParticlesSpawnRate", (uint)20, new ConfigDescription("Spawn rate of Heatwave particles. Particles per second", new AcceptableValueRange<uint>(0, 42)));
+            TimeUntilStrokeMin = Config.Bind("Heatwave", "TimeUntilStrokeMin", 40f, new ConfigDescription("Minimal time in seconds until heatstroke (min)", new AcceptableValueRange<float>(1, 9999f)));
+            TimeUntilStrokeMax = Config.Bind("Heatwave", "TimeUntilStrokeMax", 80f, new ConfigDescription("Maximal time in seconds until heatstroke (max). Must be higher than min! Actual time is random between min and max", new AcceptableValueRange<float>(1, 9999f)));
             AuroraHeight = Config.Bind("SolarFlare", "AuroraHeight", (uint)120, "Height of the Aurora effect above the ground");
             AuroraSpawnAreaBox = Config.Bind("SolarFlare", "AuroraSpawnArea", 500f, "Size of the Aurora spawn area. The Aurora effect will spawn randomly within this square area. VFX may disappear at certain angles if the area is too small or too large.");
             AuroraVisibilityThreshold = Config.Bind("SolarFlare", "AuroraVisibilityThreshold", 9f, "Light threshold when Aurora becomes visible (in Lux). Increase to make it more visible.");
-            AuroraSpawnRate = Config.Bind("SolarFlare", "AuroraSpawnRate", 0.1f, "Spawn rate of Aurora effects. Auroras per second. Capped at 32");
+            AuroraSpawnRate = Config.Bind("SolarFlare", "AuroraSpawnRate", 0.1f, new ConfigDescription("Spawn rate of Aurora effects. Auroras per second", new AcceptableValueRange<float>(0, 32f)));
             AuroraSize = Config.Bind("SolarFlare", "AuroraSize", 100f, "Size of the Aurora 'strips' in the sky");
             DistortOnlyVoiceDuringSolarFlare = Config.Bind("SolarFlare", "DistortOnlyVoice", true, "Distort only player voice during Solar Flare (true) or all sounds (false) on a walkie-talkie");
-            BatteryDrainMultiplier = Config.Bind("SolarFlare", "BatteryDrainMultiplier", 1.0f, "Multiplier for additional battery drain during Solar Flare. 1.0 is normal drain, 0.5 is half drain, 2.0 is double drain, 0 no additional drain, etc. Default value is equal to 60 - 200 % faster drain depending on the type of flare. Range: 0.0 - 100.0");
+            BatteryDrainMultiplier = Config.Bind("SolarFlare", "BatteryDrainMultiplier", 1.0f, new ConfigDescription("Multiplier for additional battery drain during Solar Flare. 1.0 is normal drain, 0.5 is half drain, 2.0 is double drain, 0 no additional drain, etc. Default value is equal to 60 - 200 % faster drain depending on the type of flare.", new AcceptableValueRange<float>(0, 100f)));
             DrainBatteryInFacility = Config.Bind("SolarFlare", "DrainBatteryInFacility", false, "Drain item battery even when inside a facility during Solar Flare");
             DoorMalfunctionEnabled = Config.Bind("SolarFlare", "DoorMalfunctionEnabled", true, "Enable or disable door malfunction during Average and Strong Solar Flare");
-            DoorMalfunctionChance = Config.Bind("SolarFlare", "DoorMalfunctionChance", 0.5f, "Chance of metal doors opening/closing by themselves during Solar Flare. 0.1 is 10% chance, 0.5 is 50% chance, 1.0 is 100% chance. Low chance might cause you to get soft locked behind a door in the facility! Range: 0.0 - 1.0");
+            DoorMalfunctionChance = Config.Bind("SolarFlare", "DoorMalfunctionChance", 0.5f, new ConfigDescription("Chance of metal doors opening/closing by themselves during Solar Flare. 0.1 is 10% chance, 0.5 is 50% chance, 1.0 is 100% chance. Low chance might cause you to get soft locked behind a door in the facility!", new AcceptableValueRange<float>(0, 1f)));
+            NoiseStaticLevel = Config.Bind("SolarFlare", "NoiseStaticLevel", 0.005f, new ConfigDescription("Level of static noise from the walkie talkie during Solar Flare. This is signal amplitude, the actual volume in dB will follow a logarithmic scale. For example the volume for value 0.1 relative to 0.2 is not reduced by 100%, it's actually by ~log10(0.2/0.1) %", new AcceptableValueRange<float>(0, 1f)));
         }
     }
 

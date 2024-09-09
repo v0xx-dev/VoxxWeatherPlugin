@@ -6,7 +6,7 @@ namespace VoxxWeatherPlugin.Utils
     [RequireComponent(typeof(AudioSource))]
     public class InterferenceDistortionFilter : MonoBehaviour
     {
-        [SerializeField, Range(0f, 1f)] internal float noiseLevel = 0.02f;
+        [SerializeField, Range(0f, 1f)] internal float noiseLevel = 0.005f;
         [SerializeField, Range(0f, 1f)] internal float distortionChance = 0.35f;
         [SerializeField] internal float maxFrequencyShift = 250f;
         [SerializeField] internal float freqModulationPeriod = 30f;
@@ -25,6 +25,7 @@ namespace VoxxWeatherPlugin.Utils
         {
             sampleRate = AudioSettings.outputSampleRate;
             random = new System.Random(42);
+            noiseLevel = VoxxWeatherPlugin.NoiseStaticLevel.Value;
         }
 
         private void OnAudioFilterRead(float[] data, int channels)

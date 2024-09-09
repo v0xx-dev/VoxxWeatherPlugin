@@ -38,7 +38,7 @@ namespace VoxxWeatherPlugin.Weathers
             {
                 case FlareIntensity.Weak:
                     ScreenDistortionIntensity = 0.3f;
-                    RadioDistortionIntensity = 0.25f;
+                    RadioDistortionIntensity = 0.20f;
                     RadioBreakthroughLength = 1.25f;
                     RadioFrequencyShift = 1000f;
                     AuroraColor1 = new Color(0f, 11.98f, 0.69f, 1f); 
@@ -48,7 +48,7 @@ namespace VoxxWeatherPlugin.Weathers
                     break;
                 case FlareIntensity.Mild:
                     ScreenDistortionIntensity = 0.5f;
-                    RadioDistortionIntensity = 0.5f;
+                    RadioDistortionIntensity = 0.4f;
                     RadioBreakthroughLength = 0.75f;
                     RadioFrequencyShift = 250f;
                     AuroraColor1 = new Color(0.13f, 8.47f, 8.47f, 1f);
@@ -58,7 +58,7 @@ namespace VoxxWeatherPlugin.Weathers
                     break;
                 case FlareIntensity.Average:
                     ScreenDistortionIntensity = 0.8f;
-                    RadioDistortionIntensity = 0.65f;
+                    RadioDistortionIntensity = 0.55f;
                     RadioBreakthroughLength = 0.5f;
                     RadioFrequencyShift = 50f;
                     AuroraColor1 = new Color(0.38f, 6.88f, 0f, 1f);
