@@ -105,7 +105,7 @@ namespace VoxxWeatherPlugin
             DrainBatteryInFacility = Config.Bind("SolarFlare", "DrainBatteryInFacility", false, "Drain item battery even when inside a facility during Solar Flare");
             DoorMalfunctionEnabled = Config.Bind("SolarFlare", "DoorMalfunctionEnabled", true, "Enable or disable door malfunction during Average and Strong Solar Flare");
             DoorMalfunctionChance = Config.Bind("SolarFlare", "DoorMalfunctionChance", 0.5f, new ConfigDescription("Chance of metal doors opening/closing by themselves during Solar Flare. 0.1 is 10% chance, 0.5 is 50% chance, 1.0 is 100% chance. Low chance might cause you to get soft locked behind a door in the facility!", new AcceptableValueRange<float>(0, 1f)));
-            NoiseStaticLevel = Config.Bind("SolarFlare", "NoiseStaticLevel", 0.005f, new ConfigDescription("Level of static noise from the walkie talkie during Solar Flare. This is signal amplitude, the actual volume in dB will follow a logarithmic scale. For example the volume for value 0.1 relative to 0.2 is not reduced by 100%, it's actually by ~log10(0.2/0.1) %", new AcceptableValueRange<float>(0, 1f)));
+            NoiseStaticLevel = Config.Bind("SolarFlare", "NoiseStaticLevel", 0.001f, new ConfigDescription("Level of static noise from the walkie talkie during Solar Flare. This is signal amplitude, the actual volume in dB will follow a logarithmic scale. For example the volume for value 0.1 relative to 0.2 is not reduced by 100%, it's actually by ~log10(0.2/0.1) %", new AcceptableValueRange<float>(0, 1f)));
         }
     }
 
