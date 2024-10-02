@@ -154,6 +154,11 @@ namespace VoxxWeatherPlugin.Utils
                 return;
             }
 
+            if (snowfallWeather.levelDepthmap == null || snowfallWeather.snowTracksMap == null)
+            {
+                Debug.LogWarning(" Attempt to call with uninitialized textures. Skipping the call to avoid errors");
+            }
+
             shaderPasses[shaderPasses.Length - 1] = new ShaderTagId(overrideMaterialPassName);
 
             if (shaderPasses.Length == 0)

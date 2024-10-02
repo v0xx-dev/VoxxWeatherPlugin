@@ -65,8 +65,13 @@ namespace VoxxWeatherPlugin
                 Logger.LogInfo($"{PluginInfo.PLUGIN_GUID} heatwave patches successfully applied!");
             }
 
-            // WeatherTypeLoader.RegisterBlizzardWeather();
-            // WeatherTypeLoader.RegisterSnowfallWeather();
+            if (true)
+            {
+                // WeatherTypeLoader.RegisterSnowfallWeather();
+                // WeatherTypeLoader.RegisterBlizzardWeather();
+                harmony.PatchAll(typeof(SnowPatches));
+                Logger.LogInfo($"{PluginInfo.PLUGIN_GUID} snow patches successfully applied!");
+            }
 
             Logger.LogInfo($"Plugin {PluginInfo.PLUGIN_GUID} is loaded!");
         }

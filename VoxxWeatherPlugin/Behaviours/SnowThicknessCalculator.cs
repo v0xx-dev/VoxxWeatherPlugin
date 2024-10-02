@@ -1,5 +1,7 @@
-﻿using UnityEngine;
+﻿using GameNetcodeStuff;
+using UnityEngine;
 using VoxxWeatherPlugin.Weathers;
+using System.Linq;
 
 namespace VoxxWeatherPlugin.Behaviours
 {
@@ -8,13 +10,22 @@ namespace VoxxWeatherPlugin.Behaviours
         [SerializeField]
         internal ComputeShader snowThicknessComputeShader;
         [SerializeField]
-        internal float distToGround;
-        [SerializeField]
         internal SnowfallWeather snowfallWeather;
         
         [SerializeField]
         internal bool inputNeedsUpdate = true;
+        
+        internal float[] snowThicknessData = [0.0f];
+        [SerializeField]
+        internal float snowPositionY = 0.0f;
+        internal float lastGroundCollisionPointY = 0.0f;
+        internal Vector3 groundNormal = Vector3.up;
+        internal Vector3 groundPosition = Vector3.zero;
+        internal bool isOnNaturalGround = false;
 
+        private Vector3[] worldSpaceNormalData;
+        private int worldSpaceNormalDataSize = 10;
+        private int currentWorldSpaceNormalIndex = 0;
         private int kernelHandle;
         private ComputeBuffer worldSpaceNormalBuffer;
         private ComputeBuffer worldSpacePositionBuffer;
@@ -28,6 +39,7 @@ namespace VoxxWeatherPlugin.Behaviours
             worldSpaceNormalBuffer = new ComputeBuffer(1, 3 * sizeof(float));
             worldSpacePositionBuffer = new ComputeBuffer(1, 3 * sizeof(float));
             snowThicknessBuffer = new ComputeBuffer(1, sizeof(float));
+            worldSpaceNormalData = new Vector3[worldSpaceNormalDataSize];
 
             // Set buffers and texture
             snowThicknessComputeShader.SetBuffer(kernelHandle, "_WorldSpaceNormal", worldSpaceNormalBuffer);
@@ -35,10 +47,6 @@ namespace VoxxWeatherPlugin.Behaviours
             snowThicknessComputeShader.SetBuffer(kernelHandle, "_SnowThickness", snowThicknessBuffer);
             snowThicknessComputeShader.SetTexture(kernelHandle, "_DepthTex", snowfallWeather.levelDepthmap);
             snowThicknessComputeShader.SetTexture(kernelHandle, "_FootprintsTex", snowfallWeather.snowTracksMap);
-
-            BoxCollider boxCollider = GameNetworkManager.Instance.localPlayerController.GetComponent<BoxCollider>();
-
-            distToGround = boxCollider.bounds.extents.y;// - boxCollider.center.y;
         }
 
         void FixedUpdate()
@@ -67,37 +75,76 @@ namespace VoxxWeatherPlugin.Behaviours
             snowThicknessComputeShader.SetFloat("_SnowNoisePower", snowfallWeather.snowIntensity);
 
             // Update world space normal and position
-            UpdateWorldSpaceData();
+            (groundNormal, groundPosition) = UpdateWorldSpaceData();
+            Debug.Log($"Normal: {groundNormal} Position: {groundPosition}");
 
+            worldSpaceNormalBuffer.SetData(new Vector3[] { groundNormal });
+            worldSpacePositionBuffer.SetData(new Vector3[] { groundPosition });
             // Dispatch compute shader
             snowThicknessComputeShader.Dispatch(kernelHandle, 1, 1, 1);
 
             // Read result
-            float[] snowThicknessData = new float[1];
             snowThicknessBuffer.GetData(snowThicknessData);
+            snowPositionY = snowThicknessData[0] + lastGroundCollisionPointY;
 
-            Debug.Log("Snow Thickness: " + snowThicknessData[0]);
+            Debug.Log($"Snow Thickness: {snowThicknessData[0]}, Actual coordinate: {snowPositionY}");
         }
 
-        void UpdateWorldSpaceData()
+        internal bool IsGroundTag(Collider collider, string[] tags)
         {
+            foreach (string tag in tags)
+            {
+                if (collider.CompareTag(tag))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        internal (Vector3, Vector3) UpdateWorldSpaceData()
+        {
+            // PlayerControllerB localPlayer = GameNetworkManager.Instance.localPlayerController;
+            // Vector3 position = localPlayer.controllerCollisionPoint;
+            // lastGroundCollisionPointY = position.y;
+            // // Store the normal in the buffer
+            // worldSpaceNormalData[currentWorldSpaceNormalIndex] = localPlayer.playerGroundNormal;
+            // currentWorldSpaceNormalIndex = (currentWorldSpaceNormalIndex + 1) % worldSpaceNormalDataSize;
+            // // Moving average of the normals
+            // Vector3 averageNormal = worldSpaceNormalData.Aggregate(Vector3.zero, (current, vector) => current + vector);
+            // averageNormal /= worldSpaceNormalDataSize;
+            // Debug.Log("Normal: " + averageNormal + " Position: " + position);
+            // // Set the buffers
+            // worldSpaceNormalBuffer.SetData(new Vector3[] { averageNormal });
+            // worldSpacePositionBuffer.SetData(new Vector3[] { position });
+
             Transform playerTransform = GameNetworkManager.Instance.localPlayerController.transform;
             Vector3 normal = Vector3.up;
             Vector3 position = playerTransform.position;
 
-            if (Physics.Raycast(playerTransform.position, -playerTransform.up, out RaycastHit hit, distToGround, LayerMask.GetMask("Room")))
+            if (Physics.Raycast(playerTransform.position, -Vector3.up, out RaycastHit hit, 4f, LayerMask.GetMask("Room")))
             {
-                if (hit.collider.CompareTag("Grass"))
+                if (IsGroundTag(hit.collider, snowfallWeather.groundTags))
                 {
                     normal = hit.normal;
                     position = hit.point;
-                    Debug.Log("Hit Grass");
+                    isOnNaturalGround = true;
                 }
             }
-            Debug.Log($"Normal: {normal} Position: {position}");
+            else
+            {
+                isOnNaturalGround = false;
+            }
+            
+            // Store the normal in the buffer
+            worldSpaceNormalData[currentWorldSpaceNormalIndex] = normal;
+            currentWorldSpaceNormalIndex = (currentWorldSpaceNormalIndex + 1) % worldSpaceNormalDataSize;
+            // Moving average of the normals
+            Vector3 averageNormal = worldSpaceNormalData.Aggregate(Vector3.zero, (current, vector) => current + vector);
+            averageNormal /= worldSpaceNormalDataSize;
+            lastGroundCollisionPointY = position.y;
 
-            worldSpaceNormalBuffer.SetData(new Vector3[] { normal });
-            worldSpacePositionBuffer.SetData(new Vector3[] { position });
+            return (averageNormal, position);
         }
 
         void OnDestroy()
