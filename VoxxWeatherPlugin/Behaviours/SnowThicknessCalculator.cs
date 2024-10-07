@@ -49,7 +49,7 @@ namespace VoxxWeatherPlugin.Behaviours
             snowThicknessComputeShader.SetTexture(kernelHandle, "_FootprintsTex", snowfallWeather.snowTracksMap);
         }
 
-        void FixedUpdate()
+        internal void CalculateThickness()
         {
             if (snowfallWeather == null)
             {
@@ -60,23 +60,23 @@ namespace VoxxWeatherPlugin.Behaviours
             if (inputNeedsUpdate)
             {
                 // Update static input parameters
-                snowThicknessComputeShader.SetFloat("_SnowNoiseScale", snowfallWeather.snowScale);
+                // snowThicknessComputeShader.SetFloat("_SnowNoiseScale", snowfallWeather.snowScale);
                 snowThicknessComputeShader.SetFloat("_MaximumSnowHeight", snowfallWeather.maxSnowHeight);
                 snowThicknessComputeShader.SetMatrix("_LightViewProjection", snowfallWeather.levelDepthmapCamera.projectionMatrix * snowfallWeather.levelDepthmapCamera.worldToCameraMatrix);
-                snowThicknessComputeShader.SetMatrix("_FootprintsViewProjection", snowfallWeather.snowTracksCamera.projectionMatrix * snowfallWeather.snowTracksCamera.worldToCameraMatrix);
-                snowThicknessComputeShader.SetFloat("_ShadowBias", snowfallWeather.shadowBias);
+                // snowThicknessComputeShader.SetFloat("_ShadowBias", snowfallWeather.shadowBias);
                 snowThicknessComputeShader.SetFloat("_PCFKernelSize", snowfallWeather.PCFKernelSize);
-                snowThicknessComputeShader.SetFloat("_SnowOcclusionBias", snowfallWeather.snowOcclusionBias);
+                // snowThicknessComputeShader.SetFloat("_SnowOcclusionBias", snowfallWeather.snowOcclusionBias);
                 snowThicknessComputeShader.SetVector("_ShipLocation", snowfallWeather.shipPosition);
                 inputNeedsUpdate = false;
             }
 
             // Update snow noise power
             snowThicknessComputeShader.SetFloat("_SnowNoisePower", snowfallWeather.snowIntensity);
-
+            snowThicknessComputeShader.SetMatrix("_FootprintsViewProjection", snowfallWeather.snowTracksCamera.projectionMatrix * snowfallWeather.snowTracksCamera.worldToCameraMatrix);
+                
             // Update world space normal and position
             (groundNormal, groundPosition) = UpdateWorldSpaceData();
-            Debug.Log($"Normal: {groundNormal} Position: {groundPosition}");
+            Debug.LogDebug($"Normal: {groundNormal} Position: {groundPosition}");
 
             worldSpaceNormalBuffer.SetData(new Vector3[] { groundNormal });
             worldSpacePositionBuffer.SetData(new Vector3[] { groundPosition });
@@ -87,7 +87,7 @@ namespace VoxxWeatherPlugin.Behaviours
             snowThicknessBuffer.GetData(snowThicknessData);
             snowPositionY = snowThicknessData[0] + lastGroundCollisionPointY;
 
-            Debug.Log($"Snow Thickness: {snowThicknessData[0]}, Actual coordinate: {snowPositionY}");
+            Debug.LogDebug($"Snow Thickness: {snowThicknessData[0]}, Actual coordinate: {snowPositionY}");
         }
 
         internal bool IsGroundTag(Collider collider, string[] tags)
@@ -100,6 +100,12 @@ namespace VoxxWeatherPlugin.Behaviours
                 }
             }
             return false;
+        }
+
+        internal bool isGroundObject(Collider collider)
+        {
+            Debug.Log($"{collider.gameObject} == {snowfallWeather.groundObject} => {collider.gameObject == snowfallWeather.groundObject}");
+            return collider.gameObject == snowfallWeather.groundObject;
         }
 
         internal (Vector3, Vector3) UpdateWorldSpaceData()
@@ -121,19 +127,23 @@ namespace VoxxWeatherPlugin.Behaviours
             Transform playerTransform = GameNetworkManager.Instance.localPlayerController.transform;
             Vector3 normal = Vector3.up;
             Vector3 position = playerTransform.position;
+            isOnNaturalGround = false;
 
-            if (Physics.Raycast(playerTransform.position, -Vector3.up, out RaycastHit hit, 4f, LayerMask.GetMask("Room")))
+            if (snowfallWeather.groundObject == null)
             {
-                if (IsGroundTag(hit.collider, snowfallWeather.groundTags))
+                Debug.LogError("Ground object is null, cannot calculate snow thickness!");
+                return (normal, position);
+            }
+            
+            if (Physics.Raycast(playerTransform.position, -Vector3.up, out RaycastHit hit, 3f, 1 << snowfallWeather.groundObject.layer))
+            {
+                // if (IsGroundTag(hit.collider, snowfallWeather.groundTags))
+                if (isGroundObject(hit.collider))
                 {
                     normal = hit.normal;
                     position = hit.point;
                     isOnNaturalGround = true;
                 }
-            }
-            else
-            {
-                isOnNaturalGround = false;
             }
             
             // Store the normal in the buffer

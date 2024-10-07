@@ -67,7 +67,7 @@ namespace VoxxWeatherPlugin
 
             if (true)
             {
-                // WeatherTypeLoader.RegisterSnowfallWeather();
+                WeatherTypeLoader.RegisterSnowfallWeather();
                 // WeatherTypeLoader.RegisterBlizzardWeather();
                 harmony.PatchAll(typeof(SnowPatches));
                 Logger.LogInfo($"{PluginInfo.PLUGIN_GUID} snow patches successfully applied!");

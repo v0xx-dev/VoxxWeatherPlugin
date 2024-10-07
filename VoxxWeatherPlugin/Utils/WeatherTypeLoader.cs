@@ -164,27 +164,35 @@ namespace VoxxWeatherPlugin.Utils
 
         public static void RegisterSnowfallWeather()
         {
-            GameObject blizzardVFXObject = new GameObject("SnowfallVFX");
-            blizzardVFXObject.SetActive(false);
-            GameObject effectObject = GameObject.Instantiate(blizzardVFXObject);
-            effectObject.hideFlags = HideFlags.HideAndDontSave;
-            GameObject.DontDestroyOnLoad(effectObject);
+            GameObject snowfallPrefab = WeatherAssetLoader.LoadAsset<GameObject>(bundleName, "SnowWeatherContainer");
+            snowfallPrefab.SetActive(false);
+            GameObject snowfallContainer = GameObject.Instantiate(snowfallPrefab);
+            //snowfallContainer.hideFlags = HideFlags.HideAndDontSave;
+            GameObject.DontDestroyOnLoad(snowfallContainer);
 
-            GameObject blizzardEffect = new GameObject("SnowfallEffect");
-            blizzardEffect.SetActive(false);
-            GameObject effectPermanentObject = GameObject.Instantiate(blizzardEffect);
-            effectPermanentObject.hideFlags = HideFlags.HideAndDontSave;
-            GameObject.DontDestroyOnLoad(effectPermanentObject);
+            SnowfallWeather snowfallWeatherController = snowfallContainer.GetComponentInChildren<SnowfallWeather>(true);
+            GameObject effectPermanentObject = snowfallWeatherController.gameObject;
+            effectPermanentObject.SetActive(false);
 
-            ImprovedWeatherEffect blizzardWeatherEffect = new(effectObject, effectPermanentObject)
+            GameObject effectObject = snowfallContainer.GetComponentInChildren<SnowfallVFXManager>(true).gameObject;
+            effectObject.SetActive(false);
+
+            SnowfallVFXManager.footprintsTrackerVFX = snowfallWeatherController.footprintsTrackerVFX;
+            SnowfallVFXManager.lowcapFootprintsTrackerVFX = snowfallWeatherController.lowcapFootprintsTrackerVFX;
+            SnowfallVFXManager.itemTrackerVFX = snowfallWeatherController.itemTrackerVFX;
+            SnowfallVFXManager.shovelVFX = snowfallWeatherController.shovelVFX;
+
+            snowfallContainer.SetActive(true);
+
+            ImprovedWeatherEffect snowyWeatherEffect = new(effectObject, effectPermanentObject)
             {
                 SunAnimatorBool = "overcast",
             };
 
-            Weather SnowfallWeather = new Weather("Snowfall", blizzardWeatherEffect)
+            Weather SnowfallWeather = new Weather("Snowfall", snowyWeatherEffect)
             {
-                DefaultLevelFilters = new[] {"Vow", "March", "Adamance"},
-                LevelFilteringOption = FilteringOption.Include,
+                DefaultLevelFilters = new[] {"Gordion"},
+                LevelFilteringOption = FilteringOption.Exclude,
                 Color = Color.blue,
                 ScrapAmountMultiplier = 1.25f,
                 ScrapValueMultiplier = 1.2f,

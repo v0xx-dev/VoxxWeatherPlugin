@@ -72,7 +72,10 @@ namespace VoxxWeatherPlugin.Utils
             internal static readonly int SnowOcclusionBias = Shader.PropertyToID("_SnowOcclusionBias");
             internal static readonly int BaseTessellationFactor = Shader.PropertyToID("_BaseTessellationFactor");
             internal static readonly int MaxTessellationFactor = Shader.PropertyToID("_MaxTessellationFactor");
+            internal static readonly int isAdaptiveTessellation = Shader.PropertyToID("_isAdaptiveTesselation");
             internal static readonly int ShipPosition = Shader.PropertyToID("_ShipPosition");
+            internal static readonly int Emission = Shader.PropertyToID("_Emission");
+
         }
 
         // Used only for the UI to keep track of the toggle state
@@ -93,6 +96,7 @@ namespace VoxxWeatherPlugin.Utils
         public bool overrideDepthState = false;
         public CompareFunction depthCompareFunction = CompareFunction.LessEqual;
         public bool depthWrite = true;
+        public bool forceClusteredLighting = true;
 
         /// Override the stencil state of the objects.
         internal bool overrideStencil = false;
@@ -134,7 +138,20 @@ namespace VoxxWeatherPlugin.Utils
                     HDShaderPassNames.s_DepthOnlyName,
                     HDShaderPassNames.s_EmptyName,              // Add an empty slot for the override material
             };
-            
+
+            if (overrideMaterial == null)
+            {
+                Debug.LogWarning("Attempt to call with an empty override material. Some variables will be set to default values");
+                return;
+            }
+
+            overrideMaterial.SetFloat(SnowfallShaderIDs.PCFKernelSize, snowfallWeather.PCFKernelSize);
+            overrideMaterial.SetFloat(SnowfallShaderIDs.BaseTessellationFactor, snowfallWeather.baseTessellationFactor);
+            overrideMaterial.SetFloat(SnowfallShaderIDs.MaxTessellationFactor, snowfallWeather.maxTessellationFactor);
+            overrideMaterial.SetInt(SnowfallShaderIDs.isAdaptiveTessellation, snowfallWeather.isAdaptiveTessellation);
+            // overrideMaterial.SetFloat(SnowfallShaderIDs.ShadowBias, snowfallWeather.shadowBias);
+            // overrideMaterial.SetFloat(SnowfallShaderIDs.SnowOcclusionBias, snowfallWeather.snowOcclusionBias);
+
         }
 
         ShaderTagId[] GetShaderTagIds()
@@ -170,18 +187,14 @@ namespace VoxxWeatherPlugin.Utils
             overrideMaterial.SetFloat(SnowfallShaderIDs.FadeValue, fadeValue);
             overrideMaterial.SetTexture(SnowfallShaderIDs.DepthTex, snowfallWeather.levelDepthmap);
             overrideMaterial.SetTexture(SnowfallShaderIDs.FootprintsTex, snowfallWeather.snowTracksMap);
-            overrideMaterial.SetMatrix(SnowfallShaderIDs.LightViewProjection, snowfallWeather.levelDepthmapCamera.projectionMatrix * snowfallWeather.levelDepthmapCamera.worldToCameraMatrix);
             overrideMaterial.SetMatrix(SnowfallShaderIDs.FootprintsViewProjection, snowfallWeather.snowTracksCamera.projectionMatrix * snowfallWeather.snowTracksCamera.worldToCameraMatrix);
-            overrideMaterial.SetFloat(SnowfallShaderIDs.ShadowBias, snowfallWeather.shadowBias);
+            overrideMaterial.SetMatrix(SnowfallShaderIDs.LightViewProjection, snowfallWeather.levelDepthmapCamera.projectionMatrix * snowfallWeather.levelDepthmapCamera.worldToCameraMatrix);
             // overrideMaterial.SetVector(SnowfallShaderIDs.LightDirection, snowfallWeather.levelDepthmapCamera.transform.forward);
-            overrideMaterial.SetFloat(SnowfallShaderIDs.PCFKernelSize, snowfallWeather.PCFKernelSize);
             overrideMaterial.SetFloat(SnowfallShaderIDs.SnowNoisePower, snowfallWeather.snowIntensity);
             overrideMaterial.SetFloat(SnowfallShaderIDs.SnowNoiseScale, snowfallWeather.snowScale);
             overrideMaterial.SetFloat(SnowfallShaderIDs.MaxSnowHeight, snowfallWeather.maxSnowHeight);
-            overrideMaterial.SetFloat(SnowfallShaderIDs.SnowOcclusionBias, snowfallWeather.snowOcclusionBias);
-            overrideMaterial.SetFloat(SnowfallShaderIDs.BaseTessellationFactor, snowfallWeather.baseTessellationFactor);
-            overrideMaterial.SetFloat(SnowfallShaderIDs.MaxTessellationFactor, snowfallWeather.maxTessellationFactor);
             overrideMaterial.SetVector(SnowfallShaderIDs.ShipPosition, snowfallWeather.shipPosition);
+            overrideMaterial.SetFloat(SnowfallShaderIDs.Emission, snowfallWeather.emissionMultiplier);
 
             var mask = overrideDepthState ? RenderStateMask.Depth : 0;
             mask |= overrideDepthState && !depthWrite ? RenderStateMask.Stencil : 0;
@@ -224,7 +237,7 @@ namespace VoxxWeatherPlugin.Utils
         CommandBuffer cmd)
         {
             // Note: SHADOWS_SHADOWMASK keyword is enabled in HDRenderPipeline.cs ConfigureForShadowMask
-            bool useFptl = opaque && frameSettings.IsEnabled(FrameSettingsField.FPTLForForwardOpaque);
+            bool useFptl = opaque && frameSettings.IsEnabled(FrameSettingsField.FPTLForForwardOpaque) && !forceClusteredLighting;
 
             // say that we want to use tile/cluster light loop
             CoreUtils.SetKeyword(cmd, "USE_FPTL_LIGHTLIST", useFptl);
