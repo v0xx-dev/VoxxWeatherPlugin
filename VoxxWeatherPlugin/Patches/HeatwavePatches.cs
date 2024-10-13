@@ -33,12 +33,21 @@ namespace VoxxWeatherPlugin.Patches
             if (!((NetworkBehaviour)__instance).IsOwner || !__instance.isPlayerControlled)
                 return;
 
-            if (__instance.isInsideFactory)
+            if (CheckConditionsForHeatingStop(__instance))
             {
                 PlayerTemperatureManager.heatSeverityMultiplier = 1f;
                 PlayerTemperatureManager.isInHeatZone = false;
             }
+            else if (CheckConditionsForHeatingPause(__instance))
+            {
+                PlayerTemperatureManager.heatSeverityMultiplier = .33f; //heat slower when in special interact animation and in a car
+            }
+            else
+            {
+                PlayerTemperatureManager.heatSeverityMultiplier = 1f;
+            }
 
+            // Gradually reduce heat severity when not in heat zone
             if (!PlayerTemperatureManager.isInHeatZone)
             {
                 PlayerTemperatureManager.SetHeatSeverity(-Time.deltaTime / timeToCool);
@@ -56,6 +65,18 @@ namespace VoxxWeatherPlugin.Patches
                 else if (delta > 0.0) //Stamina regenerated
                     __instance.sprintMeter = Mathf.Min(HeatwavePatches.prevSprintMeter + delta / (1 + severity * severityInfluenceMultiplier), 1f);
             }
+        }
+
+        internal static bool CheckConditionsForHeatingPause(PlayerControllerB playerController)
+        {
+            return playerController.inSpecialInteractAnimation || playerController.inAnimationWithEnemy || playerController.isClimbingLadder || playerController.physicsParent != null;
+        }
+
+        internal static bool CheckConditionsForHeatingStop(PlayerControllerB playerController)
+        {
+            return playerController.beamUpParticle.isPlaying || playerController.isInElevator || 
+                    playerController.isInHangarShipRoom || playerController.isUnderwater ||
+                     playerController.isPlayerDead || playerController.isInsideFactory;
         }
 
         [HarmonyPatch(typeof(SoundManager), "SetAudioFilters")]

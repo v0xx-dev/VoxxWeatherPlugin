@@ -9,8 +9,7 @@ namespace VoxxWeatherPlugin.Weathers
 {
     internal class HeatwaveWeather: MonoBehaviour
     {
-        public VolumeProfile heatwaveFilter; // Filter for visual effects
-
+        internal VolumeProfile heatwaveFilter; // Filter for visual effects
         internal HeatwaveVFXManager heatwaveVFXManager; // Manager for heatwave visual effects
         private Volume exhaustionFilter; // Filter for visual effects
         private BoxCollider heatwaveTrigger; // Trigger collider for the heatwave zone
@@ -42,7 +41,7 @@ namespace VoxxWeatherPlugin.Weathers
         {
             seededRandom = new System.Random(StartOfRound.Instance.randomMapSeed);
             (heatwaveZoneSize, heatwaveZoneLocation) = PlayableAreaCalculator.CalculateZoneSize();
-            Debug.Log($"Heatwave zone size: {heatwaveZoneSize}. Placed at {heatwaveZoneLocation}");
+            Debug.LogDebug($"Heatwave zone size: {heatwaveZoneSize}. Placed at {heatwaveZoneLocation}");
             heatwaveVFXManager.CalculateEmitterRadius();
             heatwaveVFXManager.PopulateLevelWithVFX(ref heatwaveZoneSize, ref heatwaveZoneLocation, seededRandom);
             SetupHeatwaveWeather();
@@ -52,7 +51,7 @@ namespace VoxxWeatherPlugin.Weathers
         {
             Destroy(heatwaveVFXManager.heatwaveVFXContainer);
             heatwaveVFXManager.heatwaveVFXContainer = null;
-            Debug.Log("Heatwave VFX container destroyed.");
+            Debug.LogDebug("Heatwave VFX container destroyed.");
             PlayerTemperatureManager.isInHeatZone = false;
             PlayerTemperatureManager.heatSeverityMultiplier = 1f;
         }
@@ -63,69 +62,11 @@ namespace VoxxWeatherPlugin.Weathers
             heatwaveTrigger.size = heatwaveZoneSize;
             heatwaveTrigger.transform.position = heatwaveZoneLocation;
             heatwaveTrigger.transform.rotation = Quaternion.identity;
-            Debug.Log($"Heatwave zone placed!");
+            Debug.LogDebug($"Heatwave zone placed!");
 
             // Set exhaustion time for the player
-            timeInHeatZoneMax = Mathf.Clamp(seededRandom.NextDouble(timeUntilStrokeMin, timeUntilStrokeMax), 1f, 9999f);
-            Debug.Log($"Set time until heatstroke: {timeInHeatZoneMax} seconds");
-        }
-
-        // private void CalculateZoneSize()
-        // {
-        //     List<Vector3> keyLocationCoords = [StartOfRound.Instance.shipInnerRoomBounds.bounds.center];
-
-        //     // Store positions of all the outside AI nodes in the scene
-        //     foreach (GameObject node in RoundManager.Instance.outsideAINodes)
-        //     {
-        //         if (node == null)
-        //             continue;
-        //         keyLocationCoords.Add(node.transform.position);
-        //     }
-
-        //     // Find all Entrances in the scene
-        //     EntranceTeleport[] entranceTeleports = FindObjectsOfType<EntranceTeleport>();
-
-        //     foreach (EntranceTeleport entranceTeleport in entranceTeleports)
-        //     {
-        //         if (entranceTeleport == null)
-        //             continue;
-        //         // Check if the entrance is on the outside
-        //         if (entranceTeleport.isEntranceToBuilding)
-        //         {
-        //             Vector3 entrancePointCoords = entranceTeleport.entrancePoint.position;
-        //             keyLocationCoords.Add(entrancePointCoords);
-        //         }
-        //     }
-
-        //     // Calculate the size of the heatwave zone based on the key locations
-        //     Vector3 minCoords = keyLocationCoords[0];
-        //     Vector3 maxCoords = keyLocationCoords[0];
-
-        //     foreach (Vector3 coords in keyLocationCoords)
-        //     {
-        //         minCoords = Vector3.Min(minCoords, coords);
-        //         maxCoords = Vector3.Max(maxCoords, coords);
-        //     }
-
-        //     Vector3 zoneSize = maxCoords - minCoords;
-        //     Vector3 zoneCenter = (minCoords + maxCoords) / 2f;
-
-        //     // Increase the size of the heatwave zone by 25%
-        //     heatwaveZoneSize = zoneSize*1.25f;
-        //     heatwaveZoneLocation = zoneCenter;
-
-        //     Debug.Log($"Heatwave zone size: {heatwaveZoneSize}");
-
-        // }
-
-        public bool CheckConditionsForHeatingPause(PlayerControllerB playerController)
-        {
-            return playerController.inSpecialInteractAnimation || (bool)(UnityEngine.Object)playerController.inAnimationWithEnemy || playerController.isClimbingLadder || ((UnityEngine.Object)playerController.physicsParent != (UnityEngine.Object)null);
-        }
-
-        public bool CheckConditionsForHeatingStop(PlayerControllerB playerController)
-        {
-            return playerController.beamUpParticle.isPlaying || playerController.isInElevator || playerController.isInHangarShipRoom || playerController.isUnderwater;
+            timeInHeatZoneMax = seededRandom.NextDouble(timeUntilStrokeMin, timeUntilStrokeMax);
+            Debug.LogDebug($"Set time until heatstroke: {timeInHeatZoneMax} seconds");
         }
 
         private void OnTriggerStay(Collider other)
@@ -136,26 +77,6 @@ namespace VoxxWeatherPlugin.Weathers
 
                 if (playerController != GameNetworkManager.Instance.localPlayerController)
                     return;
-
-                if (playerController.isPlayerDead)
-                {
-                    PlayerTemperatureManager.heatSeverityMultiplier = 1f;
-                    PlayerTemperatureManager.isInHeatZone = false;
-                    PlayerTemperatureManager.SetHeatSeverity(-PlayerTemperatureManager.heatSeverity);
-                    return;
-                }
-
-                if (CheckConditionsForHeatingStop(playerController))
-                {
-                    PlayerTemperatureManager.heatSeverityMultiplier = 1f;
-                    PlayerTemperatureManager.isInHeatZone = false;
-                    return;
-                }
-
-                if (CheckConditionsForHeatingPause(playerController))
-                    PlayerTemperatureManager.heatSeverityMultiplier = .33f; //heat slower when in special interact animation and in a car
-                else
-                    PlayerTemperatureManager.heatSeverityMultiplier = 1f;
 
                 if (PlayerTemperatureManager.isInHeatZone)
                 {

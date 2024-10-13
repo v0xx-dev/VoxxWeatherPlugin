@@ -135,7 +135,7 @@ namespace VoxxWeatherPlugin.Behaviours
                 return (normal, position);
             }
             
-            if (Physics.Raycast(playerTransform.position, -Vector3.up, out RaycastHit hit, 3f, 1 << snowfallWeather.groundObject.layer))
+            if (Physics.Raycast(playerTransform.position, -Vector3.up, out RaycastHit hit, 3f, 1 << snowfallWeather.groundObject.layer, QueryTriggerInteraction.Ignore))
             {
                 // if (IsGroundTag(hit.collider, snowfallWeather.groundTags))
                 if (isGroundObject(hit.collider))

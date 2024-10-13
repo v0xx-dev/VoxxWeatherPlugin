@@ -73,6 +73,8 @@ namespace VoxxWeatherPlugin
                 Logger.LogInfo($"{PluginInfo.PLUGIN_GUID} snow patches successfully applied!");
             }
 
+            //WeatherTypeLoader.RegisterMeteorWeather();
+
             Logger.LogInfo($"Plugin {PluginInfo.PLUGIN_GUID} is loaded!");
         }
 

@@ -203,5 +203,48 @@ namespace VoxxWeatherPlugin.Utils
             Debug.Log($"{PluginInfo.PLUGIN_GUID}: Snowfall weather registered!");
 
         }
+
+        public static void RegisterMeteorWeather()
+        {
+            GameObject meteorPrefab = WeatherAssetLoader.LoadAsset<GameObject>(bundleName, "MeteorContainer");
+            meteorPrefab.SetActive(false);
+
+            if (meteorPrefab == null)
+            {
+                Debug.LogError("Failed to load Meteor Weather assets. Weather registration failed.");
+            }
+
+            GameObject meteorEffect = new GameObject("MeteorEffect");
+            meteorEffect.SetActive(false);
+            MeteorWeather meteorWeatherController = meteorEffect.AddComponent<MeteorWeather>();
+            meteorWeatherController.meteorPrefab = meteorPrefab;
+            GameObject effectPermanentObject = GameObject.Instantiate(meteorEffect);
+            GameObject.DontDestroyOnLoad(effectPermanentObject);
+            effectPermanentObject.hideFlags = HideFlags.HideAndDontSave;
+
+            GameObject effectObject = GameObject.Instantiate(new GameObject("MeteorVFX"));
+            effectObject.SetActive(false);
+            GameObject.DontDestroyOnLoad(effectObject);
+            effectObject.hideFlags = HideFlags.HideAndDontSave;
+
+            ImprovedWeatherEffect meteorWeatherEffect = new(effectObject, effectPermanentObject)
+            {
+                SunAnimatorBool = "eclipse",
+            };
+
+            Weather MeteorWeather = new Weather("MeteorTest", meteorWeatherEffect)
+            {
+                DefaultLevelFilters = new[] {"Gordion"},
+                LevelFilteringOption = FilteringOption.Exclude,
+                Color = Color.red,
+                ScrapAmountMultiplier = 1.25f,
+                ScrapValueMultiplier = 1.2f,
+                DefaultWeight = 1000
+            };
+
+            WeatherManager.RegisterWeather(MeteorWeather);
+            Debug.Log($"{PluginInfo.PLUGIN_GUID}: Meteor weather registered!");
+
+        }
     }
 }

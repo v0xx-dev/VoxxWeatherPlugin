@@ -87,6 +87,8 @@ namespace VoxxWeatherPlugin.Weathers
         internal SnowRenderersCustomPass.RenderingLayers originalOverlayRenderingLayers;
         internal SnowThicknessCalculator snowThicknessCalculator;
         internal string currentSceneName = "None";
+        internal float levelRadius;
+        internal Vector3 levelCenter;
         internal System.Random seededRandom;
 
         internal void Awake()
@@ -140,7 +142,7 @@ namespace VoxxWeatherPlugin.Weathers
             snowTracksCamera.aspect = 1.0f;
         }
 
-        internal void OnEnable()
+        internal virtual void OnEnable()
         {
             seededRandom = new System.Random(StartOfRound.Instance.randomMapSeed);
             
@@ -153,14 +155,14 @@ namespace VoxxWeatherPlugin.Weathers
             StartOfRound.Instance.StartNewRoundEvent.AddListener(new UnityAction(SwitchTerrainInstancing));
             FreezeWater();
             ModifyScrollingFog();
-            UpdateLevelDepthmapCoroutine();
+            UpdateLevelDepthmap();
             snowThicknessCalculator.inputNeedsUpdate = true;
             RefreshFootprintTrackers(SnowPatches.snowTrackersDict);
             RefreshFootprintTrackers(SnowPatches.snowShovelDict);
             StartCoroutine(RefreshLevelDepthmapCoroutine(true));
         }
 
-        internal void OnDisable()
+        internal virtual void OnDisable()
         {
             StartOfRound.Instance.StartNewRoundEvent.RemoveListener(new UnityAction(SwitchTerrainInstancing));
             DisableFootprintTrackers(SnowPatches.snowTrackersDict);
@@ -176,7 +178,7 @@ namespace VoxxWeatherPlugin.Weathers
             SnowPatches.snowShovelDict.Clear();
         }
 
-        internal void FixedUpdate()
+        internal virtual void FixedUpdate()
         {
             shipPosition = StartOfRound.Instance.shipBounds.bounds.center;
             float normalizedSnowTimer =  Mathf.Clamp01(maxSnowNormalizedTime - TimeOfDay.Instance.normalizedTimeOfDay);
@@ -199,13 +201,14 @@ namespace VoxxWeatherPlugin.Weathers
             }
         }
 
-        internal void UpdateLevelDepthmapCoroutine()
+        internal void UpdateLevelDepthmap()
         {
             Debug.Log("Updating level depthmap");
-            (_, Vector3 levelBarycenter) = PlayableAreaCalculator.CalculateZoneSize();
-            Vector3 cameraPosition = new Vector3(levelBarycenter.x, levelDepthmapCamera.transform.position.y, levelBarycenter.z);
+            (Vector3 levelSize, levelCenter) = PlayableAreaCalculator.CalculateZoneSize();
+            levelRadius = Mathf.Max(levelSize.x, levelSize.z);
+            Vector3 cameraPosition = new Vector3(levelCenter.x, levelDepthmapCamera.transform.position.y, levelCenter.z);
             levelDepthmapCamera.transform.position = cameraPosition;
-            Debug.Log($"Camera position: {levelDepthmapCamera.transform.position}, Barycenter: {levelBarycenter}");
+            Debug.Log($"Camera position: {levelDepthmapCamera.transform.position}, Barycenter: {levelCenter}");
             
             StartCoroutine(RefreshLevelDepthmapCoroutine());
         }
@@ -456,7 +459,7 @@ namespace VoxxWeatherPlugin.Weathers
         [SerializeField]
         internal SnowfallWeather snowfallWeather;
         [SerializeField]
-        internal VisualEffect snowVFX;
+        internal GameObject snowVFXContainer;
         internal static GameObject footprintsTrackerVFX;
         internal static  GameObject lowcapFootprintsTrackerVFX;
         internal static  GameObject itemTrackerVFX;
@@ -486,7 +489,7 @@ namespace VoxxWeatherPlugin.Weathers
 
         internal void OnEnable()
         {
-            snowVFX.enabled = true;
+            snowVFXContainer.SetActive(true);
             frostyFilter.enabled = true;
             underSnowFilter.enabled = true;
             snowfallWeather.snowVolume.enabled = true;
@@ -500,7 +503,7 @@ namespace VoxxWeatherPlugin.Weathers
 
         internal void OnDisable()
         {
-            snowVFX.enabled = false;
+            snowVFXContainer.SetActive(false);
             frostyFilter.enabled = false;
             underSnowFilter.enabled = false;
             snowfallWeather.snowVolume.enabled = false;
