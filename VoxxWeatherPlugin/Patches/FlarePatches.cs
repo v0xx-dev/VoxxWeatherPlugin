@@ -59,13 +59,13 @@ namespace VoxxWeatherPlugin.Patches
         [HarmonyPrefix]
         static void GrabbableDischargePatch(GrabbableObject __instance)
         {
-            if (SolarFlareWeather.flareData != null)
+            if (SolarFlareWeather.Instance.flareData != null)
             {
                 if (__instance.IsOwner && __instance.hasBeenHeld && __instance.itemProperties.requiresBattery && (!__instance.isInFactory || drainBatteryInFacility))
                 {
                     if (__instance.insertedBattery.charge > 0.0 && !__instance.itemProperties.itemIsTrigger)
                     {
-                        __instance.insertedBattery.charge -= 2 * SolarFlareWeather.flareData.ScreenDistortionIntensity * batteryDrainMultiplier * Time.deltaTime / __instance.itemProperties.batteryUsage;
+                        __instance.insertedBattery.charge -= 2 * SolarFlareWeather.Instance.flareData.ScreenDistortionIntensity * batteryDrainMultiplier * Time.deltaTime / __instance.itemProperties.batteryUsage;
                     }
                 }
             }
@@ -75,9 +75,9 @@ namespace VoxxWeatherPlugin.Patches
         [HarmonyPrefix]
         static void SignalTranslatorDistortionPatch(ref string signalMessage)
         {
-            if (SolarFlareWeather.flareData != null)
+            if (SolarFlareWeather.Instance.flareData != null)
             {
-                float distortionIntensity = SolarFlareWeather.flareData.RadioDistortionIntensity * 0.5f;
+                float distortionIntensity = SolarFlareWeather.Instance.flareData.RadioDistortionIntensity * 0.5f;
                 char[] messageChars = signalMessage.ToCharArray();
 
                 for (int i = 0; i < messageChars.Length; i++)
@@ -134,7 +134,7 @@ namespace VoxxWeatherPlugin.Patches
 
         static void TeleporterPositionDistorter(ShipTeleporter teleporter)
         {
-            if (SolarFlareWeather.flareData != null)
+            if (SolarFlareWeather.Instance.flareData != null)
             {
                 // Store the original teleporter position
                 originalTeleporterPosition = teleporter.teleporterPosition;
@@ -156,7 +156,7 @@ namespace VoxxWeatherPlugin.Patches
 
         static void TeleporterPositionRestorer(ShipTeleporter teleporter)
         {
-            if (SolarFlareWeather.flareData != null)
+            if (SolarFlareWeather.Instance.flareData != null)
             {
                 // Restore the original teleporter position
                 teleporter.teleporterPosition = originalTeleporterPosition;
@@ -167,9 +167,9 @@ namespace VoxxWeatherPlugin.Patches
         [HarmonyPrefix]
         static bool DoorTerminalBlocker(TerminalAccessibleObject __instance)
         {
-            if (SolarFlareWeather.flareData != null && doorMalfunctionEnabled)
+            if (SolarFlareWeather.Instance.flareData != null && doorMalfunctionEnabled)
             {
-                if (SolarFlareWeather.flareData.IsDoorMalfunction && __instance.isBigDoor && seededRandom.NextDouble() < 0.9f)
+                if (SolarFlareWeather.Instance.flareData.IsDoorMalfunction && __instance.isBigDoor && seededRandom.NextDouble() < 0.9f)
                 {
                     return false;
                 }
@@ -181,23 +181,23 @@ namespace VoxxWeatherPlugin.Patches
         [HarmonyPrefix]
         static void SignalBoosterPrefix(RadarBoosterItem __instance, ref bool enable)
         {
-            if (SolarFlareWeather.flareData != null)
+            if (SolarFlareWeather.Instance.flareData != null)
             {
                 if (enable)
                 {
                     // Decrease the distortion intensity
-                    SolarFlareWeather.flareData.RadioDistortionIntensity /= 3f;
-                    SolarFlareWeather.flareData.ScreenDistortionIntensity /= 3f;
-                    SolarFlareWeather.flareData.RadioFrequencyShift /= 4f;
-                    SolarFlareWeather.flareData.RadioBreakthroughLength += 0.25f;
+                    SolarFlareWeather.Instance.flareData.RadioDistortionIntensity /= 3f;
+                    SolarFlareWeather.Instance.flareData.ScreenDistortionIntensity /= 3f;
+                    SolarFlareWeather.Instance.flareData.RadioFrequencyShift /= 4f;
+                    SolarFlareWeather.Instance.flareData.RadioBreakthroughLength += 0.25f;
                 }
                 else if (__instance.radarEnabled)
                 {
                     // Restore the original values
-                    SolarFlareWeather.flareData.RadioDistortionIntensity *= 3f;
-                    SolarFlareWeather.flareData.ScreenDistortionIntensity *= 3f;
-                    SolarFlareWeather.flareData.RadioFrequencyShift *= 4f;
-                    SolarFlareWeather.flareData.RadioBreakthroughLength -= 0.25f;
+                    SolarFlareWeather.Instance.flareData.RadioDistortionIntensity *= 3f;
+                    SolarFlareWeather.Instance.flareData.ScreenDistortionIntensity *= 3f;
+                    SolarFlareWeather.Instance.flareData.RadioFrequencyShift *= 4f;
+                    SolarFlareWeather.Instance.flareData.RadioBreakthroughLength -= 0.25f;
                 }
             }
         }

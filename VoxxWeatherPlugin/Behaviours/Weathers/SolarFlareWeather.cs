@@ -4,91 +4,20 @@ using UnityEngine.VFX;
 using UnityEngine.Rendering.HighDefinition;
 using VoxxWeatherPlugin.Utils;
 using System.Linq;
-using Unity.Netcode;
-using System.Collections;
-using System.Collections.Generic;
 
 namespace VoxxWeatherPlugin.Weathers
 {
-    internal enum FlareIntensity
-    {
-        Weak,
-        Mild,
-        Average,
-        Strong
-    }
-
-    internal class FlareData
-    {
-        public FlareIntensity Intensity { get; internal set; }
-        public float ScreenDistortionIntensity { get; internal set; }
-        public float RadioDistortionIntensity { get; internal set; }
-        public float RadioBreakthroughLength { get; internal set; }
-        public float RadioFrequencyShift { get; internal set; }
-        public float FlareSize { get; internal set; }
-        public Color AuroraColor1 { get; internal set; }
-        public Color AuroraColor2 { get; internal set; }
-        public bool IsDoorMalfunction { get; internal set; }
-
-        public FlareData(FlareIntensity intensity)
-        {
-            Intensity = intensity;
-
-            switch (intensity)
-            {
-                case FlareIntensity.Weak:
-                    ScreenDistortionIntensity = 0.3f;
-                    RadioDistortionIntensity = 0.25f;
-                    RadioBreakthroughLength = 1.25f;
-                    RadioFrequencyShift = 1000f;
-                    AuroraColor1 = new Color(0f, 11.98f, 0.69f, 1f); 
-                    AuroraColor2 = new Color(0.29f, 8.33f, 8.17f, 1f);
-                    FlareSize = 1f;
-                    IsDoorMalfunction = false;
-                    break;
-                case FlareIntensity.Mild:
-                    ScreenDistortionIntensity = 0.5f;
-                    RadioDistortionIntensity = 0.45f;
-                    RadioBreakthroughLength = 0.75f;
-                    RadioFrequencyShift = 250f;
-                    AuroraColor1 = new Color(0.13f, 8.47f, 8.47f, 1f);
-                    AuroraColor2 = new Color(9.46f, 0.25f, 15.85f, 1f);
-                    FlareSize = 1.1f;
-                    IsDoorMalfunction = false;
-                    break;
-                case FlareIntensity.Average:
-                    ScreenDistortionIntensity = 0.8f;
-                    RadioDistortionIntensity = 0.6f;
-                    RadioBreakthroughLength = 0.5f;
-                    RadioFrequencyShift = 50f;
-                    AuroraColor1 = new Color(0.38f, 6.88f, 0f, 1f);
-                    AuroraColor2 = new Color(15.55f, 0.83f, 7.32f, 1f);
-                    FlareSize = 1.25f;
-                    IsDoorMalfunction = true;
-                    break;
-                case FlareIntensity.Strong:
-                    ScreenDistortionIntensity = 1f;
-                    RadioDistortionIntensity = 0.85f;
-                    RadioBreakthroughLength = 0.25f;
-                    RadioFrequencyShift = 10f;
-                    AuroraColor1 = new Color(5.92f, 0f, 11.98f, 1f);
-                    AuroraColor2 = new Color(8.65f, 0.83f, 1.87f, 1f);
-                    FlareSize = 1.4f;
-                    IsDoorMalfunction = true;
-                    break;
-            }
-        }
-    }
-
+    
     internal class SolarFlareWeather : MonoBehaviour
     {
+        public static SolarFlareWeather Instance { get; private set; }
         [SerializeField]
         internal static Material glitchMaterial;
         [SerializeField]
         internal GlitchEffect glitchPass;
         // [SerializeField]
         // internal  AudioClip staticElectricitySound;
-        internal static FlareData flareData;
+        internal FlareData flareData;
         internal CustomPassVolume glitchVolume;
         internal TerminalAccessibleObject[] bigDoors;
 
@@ -104,6 +33,14 @@ namespace VoxxWeatherPlugin.Weathers
         // internal float radMechMalfunctionChance = 0.1f;
         internal bool isDoorMalfunctionEnabled => VoxxWeatherPlugin.DoorMalfunctionEnabled.Value;
         internal float doorMalfunctionChance => Mathf.Clamp01(VoxxWeatherPlugin.DoorMalfunctionChance.Value);
+
+        internal SolarFlareWeather()
+        {
+            if (Instance == null)
+            {
+                Instance = this;
+            }
+        }
 
         internal void GlitchRadarMap()
         {
@@ -493,15 +430,15 @@ namespace VoxxWeatherPlugin.Weathers
             auroraObject = Instantiate(auroraPrefab, Vector3.zero, Quaternion.identity);
             auroraObject.SetActive(false);
             VisualEffect auroraVFX = auroraObject.GetComponent<VisualEffect>();
-            auroraVFX.SetVector4("auroraColor", SolarFlareWeather.flareData.AuroraColor1);
-            auroraVFX.SetVector4("auroraColor2", SolarFlareWeather.flareData.AuroraColor2);
+            auroraVFX.SetVector4("auroraColor", SolarFlareWeather.Instance.flareData.AuroraColor1);
+            auroraVFX.SetVector4("auroraColor2", SolarFlareWeather.Instance.flareData.AuroraColor2);
             Debug.LogDebug("Aurora VFX instantiated.");
 
             if (sunTexture != null)
             {
                 flareObject = Instantiate(flarePrefab, sunTexture.transform.position, sunTexture.transform.rotation);
                 flareObject.transform.SetParent(sunTexture.transform);
-                flareObject.transform.localScale = Vector3.one * SolarFlareWeather.flareData.FlareSize;
+                flareObject.transform.localScale = Vector3.one * SolarFlareWeather.Instance.flareData.FlareSize;
                 Texture2D mainTexture = sunTexture.GetComponent<Renderer>().material.mainTexture as Texture2D;
                 if (mainTexture == null)
                 {
