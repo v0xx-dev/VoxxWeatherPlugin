@@ -1,7 +1,7 @@
-﻿using GameNetcodeStuff;
-using UnityEngine;
+﻿using UnityEngine;
 using VoxxWeatherPlugin.Weathers;
 using System.Linq;
+using VoxxWeatherPlugin.Utils;
 
 namespace VoxxWeatherPlugin.Behaviours
 {
@@ -10,7 +10,7 @@ namespace VoxxWeatherPlugin.Behaviours
         [SerializeField]
         internal ComputeShader snowThicknessComputeShader;
         [SerializeField]
-        internal SnowfallWeather snowfallWeather;
+        internal SnowfallData snowfallData;
         
         [SerializeField]
         internal bool inputNeedsUpdate = true;
@@ -31,9 +31,16 @@ namespace VoxxWeatherPlugin.Behaviours
         private ComputeBuffer worldSpacePositionBuffer;
         private ComputeBuffer snowThicknessBuffer;
 
+        [Header("Ground")]
+        [SerializeField]
+        internal GameObject groundObject;
+        [SerializeField]
+        internal string[] groundTags = {"Grass", "Gravel", "Snow", "Rock"};
+
         void Start()
         {
             kernelHandle = snowThicknessComputeShader.FindKernel("CSMain");
+            snowfallData = SnowfallWeather.Instance.snowfallData;
 
             // Create buffers for a single normal and position
             worldSpaceNormalBuffer = new ComputeBuffer(1, 3 * sizeof(float));
@@ -45,34 +52,36 @@ namespace VoxxWeatherPlugin.Behaviours
             snowThicknessComputeShader.SetBuffer(kernelHandle, "_WorldSpaceNormal", worldSpaceNormalBuffer);
             snowThicknessComputeShader.SetBuffer(kernelHandle, "_WorldSpacePosition", worldSpacePositionBuffer);
             snowThicknessComputeShader.SetBuffer(kernelHandle, "_SnowThickness", snowThicknessBuffer);
-            snowThicknessComputeShader.SetTexture(kernelHandle, "_DepthTex", snowfallWeather.levelDepthmap);
-            snowThicknessComputeShader.SetTexture(kernelHandle, "_FootprintsTex", snowfallWeather.snowTracksMap);
+            snowThicknessComputeShader.SetTexture(kernelHandle, "_DepthTex", snowfallData.levelDepthmap);
+            snowThicknessComputeShader.SetTexture(kernelHandle, "_FootprintsTex", snowfallData.snowTracksMap);
         }
 
         internal void CalculateThickness()
         {
-            if (snowfallWeather == null)
+
+            if (snowfallData == null)
             {
-                Debug.LogError("SnowfallWeather is null, cannot calculate snow thickness!");
+                Debug.LogError("SnowfallData is null, cannot calculate snow thickness!");
                 return;
             }
 
             if (inputNeedsUpdate)
             {
                 // Update static input parameters
-                // snowThicknessComputeShader.SetFloat("_SnowNoiseScale", snowfallWeather.snowScale);
-                snowThicknessComputeShader.SetFloat("_MaximumSnowHeight", snowfallWeather.maxSnowHeight);
-                snowThicknessComputeShader.SetMatrix("_LightViewProjection", snowfallWeather.levelDepthmapCamera.projectionMatrix * snowfallWeather.levelDepthmapCamera.worldToCameraMatrix);
-                // snowThicknessComputeShader.SetFloat("_ShadowBias", snowfallWeather.shadowBias);
-                snowThicknessComputeShader.SetFloat("_PCFKernelSize", snowfallWeather.PCFKernelSize);
-                // snowThicknessComputeShader.SetFloat("_SnowOcclusionBias", snowfallWeather.snowOcclusionBias);
-                snowThicknessComputeShader.SetVector("_ShipLocation", snowfallWeather.shipPosition);
+                snowfallData = SnowfallWeather.Instance.snowfallData;
+                // snowThicknessComputeShader.SetFloat("_SnowNoiseScale", snowfallData.snowScale);
+                snowThicknessComputeShader.SetFloat("_MaximumSnowHeight", snowfallData.maxSnowHeight);
+                snowThicknessComputeShader.SetMatrix("_LightViewProjection", snowfallData.levelDepthmapCamera.projectionMatrix * snowfallData.levelDepthmapCamera.worldToCameraMatrix);
+                // snowThicknessComputeShader.SetFloat("_ShadowBias", snowfallData.shadowBias);
+                snowThicknessComputeShader.SetFloat("_PCFKernelSize", snowfallData.PCFKernelSize);
+                // snowThicknessComputeShader.SetFloat("_SnowOcclusionBias", snowfallData.snowOcclusionBias);
+                snowThicknessComputeShader.SetVector("_ShipLocation", snowfallData.shipPosition);
                 inputNeedsUpdate = false;
             }
 
             // Update snow noise power
-            snowThicknessComputeShader.SetFloat("_SnowNoisePower", snowfallWeather.snowIntensity);
-            snowThicknessComputeShader.SetMatrix("_FootprintsViewProjection", snowfallWeather.snowTracksCamera.projectionMatrix * snowfallWeather.snowTracksCamera.worldToCameraMatrix);
+            snowThicknessComputeShader.SetFloat("_SnowNoisePower", snowfallData.snowIntensity);
+            snowThicknessComputeShader.SetMatrix("_FootprintsViewProjection", snowfallData.snowTracksCamera.projectionMatrix * snowfallData.snowTracksCamera.worldToCameraMatrix);
                 
             // Update world space normal and position
             (groundNormal, groundPosition) = UpdateWorldSpaceData();
@@ -104,8 +113,8 @@ namespace VoxxWeatherPlugin.Behaviours
 
         internal bool isGroundObject(Collider collider)
         {
-            Debug.LogDebug($"{collider.gameObject} == {snowfallWeather.groundObject} => {collider.gameObject == snowfallWeather.groundObject}");
-            return collider.gameObject == snowfallWeather.groundObject;
+            Debug.LogDebug($"{collider.gameObject} == {snowfallData.groundObject} => {collider.gameObject == snowfallData.groundObject}");
+            return collider.gameObject == snowfallData.groundObject;
         }
 
         internal (Vector3, Vector3) UpdateWorldSpaceData()
@@ -129,16 +138,16 @@ namespace VoxxWeatherPlugin.Behaviours
             Vector3 position = playerTransform.position;
             isOnNaturalGround = false;
 
-            if (snowfallWeather.groundObject == null)
+            if (snowfallData.groundObject == null)
             {
                 Debug.LogError("Ground object is null, cannot calculate snow thickness!");
                 return (normal, position);
             }
             
             if (Physics.Raycast(playerTransform.position, -Vector3.up, out RaycastHit hit, 3f,
-                                 1 << snowfallWeather.groundObject.layer, QueryTriggerInteraction.Ignore))
+                                 1 << snowfallData.groundObject.layer, QueryTriggerInteraction.Ignore))
             {
-                // if (IsGroundTag(hit.collider, snowfallWeather.groundTags))
+                // if (IsGroundTag(hit.collider, snowfallData.groundTags))
                 if (isGroundObject(hit.collider))
                 {
                     normal = hit.normal;

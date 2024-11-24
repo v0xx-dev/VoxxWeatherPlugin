@@ -154,22 +154,22 @@ namespace VoxxWeatherPlugin.Weathers
 
         internal IEnumerator GenerateChillWaveCoroutine()
         {
-            
             GameObject chillWaveContainer = blizzardVFXManager.blizzardWaveContainer;
+            float levelRadius = levelBounds.size.magnitude / 2;
 
             for (int i = 0; i < numOfWaves; i++)
             {
                 isChillWaveActive = true;
                 // Calculate initial position
                 Vector3 initialDirection = -windDirection.normalized;
-                Vector3 initialPosition = levelCenter + initialDirection * levelRadius;
+                Vector3 initialPosition = levelBounds.center + initialDirection * levelRadius;
 
                 // Place and enable the chill wave
                 chillWaveContainer.transform.position = initialPosition;
                 chillWaveContainer.SetActive(true);
 
                 // Calculate target position (diametrically opposite)
-                Vector3 targetPosition = levelCenter - initialDirection * levelRadius;
+                Vector3 targetPosition = levelBounds.center - initialDirection * levelRadius;
 
                 // Smoothly move the chill wave
                 float distance = Vector3.Distance(initialPosition, targetPosition);

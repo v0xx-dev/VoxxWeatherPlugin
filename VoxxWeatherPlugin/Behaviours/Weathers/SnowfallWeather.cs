@@ -18,72 +18,25 @@ namespace VoxxWeatherPlugin.Weathers
 {
     public class SnowfallWeather: MonoBehaviour
     {
-        [Header("Visuals")]
-        [SerializeField]
-        internal Material iceMaterial;
+        internal static SnowfallWeather Instance;
+
+        [Header("Snow Overlay Volume")]
         [SerializeField]
         internal CustomPassVolume snowVolume;
         internal SnowRenderersCustomPass snowOverlayCustomPass;
-        internal SnowRenderersCustomPass snowVertexCustomPass;
-        [SerializeField]
-        internal float emissionMultiplier;
 
-        [Header("Base Snow Thickness")]
+        [Header("Snow Settings")]
         [SerializeField]
-        internal float snowScale = 1.0f;
-        [SerializeField, Tooltip("The snow intensity is the power of the exponential function, so 0.0f is full snow.")]
-        internal float snowIntensity = 10.0f;
-        [SerializeField]
-        internal float maxSnowHeight = 2.0f;
-        [SerializeField]
-        internal float maxSnowNormalizedTime = 1f;
-
-        [Header("Snow Occlusion")]
-        [SerializeField]
-        internal Camera levelDepthmapCamera;
-        [SerializeField]
-        internal RenderTexture levelDepthmap;
-        [SerializeField]
-        internal uint PCFKernelSize = 9;
-        [SerializeField]
-        internal float shadowBias = 0.01f;
-        [SerializeField]
-        internal float snowOcclusionBias = 0.01f;
-
-        [Header("Snow Tracks")]
-        [SerializeField]
-        internal GameObject snowTrackerCameraContainer;
-        [SerializeField]
-        internal Camera snowTracksCamera;
-        [SerializeField]
-        internal RenderTexture snowTracksMap;
-        [SerializeField]
-        internal GameObject footprintsTrackerVFX;
-        [SerializeField]
-        internal GameObject lowcapFootprintsTrackerVFX;
-        [SerializeField]
-        internal GameObject itemTrackerVFX;
-        [SerializeField]
-        internal GameObject shovelVFX;
-
-        [Header("Tessellation Parameters")]
-        [SerializeField]
-        internal float baseTessellationFactor = 4.0f;
-        [SerializeField]
-        internal float maxTessellationFactor = 16.0f;
-        [SerializeField]
-        internal int isAdaptiveTessellation = 0; // 0 for fixed tessellation, 1 for adaptive tessellation
+        internal SnowfallData snowfallData;
 
         [Header("Ground")]
-        [SerializeField]
-        internal GameObject groundObject;
-        [SerializeField]
-        internal string[] groundTags = {"Grass", "Gravel", "Snow", "Rock"};
+        // [SerializeField]
+        // internal GameObject groundObject;
+        // [SerializeField]
+        // internal string[] groundTags = {"Grass", "Gravel", "Snow", "Rock"};
         internal bool swappedToSnow = false;
 
         [Header("General")]
-        [SerializeField]
-        internal Vector3 shipPosition;
         [SerializeField]
         internal Vector3 prevSnowTrackerPosition = Vector3.zero;
         [SerializeField]
@@ -92,29 +45,37 @@ namespace VoxxWeatherPlugin.Weathers
         internal SnowRenderersCustomPass.RenderingLayers originalOverlayRenderingLayers;
         internal SnowThicknessCalculator snowThicknessCalculator;
         internal string currentSceneName = "None";
-        internal float levelRadius;
-        internal Vector3 levelCenter;
+        internal Bounds levelBounds;
         internal System.Random seededRandom;
+
+        internal SnowfallWeather()
+        {
+            if (Instance == null)
+            {
+                Instance = this;
+            }
+            if (snowfallData == null)
+            {
+                snowfallData = new SnowfallData();
+            }
+        }
 
         internal void Awake()
         {
-            snowThicknessCalculator = snowTrackerCameraContainer.GetComponent<SnowThicknessCalculator>();
-            snowThicknessCalculator.snowfallWeather = this;
+            snowThicknessCalculator = snowfallData.snowTrackerCameraContainer.GetComponent<SnowThicknessCalculator>();
+            
             if (snowVolume.customPasses.Count != 2)
             {
                 Debug.LogError("SnowfallWeather requires exactly 2 custom passes in the snow volume!");
             }
             snowOverlayCustomPass = snowVolume.customPasses[0] as SnowRenderersCustomPass;
-            snowVertexCustomPass = snowVolume.customPasses[1] as SnowRenderersCustomPass;
             snowOverlayCustomPass.snowfallWeather = this;
-            snowVertexCustomPass.snowfallWeather = this;
 
             originalOverlayRenderingLayers = snowOverlayCustomPass.renderingLayers;
-            snowOverlayCustomPass.renderingLayers |= snowVertexCustomPass.renderingLayers;
 
-            levelDepthmapCamera.enabled = false; // Disable the camera to render manually
+            snowfallData.levelDepthmapCamera.enabled = false; // Disable the camera to render manually
 
-            levelDepthmap = new RenderTexture(2048, 
+            RenderTexture levelDepthmap = new RenderTexture(2048, 
                                             2048,
                                             0, // Depth bits
                                             RenderTextureFormat.RHalf
@@ -126,12 +87,17 @@ namespace VoxxWeatherPlugin.Weathers
             levelDepthmap.useDynamicScale = true;
             levelDepthmap.name = "Level Depthmap";
             levelDepthmap.Create();
+            if (snowfallData.levelDepthmap != null)
+            {
+                snowfallData.levelDepthmap.Release();
+            }
+            snowfallData.levelDepthmap = levelDepthmap;
             // Set the camera target texture
-            levelDepthmapCamera.targetTexture = levelDepthmap;
-            levelDepthmapCamera.aspect = 1.0f;
-            levelDepthmapCamera.enabled = false;
+            snowfallData.levelDepthmapCamera.targetTexture = snowfallData.levelDepthmap;
+            snowfallData.levelDepthmapCamera.aspect = 1.0f;
+            snowfallData.levelDepthmapCamera.enabled = false;
 
-            snowTracksMap = new RenderTexture(256,
+            RenderTexture snowTracksMap = new RenderTexture(256,
                                             256,
                                             0, // Depth bits
                                             RenderTextureFormat.RHalf); 
@@ -142,22 +108,27 @@ namespace VoxxWeatherPlugin.Weathers
             snowTracksMap.useDynamicScale = true;
             snowTracksMap.name = "Snow Tracks Map";
             snowTracksMap.Create();
+            if (snowfallData.snowTracksMap != null)
+            {
+                snowfallData.snowTracksMap.Release();
+            }
+            snowfallData.snowTracksMap = snowTracksMap;
             // Set the camera target texture
-            snowTracksCamera.targetTexture = snowTracksMap;
-            snowTracksCamera.aspect = 1.0f;
+            snowfallData.snowTracksCamera.targetTexture = snowfallData.snowTracksMap;
+            snowfallData.snowTracksCamera.aspect = 1.0f;
         }
 
         internal virtual void OnEnable()
         {
             seededRandom = new System.Random(StartOfRound.Instance.randomMapSeed);
             
-            maxSnowHeight = seededRandom.NextDouble(1.7f, 3f);
-            snowScale = seededRandom.NextDouble(0.7f, 1.3f);
-            maxSnowNormalizedTime = seededRandom.NextDouble(0.5f, 1f);
+            snowfallData.maxSnowHeight = seededRandom.NextDouble(1.7f, 3f);
+            snowfallData.snowScale = seededRandom.NextDouble(0.7f, 1.3f);
+            snowfallData.maxSnowNormalizedTime = seededRandom.NextDouble(0.5f, 1f);
             swappedToSnow = false;
             FindGround();
             ModifyRenderMasks();
-            StartOfRound.Instance.StartNewRoundEvent.AddListener(new UnityAction(SwitchTerrainInstancing));
+            // StartOfRound.Instance.StartNewRoundEvent.AddListener(new UnityAction(SwitchTerrainInstancing));
             FreezeWater();
             ModifyScrollingFog();
             UpdateLevelDepthmap();
@@ -169,7 +140,7 @@ namespace VoxxWeatherPlugin.Weathers
 
         internal virtual void OnDisable()
         {
-            StartOfRound.Instance.StartNewRoundEvent.RemoveListener(new UnityAction(SwitchTerrainInstancing));
+            // StartOfRound.Instance.StartNewRoundEvent.RemoveListener(new UnityAction(SwitchTerrainInstancing));
             PlayerTemperatureManager.isInColdZone = false;
             DisableFootprintTrackers(SnowPatches.snowTrackersDict);
             DisableFootprintTrackers(SnowPatches.snowShovelDict);
@@ -178,18 +149,18 @@ namespace VoxxWeatherPlugin.Weathers
         internal void OnDestroy()
         {
             // Release the render textures
-            levelDepthmap.Release();
-            snowTracksMap.Release();
+            snowfallData.levelDepthmap.Release();
+            snowfallData.snowTracksMap.Release();
             SnowPatches.snowTrackersDict.Clear();
             SnowPatches.snowShovelDict.Clear();
         }
 
         internal virtual void FixedUpdate()
         {
-            shipPosition = StartOfRound.Instance.shipBounds.bounds.center;
-            float normalizedSnowTimer =  Mathf.Clamp01(maxSnowNormalizedTime - TimeOfDay.Instance.normalizedTimeOfDay);
-            snowIntensity = 10f * normalizedSnowTimer;
-            if (!swappedToSnow && normalizedSnowTimer <= maxSnowNormalizedTime/3f) //TODO Remove if the patch works
+            snowfallData.shipPosition = StartOfRound.Instance.shipBounds.bounds.center;
+            float normalizedSnowTimer =  Mathf.Clamp01(snowfallData.maxSnowNormalizedTime - TimeOfDay.Instance.normalizedTimeOfDay);
+            snowfallData.snowIntensity = 10f * normalizedSnowTimer;
+            if (!swappedToSnow && normalizedSnowTimer <= snowfallData.maxSnowNormalizedTime/3f) //TODO Remove if the patch works
             {
                 groundObject.tag = "Snow";
                 swappedToSnow = true;
@@ -200,9 +171,9 @@ namespace VoxxWeatherPlugin.Weathers
         internal void UpdateTrackerPosition()
         {
             Vector3 playerPosition = GameNetworkManager.Instance.localPlayerController.transform.position;
-            if (Vector3.Distance(playerPosition, prevSnowTrackerPosition) >= snowTracksCamera.orthographicSize / 2f)
+            if (Vector3.Distance(playerPosition, prevSnowTrackerPosition) >= snowfallData.snowTracksCamera.orthographicSize / 2f)
             {
-                snowTrackerCameraContainer.transform.position = playerPosition;
+                snowfallData.snowTrackerCameraContainer.transform.position = playerPosition;
                 prevSnowTrackerPosition = playerPosition;
             }
         }
@@ -210,11 +181,12 @@ namespace VoxxWeatherPlugin.Weathers
         internal void UpdateLevelDepthmap()
         {
             Debug.Log("Updating level depthmap");
-            (Vector3 levelSize, levelCenter) = PlayableAreaCalculator.CalculateZoneSize();
-            levelRadius = Mathf.Max(levelSize.x, levelSize.z);
-            Vector3 cameraPosition = new Vector3(levelCenter.x, levelDepthmapCamera.transform.position.y, levelCenter.z);
-            levelDepthmapCamera.transform.position = cameraPosition;
-            Debug.Log($"Camera position: {levelDepthmapCamera.transform.position}, Barycenter: {levelCenter}");
+            levelBounds = PlayableAreaCalculator.CalculateZoneSize();
+            Vector3 cameraPosition = new Vector3(levelBounds.center.x,
+                                                snowfallData.levelDepthmapCamera.transform.position.y,
+                                                levelBounds.center.z);
+            snowfallData.levelDepthmapCamera.transform.position = cameraPosition;
+            Debug.Log($"Camera position: {snowfallData.levelDepthmapCamera.transform.position}, Barycenter: {levelBounds.center}");
             
             StartCoroutine(RefreshLevelDepthmapCoroutine());
         }
@@ -227,9 +199,9 @@ namespace VoxxWeatherPlugin.Weathers
                 snowThicknessCalculator.inputNeedsUpdate = true;
             }
 
-            levelDepthmapCamera.targetTexture = levelDepthmap;
-            levelDepthmapCamera.aspect = 1.0f;
-            levelDepthmapCamera.enabled = true;
+            snowfallData.levelDepthmapCamera.targetTexture = snowfallData.levelDepthmap;
+            snowfallData.levelDepthmapCamera.aspect = 1.0f;
+            snowfallData.levelDepthmapCamera.enabled = true;
             
             yield return new WaitForEndOfFrame();
             
@@ -238,22 +210,22 @@ namespace VoxxWeatherPlugin.Weathers
             
             yield return new WaitForEndOfFrame();
             
-            levelDepthmapCamera.targetTexture = null;
-            levelDepthmapCamera.enabled = true;
+            snowfallData.levelDepthmapCamera.targetTexture = null;
+            snowfallData.levelDepthmapCamera.enabled = true;
         }
 
-        internal void SwitchTerrainInstancing()
-        {   
-            bool enable = false;
-            Debug.Log("Switching terrain instancing to " + enable);
-            foreach (Terrain terrain in Terrain.activeTerrains)
-            {
-                terrain.enabled = false;
-                terrain.heightmapPixelError = enable ? 5 : 80;
-                terrain.drawInstanced = enable;
-                terrain.enabled = true;
-            }
-        }
+        // internal void SwitchTerrainInstancing()
+        // {   
+        //     bool enable = false;
+        //     Debug.Log("Switching terrain instancing to " + enable);
+        //     foreach (Terrain terrain in Terrain.activeTerrains)
+        //     {
+        //         terrain.enabled = false;
+        //         terrain.heightmapPixelError = enable ? 5 : 80;
+        //         terrain.drawInstanced = enable;
+        //         terrain.enabled = true;
+        //     }
+        // }
 
         internal void FreezeWater()
         {
@@ -268,7 +240,7 @@ namespace VoxxWeatherPlugin.Weathers
                     filter.mesh = GetPrimitiveMesh(PrimitiveType.Cube);
                 }
                 renderer.enabled = true;
-                renderer.material = iceMaterial;
+                renderer.material = snowfallData.iceMaterial;
                 Vector3 icePosition = waterObject.transform.position;
                 icePosition.y += 0.5f;
                 waterObject.transform.position = icePosition;
@@ -299,40 +271,43 @@ namespace VoxxWeatherPlugin.Weathers
             return mesh;
         }
 
-        internal void FindGround()
+        internal void FindAndSetupGround()
         {
-            Vector3 flattenedShipPosition = Vector3.zero; //(shipPosition.x, 0, shipPosition.z);
-            
-            Terrain mainTerrain;
+            // Vector3 flattenedShipPosition = Vector3.zero; //(shipPosition.x, 0, shipPosition.z);
+            // TODO ADD OPTIONS TO DISABLE SHADOWS (See Duplicate)
+
+            Dictionary <GameObject, Material> groundsAndMaterials = new Dictionary<GameObject, Material>(); 
 
             Terrain[] terrains = Terrain.activeTerrains;
-            terrains = terrains.Where(x => x.gameObject.activeSelf).ToArray();
-            terrains = terrains.OrderBy(terrain => {
-                                                    TerrainData terrainData = terrain.terrainData;
-                                                    Vector3 terrainCenter = terrain.transform.position + terrainData.size / 2f;
-                                                    return Vector3.Distance(terrainCenter, flattenedShipPosition);
-                                                    }).ToArray();
-
-            mainTerrain = terrains.Length > 0 ? terrains[0] : null;
-
-            if (mainTerrain != null)
+            if (terrains.Length > 0)
             {
-                groundObject = mainTerrain.gameObject;
-                return;
+                foreach (Terrain terrain in terrains)
+                {
+                    // Turn the terrain into a mesh
+                    GameObject meshTerrain = terrain.Meshify(snowfallData, levelBounds);
+                    // Setup the Lit terrain material
+                    Material terrainMaterial = meshTerrain.GetComponent<MeshRenderer>().sharedMaterial;
+                    terrainMaterial.SetupMaterialFromTerrain(terrain);
+                    // Create snow vertex material
+                    Material snowVertexMaterial = new Material(snowfallData.snowVertexShader);
+                    snowfallData.RefreshSnowMaterial(snowVertexMaterial);
+                    // Duplicate the mesh and set the snow vertex material
+                    GameObject snowGround = meshTerrain.Duplicate();
+                    snowGround.GetComponent<MeshRenderer>().sharedMaterial = snowVertexMaterial;
+
+                    groundsAndMaterials.Add(meshTerrain, snowVertexMaterial);
+                }
             }
 
             int decalLayerMask = 1 << 10; // Layer 10 (Decal) bitmask
 
             List<GameObject> groundCandidates = new List<GameObject>();
-            foreach (string tag in groundTags)
+            foreach (string tag in snowThicknessCalculator.groundTags)
             {
                 groundCandidates.AddRange(GameObject.FindGameObjectsWithTag(tag));
             }
             
             groundCandidates = groundCandidates.Where(x => x.gameObject.activeSelf).ToList();
-            // Filter by name (bad since names are inconsistent)
-            // groundCandidates = groundCandidates.Where(x => x.name.ToLower().Contains("terrain")).ToList();
-
             // Exclude objects without a MeshRenderer or if they're not on the decal layer
             groundCandidates = groundCandidates.Where(x => {
                                                         if (x.TryGetComponent<MeshRenderer>(out MeshRenderer meshRenderer))
@@ -341,24 +316,23 @@ namespace VoxxWeatherPlugin.Weathers
                                                         }
                                                         return false; 
                                                         }).ToList();
-            // Sort by distance to ship
-            groundCandidates = groundCandidates.OrderBy(x => {
-                                                        if (x.TryGetComponent<MeshRenderer>(out MeshRenderer meshRenderer))
-                                                        {
-                                                            return Vector3.Distance(meshRenderer.bounds.center, flattenedShipPosition); //tranform.position returns pivot point, bounds.center returns center of mesh
-                                                        }
-                                                        else
-                                                        {
-                                                            // Fallback: Move to the end of the list
-                                                            return Mathf.Infinity; 
-                                                        }
-                                                        }).ToList();
 
-            groundObject = groundCandidates.Count > 0 ? groundCandidates[0] : null;
-
-            if (groundObject == null)
+            if (groundCandidates.Count > 0)
             {
-                Debug.LogError("Could not find a suitable ground object for snowfall weather!");
+                foreach (GameObject ground in groundCandidates)
+                {
+                    // TODO ADD OPTION TO FILTER BY LEVEL NAME
+                    // Process the mesh to remove thin triangles and smooth the mesh
+                    GameObject meshTerrain = ground.PostprocessMeshTerrain(levelBounds, snowfallData);
+                    //Create snow vertex material
+                    Material vertexSnowMaterial = new Material(snowfallData.snowVertexShader);
+                    snowfallData.RefreshSnowMaterial(vertexSnowMaterial);
+                    // Duplicate the mesh and set the snow vertex material
+                    GameObject snowGround = meshTerrain.Duplicate();
+                    snowGround.GetComponent<MeshRenderer>().sharedMaterial = vertexSnowMaterial;
+
+                    groundsAndMaterials.Add(meshTerrain, vertexSnowMaterial);
+                }
             }
         }
 
@@ -372,19 +346,6 @@ namespace VoxxWeatherPlugin.Weathers
                 {
                     meshRenderer.renderingLayerMask |= (uint)originalOverlayRenderingLayers;
                 }
-            }
-
-            if (groundObject.TryGetComponent<MeshRenderer>(out MeshRenderer groundRenderer))
-            {
-                groundRenderer.renderingLayerMask |= (uint)snowVertexCustomPass.renderingLayers;
-            }
-            else if (groundObject.TryGetComponent<Terrain>(out Terrain terrain))
-            {
-                terrain.renderingLayerMask |= (uint)snowVertexCustomPass.renderingLayers;
-            }
-            else
-            {
-                Debug.LogError("Could not find a renderer on the ground object!");
             }
 
         }
@@ -466,10 +427,7 @@ namespace VoxxWeatherPlugin.Weathers
         internal SnowfallWeather snowfallWeather;
         [SerializeField]
         internal GameObject snowVFXContainer;
-        internal static GameObject footprintsTrackerVFX;
-        internal static  GameObject lowcapFootprintsTrackerVFX;
-        internal static  GameObject itemTrackerVFX;
-        internal static  GameObject shovelVFX;
+
         [SerializeField]
         internal Volume frostyFilter;
         [SerializeField]
@@ -486,10 +444,6 @@ namespace VoxxWeatherPlugin.Weathers
 
         internal void Start()
         {
-            footprintsTrackerVFX = snowfallWeather.footprintsTrackerVFX;
-            lowcapFootprintsTrackerVFX = snowfallWeather.lowcapFootprintsTrackerVFX;
-            itemTrackerVFX = snowfallWeather.itemTrackerVFX;
-            shovelVFX = snowfallWeather.shovelVFX;
             snowFootstepIndex = Array.FindIndex(StartOfRound.Instance.footstepSurfaces, surface => surface.surfaceTag == "Snow");
         }
 
@@ -499,7 +453,7 @@ namespace VoxxWeatherPlugin.Weathers
             frostyFilter.enabled = true;
             underSnowFilter.enabled = true;
             snowfallWeather.snowVolume.enabled = true;
-            snowfallWeather.snowTrackerCameraContainer.SetActive(true);
+            snowfallWeather.snowfallData.snowTrackerCameraContainer.SetActive(true);
             sunLightData = TimeOfDay.Instance.sunDirect?.GetComponent<HDAdditionalLightData>();
             // if (sunLightData != null)
             // {
@@ -513,7 +467,7 @@ namespace VoxxWeatherPlugin.Weathers
             frostyFilter.enabled = false;
             underSnowFilter.enabled = false;
             snowfallWeather.snowVolume.enabled = false;
-            snowfallWeather.snowTrackerCameraContainer.SetActive(false);
+            snowfallWeather.snowfallData.snowTrackerCameraContainer.SetActive(false);
             snowMovementHindranceMultiplier = 1f;
             snowThickness = 0f;
             PlayerTemperatureManager.isInColdZone = false;
@@ -564,7 +518,7 @@ namespace VoxxWeatherPlugin.Weathers
                 PlayerTemperatureManager.SetPlayerTemperature(-Time.fixedDeltaTime / snowfallWeather.timeUntilFrostbite);
             }
             // Update the snow glow based on the sun intensity
-            snowfallWeather.emissionMultiplier = sunLightData == null ? 0f : Mathf.Clamp01(sunLightData.intensity/40f)*0.3f;
+            snowfallWeather.snowfallData.emissionMultiplier = sunLightData == null ? 0f : Mathf.Clamp01(sunLightData.intensity/40f)*0.3f;
         }
 
         private void StartFade(float target)
