@@ -1,5 +1,6 @@
 ﻿using GameNetcodeStuff;
 using HarmonyLib;
+using LethalLib.Modules;
 using System.Collections.Generic;
 using System.Reflection.Emit;
 using Unity.Netcode;
@@ -30,30 +31,33 @@ namespace VoxxWeatherPlugin.Patches
         [HarmonyPriority(Priority.Low)]
         private static void HeatStrokePatchLatePostfix(PlayerControllerB __instance)
         {
-            if (!((NetworkBehaviour)__instance).IsOwner || !__instance.isPlayerControlled)
-                return;
+            // if (!((NetworkBehaviour)__instance).IsOwner || !__instance.isPlayerControlled)
+            //     return;
 
-            if (CheckConditionsForHeatingStop(__instance))
+            if (PlayerTemperatureManager.isInHeatZone)
             {
-                PlayerTemperatureManager.heatSeverityMultiplier = 1f;
-                PlayerTemperatureManager.isInHeatZone = false;
-            }
-            else if (CheckConditionsForHeatingPause(__instance))
-            {
-                PlayerTemperatureManager.heatSeverityMultiplier = .33f; //heat slower when in special interact animation and in a car
-            }
-            else
-            {
-                PlayerTemperatureManager.heatSeverityMultiplier = 1f;
+                if (CheckConditionsForHeatingStop(__instance))
+                {
+                    PlayerTemperatureManager.heatTransferRate = 1f;
+                    PlayerTemperatureManager.isInHeatZone = false;
+                }
+                else if (CheckConditionsForHeatingPause(__instance))
+                {
+                    PlayerTemperatureManager.heatTransferRate = .25f; //heat slower when in special interact animation and in a car
+                }
+                else
+                {
+                    PlayerTemperatureManager.heatTransferRate = 1f;
+                }
             }
 
             // Gradually reduce heat severity when not in heat zone
             if (!PlayerTemperatureManager.isInHeatZone)
             {
-                PlayerTemperatureManager.SetHeatSeverity(-Time.deltaTime / timeToCool);
+                PlayerTemperatureManager.ResetPlayerTemperature(Time.deltaTime / timeToCool);
             }
 
-            float severity = PlayerTemperatureManager.heatSeverity;
+            float severity = PlayerTemperatureManager.normalizedTemperature;
 
             //Debug.Log($"Severity: {severity}, inHeatZone: {PlayerTemperatureManager.isInHeatZone}, heatMultiplier {PlayerTemperatureManager.heatSeverityMultiplier}, isInside {__instance.isInsideFactory}");
 

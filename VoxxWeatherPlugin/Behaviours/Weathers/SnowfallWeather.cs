@@ -12,6 +12,7 @@ using VoxxWeatherPlugin.Utils;
 using UnityEngine.Events;
 using System;
 using System.Collections;
+using LethalLib.Modules;
 
 namespace VoxxWeatherPlugin.Weathers
 {
@@ -73,16 +74,20 @@ namespace VoxxWeatherPlugin.Weathers
         [SerializeField]
         internal int isAdaptiveTessellation = 0; // 0 for fixed tessellation, 1 for adaptive tessellation
 
-        [SerializeField]
-        internal Vector3 shipPosition;
-        [SerializeField]
-        internal Vector3 prevSnowTrackerPosition = Vector3.zero;
         [Header("Ground")]
         [SerializeField]
         internal GameObject groundObject;
         [SerializeField]
         internal string[] groundTags = {"Grass", "Gravel", "Snow", "Rock"};
         internal bool swappedToSnow = false;
+
+        [Header("General")]
+        [SerializeField]
+        internal Vector3 shipPosition;
+        [SerializeField]
+        internal Vector3 prevSnowTrackerPosition = Vector3.zero;
+        [SerializeField]
+        internal float timeUntilFrostbite = 15f;
         internal QuicksandTrigger[] waterObjects;
         internal SnowRenderersCustomPass.RenderingLayers originalOverlayRenderingLayers;
         internal SnowThicknessCalculator snowThicknessCalculator;
@@ -165,6 +170,7 @@ namespace VoxxWeatherPlugin.Weathers
         internal virtual void OnDisable()
         {
             StartOfRound.Instance.StartNewRoundEvent.RemoveListener(new UnityAction(SwitchTerrainInstancing));
+            PlayerTemperatureManager.isInColdZone = false;
             DisableFootprintTrackers(SnowPatches.snowTrackersDict);
             DisableFootprintTrackers(SnowPatches.snowShovelDict);
         }
@@ -487,7 +493,7 @@ namespace VoxxWeatherPlugin.Weathers
             snowFootstepIndex = Array.FindIndex(StartOfRound.Instance.footstepSurfaces, surface => surface.surfaceTag == "Snow");
         }
 
-        internal void OnEnable()
+        internal virtual void OnEnable()
         {
             snowVFXContainer.SetActive(true);
             frostyFilter.enabled = true;
@@ -501,7 +507,7 @@ namespace VoxxWeatherPlugin.Weathers
             // }
         }
 
-        internal void OnDisable()
+        internal virtual void OnDisable()
         {
             snowVFXContainer.SetActive(false);
             frostyFilter.enabled = false;
@@ -510,6 +516,8 @@ namespace VoxxWeatherPlugin.Weathers
             snowfallWeather.snowTrackerCameraContainer.SetActive(false);
             snowMovementHindranceMultiplier = 1f;
             snowThickness = 0f;
+            PlayerTemperatureManager.isInColdZone = false;
+            isUnderSnowPreviousFrame = false;
         }
 
         internal void FixedUpdate()
@@ -544,11 +552,17 @@ namespace VoxxWeatherPlugin.Weathers
                     StartFade(0f);  // Fade to 0 if not on natural ground
                 }
                 UpdateFade(); // Continue updating the fade
+                isUnderSnowPreviousFrame = false;
                 snowMovementHindranceMultiplier = 1f;
                 snowThickness = 0f;
                 Debug.LogDebug("Not on natural ground");
             }
-
+            
+            PlayerTemperatureManager.isInColdZone = isUnderSnowPreviousFrame;
+            if (PlayerTemperatureManager.isInColdZone)
+            {
+                PlayerTemperatureManager.SetPlayerTemperature(-Time.fixedDeltaTime / snowfallWeather.timeUntilFrostbite);
+            }
             // Update the snow glow based on the sun intensity
             snowfallWeather.emissionMultiplier = sunLightData == null ? 0f : Mathf.Clamp01(sunLightData.intensity/40f)*0.3f;
         }

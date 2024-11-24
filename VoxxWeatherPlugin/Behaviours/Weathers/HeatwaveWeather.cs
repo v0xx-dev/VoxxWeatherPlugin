@@ -53,7 +53,7 @@ namespace VoxxWeatherPlugin.Weathers
             heatwaveVFXManager.heatwaveVFXContainer = null;
             Debug.LogDebug("Heatwave VFX container destroyed.");
             PlayerTemperatureManager.isInHeatZone = false;
-            PlayerTemperatureManager.heatSeverityMultiplier = 1f;
+            PlayerTemperatureManager.heatTransferRate = 1f;
         }
 
         private void SetupHeatwaveWeather()
@@ -80,7 +80,7 @@ namespace VoxxWeatherPlugin.Weathers
 
                 if (PlayerTemperatureManager.isInHeatZone)
                 {
-                    PlayerTemperatureManager.SetHeatSeverity(Time.deltaTime / timeInHeatZoneMax);
+                    PlayerTemperatureManager.SetPlayerTemperature(Time.deltaTime / timeInHeatZoneMax);
                 }
                 else
                 {
@@ -105,7 +105,7 @@ namespace VoxxWeatherPlugin.Weathers
                 if (playerController != GameNetworkManager.Instance.localPlayerController)
                     return;
 
-                PlayerTemperatureManager.heatSeverityMultiplier = 1f;
+                PlayerTemperatureManager.heatTransferRate = 1f;
                 PlayerTemperatureManager.isInHeatZone = false;
             }
             // else if (other.CompareTag("Aluminum") && LayerMask.LayerToName(other.gameObject.layer) == "Vehicle")
@@ -117,6 +117,7 @@ namespace VoxxWeatherPlugin.Weathers
             // }
         }
     }
+
 
     public class HeatwaveVFXManager: MonoBehaviour
     {

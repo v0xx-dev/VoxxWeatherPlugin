@@ -5,6 +5,8 @@ using System.Collections.Generic;
 using System.Reflection.Emit;
 using GameNetcodeStuff;
 using UnityEngine.VFX;
+using VoxxWeatherPlugin.Utils;
+using System;
 
 namespace VoxxWeatherPlugin.Patches
 {
@@ -13,6 +15,11 @@ namespace VoxxWeatherPlugin.Patches
     {
         public static Dictionary<MonoBehaviour, VisualEffect> snowTrackersDict = new Dictionary<MonoBehaviour, VisualEffect>();
         public static Dictionary<MonoBehaviour, VisualEffect> snowShovelDict = new Dictionary<MonoBehaviour, VisualEffect>();
+        public static float timeToWarm = 17f;   // Time to warm up from cold to room temperature
+        internal static float frostbiteTimer = 0f;
+        internal static float frostbiteDamageInterval = 10f;
+        internal static int frostbiteDamage = 10;
+        internal static float frostbiteThreshold = -0.5f; // Severity at which frostbite starts to occur
 
         [HarmonyPatch(typeof(PlayerControllerB), "Update")]
         [HarmonyTranspiler]
@@ -45,6 +52,33 @@ namespace VoxxWeatherPlugin.Patches
             );
             Debug.Log("Patched PlayerControllerB.Update to include snow hindrance!");
             return codeMatcher.InstructionEnumeration();
+        }
+
+        [HarmonyPatch(typeof(PlayerControllerB), "LateUpdate")]
+        [HarmonyPostfix]
+        [HarmonyPriority(Priority.Low)]
+        private static void FrostbiteLatePostfix(PlayerControllerB __instance)
+        {
+            //PlayerTemperatureManager.heatTransferRate = 1f; // should be 1 if heatwave patches work correctly
+
+            // Gradually reduce heat severity when not in heat zone
+            if (!PlayerTemperatureManager.isInColdZone)
+            {
+                PlayerTemperatureManager.ResetPlayerTemperature(Time.deltaTime / timeToWarm);
+            }
+
+            float severity = PlayerTemperatureManager.normalizedTemperature;
+
+            Debug.LogDebug($"Severity: {severity}, inColdZone: {PlayerTemperatureManager.isInColdZone}, frostbiteTimer: {frostbiteTimer}");
+            if (severity <= frostbiteThreshold)
+            {
+                frostbiteTimer += Time.deltaTime;
+                if (frostbiteTimer > frostbiteDamageInterval)
+                {
+                    __instance.DamagePlayer(Mathf.CeilToInt(frostbiteDamage*Mathf.Abs(severity)), causeOfDeath: CauseOfDeath.Unknown);
+                    frostbiteTimer = 0f;
+                }
+            }
         }
 
         [HarmonyPatch(typeof(PlayerControllerB), "GetCurrentMaterialStandingOn")]
