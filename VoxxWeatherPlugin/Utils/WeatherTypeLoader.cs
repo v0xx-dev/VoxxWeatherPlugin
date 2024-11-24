@@ -175,11 +175,6 @@ namespace VoxxWeatherPlugin.Utils
             GameObject effectObject = snowfallContainer.GetComponentInChildren<SnowfallVFXManager>(true).gameObject;
             effectObject.SetActive(false);
 
-            SnowfallVFXManager.footprintsTrackerVFX = snowfallWeatherController.footprintsTrackerVFX;
-            SnowfallVFXManager.lowcapFootprintsTrackerVFX = snowfallWeatherController.lowcapFootprintsTrackerVFX;
-            SnowfallVFXManager.itemTrackerVFX = snowfallWeatherController.itemTrackerVFX;
-            SnowfallVFXManager.shovelVFX = snowfallWeatherController.shovelVFX;
-
             snowfallContainer.SetActive(true);
 
             ImprovedWeatherEffect snowyWeatherEffect = new(effectObject, effectPermanentObject)

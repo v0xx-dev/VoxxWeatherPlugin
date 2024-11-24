@@ -13,8 +13,7 @@ namespace VoxxWeatherPlugin.Weathers
         internal HeatwaveVFXManager heatwaveVFXManager; // Manager for heatwave visual effects
         private Volume exhaustionFilter; // Filter for visual effects
         private BoxCollider heatwaveTrigger; // Trigger collider for the heatwave zone
-        private Vector3 heatwaveZoneSize; // Size of the heatwave zone
-        private Vector3 heatwaveZoneLocation; //Center of the heatwave zone
+        private Bounds heatwaveBounds; // Size of the heatwave zone
 
         private System.Random seededRandom;
 
@@ -40,10 +39,10 @@ namespace VoxxWeatherPlugin.Weathers
         private void OnEnable()
         {
             seededRandom = new System.Random(StartOfRound.Instance.randomMapSeed);
-            (heatwaveZoneSize, heatwaveZoneLocation) = PlayableAreaCalculator.CalculateZoneSize();
-            Debug.LogDebug($"Heatwave zone size: {heatwaveZoneSize}. Placed at {heatwaveZoneLocation}");
+            heatwaveBounds = PlayableAreaCalculator.CalculateZoneSize();
+            Debug.LogDebug($"Heatwave zone size: {heatwaveBounds.size}. Placed at {heatwaveBounds.center}");
             heatwaveVFXManager.CalculateEmitterRadius();
-            heatwaveVFXManager.PopulateLevelWithVFX(ref heatwaveZoneSize, ref heatwaveZoneLocation, seededRandom);
+            heatwaveVFXManager.PopulateLevelWithVFX(heatwaveBounds, seededRandom);
             SetupHeatwaveWeather();
         }
 
@@ -59,8 +58,8 @@ namespace VoxxWeatherPlugin.Weathers
         private void SetupHeatwaveWeather()
         {
             // Set the size, position and rotation of the trigger zone
-            heatwaveTrigger.size = heatwaveZoneSize;
-            heatwaveTrigger.transform.position = heatwaveZoneLocation;
+            heatwaveTrigger.size = heatwaveBounds.size;
+            heatwaveTrigger.transform.position = heatwaveBounds.center;
             heatwaveTrigger.transform.rotation = Quaternion.identity;
             Debug.LogDebug($"Heatwave zone placed!");
 
@@ -134,7 +133,7 @@ namespace VoxxWeatherPlugin.Weathers
             emitterSize = Mathf.Max(transform.localScale.x, transform.localScale.z) * 5f;
         }
 
-        internal void PopulateLevelWithVFX(ref Vector3 heatwaveZoneSize, ref Vector3 heatwaveZoneLocation, System.Random seededRandom)
+        internal void PopulateLevelWithVFX(Bounds heatwaveBounds, System.Random seededRandom)
         {
             
             if (heatwaveVFXContainer == null)
@@ -142,11 +141,11 @@ namespace VoxxWeatherPlugin.Weathers
 
             int placedEmittersNum = 0;
 
-            int xCount = Mathf.CeilToInt(heatwaveZoneSize.x / emitterSize);
-            int zCount = Mathf.CeilToInt(heatwaveZoneSize.z / emitterSize);
+            int xCount = Mathf.CeilToInt(heatwaveBounds.size.x / emitterSize);
+            int zCount = Mathf.CeilToInt(heatwaveBounds.size.z / emitterSize);
             Debug.LogDebug($"Placing {xCount * zCount} emitters...");
 
-            Vector3 startPoint = heatwaveZoneLocation - heatwaveZoneSize * 0.5f;
+            Vector3 startPoint = heatwaveBounds.center - heatwaveBounds.size * 0.5f;
 
             float minY = -1f;
             float maxY = 1f;
@@ -177,9 +176,13 @@ namespace VoxxWeatherPlugin.Weathers
                     }
                 }
             }
+            
             //Adjust the height of the heatwave zone based on the placed emitters
-            heatwaveZoneSize.y = (maxY - minY) * 1.1f;
-            heatwaveZoneLocation.y = (minY + maxY) / 2;
+            float newHeight = (maxY - minY) * 1.1f;
+            float newYPos = (minY + maxY) / 2;
+
+            heatwaveBounds.size = new Vector3(heatwaveBounds.size.x, newHeight, heatwaveBounds.size.z);
+            heatwaveBounds.center = new Vector3(heatwaveBounds.center.x, newYPos, heatwaveBounds.center.z);
 
             Debug.Log($"Placed {placedEmittersNum} emitters.");
         }
