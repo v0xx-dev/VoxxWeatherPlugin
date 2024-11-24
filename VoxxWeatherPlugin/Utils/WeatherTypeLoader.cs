@@ -55,7 +55,7 @@ namespace VoxxWeatherPlugin.Utils
                 Color = new Color(1f, 0.5f, 0f),
                 ScrapAmountMultiplier = 1.2f,
                 ScrapValueMultiplier = 0.9f,
-                DefaultWeight = 100
+                DefaultWeight = 100,
             };
 
             WeatherManager.RegisterWeather(HeatwaveWeather);
@@ -86,29 +86,27 @@ namespace VoxxWeatherPlugin.Utils
             loadedVFX.SetFloat("auroraSize", VoxxWeatherPlugin.AuroraSize.Value);
             loadedVFX.SetFloat("particleSpawnRate", VoxxWeatherPlugin.AuroraSpawnRate.Value);
             GameObject.DontDestroyOnLoad(auroraVFXObject);
-            auroraVFXObject.transform.SetParent(effectObject.transform);
 
             GameObject coronaVFXObject = new GameObject("CoronaVFX");
             coronaVFXObject.SetActive(false);
             loadedVFX = coronaVFXObject.AddComponent<VisualEffect>();
             loadedVFX.visualEffectAsset = coronaVFX;
-            coronaVFXObject.transform.SetParent(effectObject.transform);
 
             SolarFlareVFXManager VFXmanager = effectObject.AddComponent<SolarFlareVFXManager>();
             VFXmanager.auroraSunThreshold = VoxxWeatherPlugin.AuroraVisibilityThreshold.Value;
-            SolarFlareVFXManager.flarePrefab = coronaVFXObject;
-            SolarFlareVFXManager.auroraPrefab = auroraVFXObject;
+            VFXmanager.flarePrefab = coronaVFXObject;
+            VFXmanager.auroraPrefab = auroraVFXObject;
             effectObject.hideFlags = HideFlags.HideAndDontSave;
             GameObject.DontDestroyOnLoad(effectObject);
 
             GameObject flareEffect = new GameObject("SolarFlareEffect");
             flareEffect.SetActive(false);
             GameObject effectPermanentObject = GameObject.Instantiate(flareEffect);
-            SolarFlareWeather _ = effectPermanentObject.AddComponent<SolarFlareWeather>();
+            SolarFlareWeather flareWeather = effectPermanentObject.AddComponent<SolarFlareWeather>();
+            flareWeather.solarFlareVFXManager = VFXmanager;
             SolarFlareWeather.glitchMaterial = glitchPassMaterial;
             effectPermanentObject.hideFlags = HideFlags.HideAndDontSave;
             GameObject.DontDestroyOnLoad(effectPermanentObject);
-
             ImprovedWeatherEffect flareWeatherEffect = new(effectObject, effectPermanentObject)
             {
                 SunAnimatorBool = "",

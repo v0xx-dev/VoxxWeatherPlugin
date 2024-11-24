@@ -91,6 +91,8 @@ namespace VoxxWeatherPlugin.Weathers
         internal static FlareData flareData;
         internal CustomPassVolume glitchVolume;
         internal TerminalAccessibleObject[] bigDoors;
+
+        internal SolarFlareVFXManager solarFlareVFXManager;
         // internal Turret[] turrets;
         // internal EnemyAINestSpawnObject[] radMechNests;
         // internal float turretMalfunctionDelay = 1f;
@@ -177,7 +179,7 @@ namespace VoxxWeatherPlugin.Weathers
             FlareIntensity randomIntensity = flareIntensities[seededRandom.Next(flareIntensities.Length)];
             flareData = new FlareData(randomIntensity);
             
-            SolarFlareVFXManager.PopulateLevelWithVFX();
+            solarFlareVFXManager.PopulateLevelWithVFX();
 
             if (glitchPass != null)
             {
@@ -210,7 +212,7 @@ namespace VoxxWeatherPlugin.Weathers
             bigDoors = null;
             // turrets = null;
             // radMechNests = null;
-            SolarFlareVFXManager.ResetVFX();
+            solarFlareVFXManager.ResetVFX();
         }
 
         private void Update()
@@ -453,18 +455,19 @@ namespace VoxxWeatherPlugin.Weathers
 
     internal class SolarFlareVFXManager : MonoBehaviour
     {
-        public static GameObject flarePrefab; // Prefab for the flare effect
-        public static GameObject auroraPrefab; // Prefab for the aurora effect
+        public GameObject flarePrefab; // Prefab for the flare effect
+        public GameObject auroraPrefab; // Prefab for the aurora effect
         [SerializeField]
-        internal static GameObject flareObject; // GameObject for the flare
+        internal GameObject flareObject; // GameObject for the flare
         [SerializeField]
-        internal static GameObject auroraObject; // GameObject for the particles
+        internal GameObject auroraObject; // GameObject for the particles
+        internal HDAdditionalLightData sunLightData;
 
         internal float auroraSunThreshold = 8f; // Threshold for sun luminosity in lux to enable aurora
 
         // Variables for emitter placement
 
-        internal static void PopulateLevelWithVFX()
+        internal void PopulateLevelWithVFX()
         {
             GameObject sunTexture = null;
             
@@ -535,13 +538,7 @@ namespace VoxxWeatherPlugin.Weathers
                 return;
             }
 
-            float sunLuminosity = 0f;
-
-            if (TimeOfDay.Instance.sunDirect != null)
-            {
-                HDAdditionalLightData lightData = TimeOfDay.Instance.sunDirect.GetComponent<HDAdditionalLightData>();
-                sunLuminosity = lightData.intensity;
-            }
+            float sunLuminosity = sunLightData != null ? sunLightData.intensity: 0;
 
             if (sunLuminosity < auroraSunThreshold) //add check for sun's position relative to horizon???
             {
@@ -593,8 +590,9 @@ namespace VoxxWeatherPlugin.Weathers
             return finalColor; 
         }
 
-        internal static void ResetVFX()
+        internal void ResetVFX()
         {
+            sunLightData = null;
             if (flareObject != null)
             {
                 Destroy(flareObject);
@@ -609,6 +607,10 @@ namespace VoxxWeatherPlugin.Weathers
 
         private void OnEnable()
         {
+            if (TimeOfDay.Instance.sunDirect != null && sunLightData == null)
+            {
+                sunLightData = TimeOfDay.Instance.sunDirect.GetComponent<HDAdditionalLightData>();
+            }
             if (auroraObject != null)
             {
                 auroraObject.SetActive(true);
