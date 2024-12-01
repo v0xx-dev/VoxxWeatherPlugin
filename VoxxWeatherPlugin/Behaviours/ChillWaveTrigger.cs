@@ -7,36 +7,38 @@ namespace VoxxWeatherPlugin.Behaviours
 {
     public class ChillWaveTrigger: MonoBehaviour
     {
-      internal int waveDamage = 19;
-      internal float waveForce = 10f;
-      internal Coroutine? temperatureChangeCoroutine;
+        [SerializeField]
+        internal int waveDamage = 19;
+        [SerializeField]
+        internal float waveForce = 10f;
+        internal Coroutine? temperatureChangeCoroutine;
 
-      private void OnTriggerEnter(Collider other)
-      {
-        if (other.CompareTag("Player"))
+        private void OnTriggerEnter(Collider other)
         {
-            PlayerControllerB playerController = other.gameObject.GetComponent<PlayerControllerB>();
-            if (playerController != GameNetworkManager.Instance.localPlayerController)
-                return;
-            if (PlayerTemperatureManager.isInColdZone)
+            if (other.CompareTag("Player"))
             {
-                if (temperatureChangeCoroutine == null)
+                PlayerControllerB playerController = other.gameObject.GetComponent<PlayerControllerB>();
+                if (playerController != GameNetworkManager.Instance.localPlayerController)
+                    return;
+                if (PlayerTemperatureManager.isInColdZone)
                 {
-                    temperatureChangeCoroutine = StartCoroutine(TemperatureChangeCoroutine());
+                    if (temperatureChangeCoroutine == null)
+                    {
+                        temperatureChangeCoroutine = StartCoroutine(TemperatureChangeCoroutine());
+                    }
+                    playerController.DamagePlayer(waveDamage, causeOfDeath: CauseOfDeath.Unknown);
+                    playerController.externalForces += transform.forward * waveForce;
+                    HUDManager.Instance.ShakeCamera(ScreenShakeType.Big);
                 }
-                playerController.DamagePlayer(waveDamage, causeOfDeath: CauseOfDeath.Unknown);
-                playerController.externalForces += transform.forward * waveForce;
-                HUDManager.Instance.ShakeCamera(ScreenShakeType.Big);
-            }
-            else if (temperatureChangeCoroutine != null)
-            {
-                StopCoroutine(temperatureChangeCoroutine);
-                temperatureChangeCoroutine = null;
+                else if (temperatureChangeCoroutine != null)
+                {
+                    StopCoroutine(temperatureChangeCoroutine);
+                    temperatureChangeCoroutine = null;
+                }
             }
         }
-      }
 
-      internal IEnumerator TemperatureChangeCoroutine()
+        internal IEnumerator TemperatureChangeCoroutine()
         {
             float targetTemperature = -0.8f;
             float initialTemperature = PlayerTemperatureManager.normalizedTemperature;

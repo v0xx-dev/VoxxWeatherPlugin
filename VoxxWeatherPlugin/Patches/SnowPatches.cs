@@ -293,19 +293,16 @@ namespace VoxxWeatherPlugin.Patches
         public static void AddFootprintTracker(MonoBehaviour obj, float particleSize, float lifetimeMultiplier, float footprintStrength)
         {
             //Load different footprints for player and other objects
-            GameObject? footprintsTrackerVariant = obj switch
+            VisualEffectAsset? footprintsTrackerVariant = obj switch
             {
                 EnemyAI _ => SnowfallVFXManager.snowTrackersDict?["lowcapFootprintsTrackerVFX"],
                 GrabbableObject _ => SnowfallVFXManager.snowTrackersDict?["itemTrackerVFX"],
                 _ => SnowfallVFXManager.snowTrackersDict?["footprintsTrackerVFX"] //PlayerControllerB and VehicleController
             };
 
+            VisualEffect footprintsTrackerVFX = obj.gameObject.AddComponent<VisualEffect>();
+            footprintsTrackerVFX.visualEffectAsset = footprintsTrackerVariant;
 
-            GameObject? footprintsTracker = GameObject.Instantiate(footprintsTrackerVariant,
-                                                                    position: obj.transform.position,
-                                                                    rotation: Quaternion.identity,
-                                                                    parent: obj.transform);
-            VisualEffect? footprintsTrackerVFX = footprintsTracker?.GetComponent<VisualEffect>();
             footprintsTrackerVFX?.SetFloat("particleSize", particleSize);
             footprintsTrackerVFX?.SetFloat("lifetimeMultiplier", lifetimeMultiplier);
             footprintsTrackerVFX?.SetFloat("footprintStrength", footprintStrength);
@@ -317,11 +314,8 @@ namespace VoxxWeatherPlugin.Patches
 
             if (obj is Shovel shovel)
             {
-                GameObject? shovelVFXObject = GameObject.Instantiate(SnowfallVFXManager.snowTrackersDict?["shovelVFX"],
-                                                            position: obj.transform.position,
-                                                            rotation: Quaternion.identity,
-                                                            parent: obj.transform);
-                VisualEffect? shovelVFX = shovelVFXObject?.GetComponent<VisualEffect>();
+                VisualEffect shovelVFX = obj.gameObject.AddComponent<VisualEffect>();
+                shovelVFX.visualEffectAsset = SnowfallVFXManager.snowTrackersDict?["shovelVFX"];
                 if (shovelVFX != null)
                 {
                     snowShovelDict.Add(shovel, shovelVFX);

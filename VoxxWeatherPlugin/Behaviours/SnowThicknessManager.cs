@@ -25,12 +25,12 @@ namespace VoxxWeatherPlugin.Behaviours
         internal Vector3 feetPosition; // player's feet position
 
         //Compute buffers
-        internal Dictionary<MonoBehaviour, int> entitySnowDataMap = new Dictionary<MonoBehaviour, int>();
-        private Stack<int> freeIndices = new Stack<int>();
         internal EntitySnowData[]? entitySnowDataArray;
         private ComputeBuffer? entityDataComputeBuffer;
 
         // Mappings
+        internal Dictionary<MonoBehaviour, int> entitySnowDataMap = new Dictionary<MonoBehaviour, int>();
+        private Stack<int> freeIndices = new Stack<int>();
         internal Dictionary<GameObject, int> groundToIndex = new Dictionary<GameObject, int>();
         internal HashSet<GameObject> iceObjects = new HashSet<GameObject>();
 
@@ -64,6 +64,7 @@ namespace VoxxWeatherPlugin.Behaviours
 
         internal void Reset()
         {
+            inputNeedsUpdate = true;
             entitySnowDataMap.Clear();
             freeIndices.Clear();
             groundToIndex.Clear();

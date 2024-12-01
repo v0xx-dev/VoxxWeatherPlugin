@@ -11,10 +11,10 @@ namespace VoxxWeatherPlugin.Weathers
         [Header("Visuals")]
         [SerializeField]
         internal Camera blizzardCollisionCamera;
-        [SerializeField]
-        internal Camera blizzardWaveCamera;
-        [SerializeField]
-        internal Volume frostbiteVolume;
+        // [SerializeField]
+        // internal Camera blizzardWaveCamera;
+        // [SerializeField]
+        // internal Volume frostbiteVolume;
 
         [Header("Wind")]
         [SerializeField]
@@ -38,10 +38,7 @@ namespace VoxxWeatherPlugin.Weathers
         internal float waveInterval = 90f;
         internal bool isChillWaveActive = false;
         internal Coroutine chillWaveCoroutine;
-
-        [Header("General")]
-        [SerializeField]
-        internal BlizzardVFXManager blizzardVFXManager;
+        internal BlizzardVFXManager VFXManager;
 
         internal override void OnEnable()
         {
@@ -79,7 +76,7 @@ namespace VoxxWeatherPlugin.Weathers
             PlayerControllerB localPlayer = GameNetworkManager.Instance.localPlayerController;
             Vector3 playerHeadPos = localPlayer.gameplayCamera.transform.position;
             // Could be optimized since the camera position is constant relative to the player, TODO?
-            if (IsWindDisallowed(localPlayer) &&
+            if (!IsWindBlocked(localPlayer) &&
                 !Physics.Linecast(GetNearestPointOnPlane(playerHeadPos, blizzardCollisionCamera.transform.position, windDirection),
                                     playerHeadPos, LayerMask.GetMask("Room", "Terrain", "Default"), QueryTriggerInteraction.Ignore))
             {
@@ -100,7 +97,7 @@ namespace VoxxWeatherPlugin.Weathers
             return point + planeNormal * distance;
         }
 
-        internal bool IsWindDisallowed(PlayerControllerB localPlayer)
+        internal bool IsWindBlocked(PlayerControllerB localPlayer)
         {
             return localPlayer.isClimbingLadder || localPlayer.physicsParent != null || 
                     localPlayer.isInHangarShipRoom || localPlayer.isInsideFactory ||
@@ -110,8 +107,8 @@ namespace VoxxWeatherPlugin.Weathers
 
         internal IEnumerator ChangeWindDirectionCoroutine()
         {
-            GameObject windContainer = blizzardVFXManager.snowVFXContainer;
-            GameObject chillWaveContainer = blizzardVFXManager.blizzardWaveContainer;
+            GameObject windContainer = VFXManager.snowVFXContainer;
+            GameObject chillWaveContainer = VFXManager.blizzardWaveContainer;
 
             // Generate a random angle
             float randomAngle = seededRandom.NextDouble(-45f, 45f);
@@ -153,7 +150,7 @@ namespace VoxxWeatherPlugin.Weathers
 
         internal IEnumerator GenerateChillWaveCoroutine()
         {
-            GameObject chillWaveContainer = blizzardVFXManager.blizzardWaveContainer;
+            GameObject chillWaveContainer = VFXManager.blizzardWaveContainer;
             float levelRadius = levelBounds.size.magnitude / 2;
 
             for (int i = 0; i < numOfWaves; i++)
@@ -204,8 +201,6 @@ namespace VoxxWeatherPlugin.Weathers
     {
         [SerializeField]
         internal GameObject blizzardWaveContainer;
-        [SerializeField]
-        internal BlizzardWeather snowfallWeather;
 
         internal override void OnEnable()
         {

@@ -53,7 +53,6 @@ namespace VoxxWeatherPlugin.Utils
             Layer29 = 1 << 29,
             Layer30 = 1 << 30,
             Layer31 = 1 << 31,
-            // Add more layers as needed, up to 32
         }
 
         static class SnowfallShaderIDs
@@ -164,8 +163,14 @@ namespace VoxxWeatherPlugin.Utils
                 Debug.LogWarning("Attempt to call with an empty override material. Skipping the call to avoid errors");
                 return;
             }
+            
+            if (SnowfallWeather.Instance == null)
+            {
+                Debug.LogWarning("Attempt to call with an uninitialized SnowfallWeather. Skipping the call to avoid errors");
+                return;
+            }
 
-            if (SnowfallWeather.Instance!.levelDepthmap == null || SnowfallWeather.Instance!.snowTracksMap == null)
+            if (SnowfallWeather.Instance.levelDepthmap == null || SnowfallWeather.Instance.snowTracksMap == null)
             {
                 Debug.LogWarning(" Attempt to call with uninitialized textures. Skipping the call to avoid errors");
             }
@@ -175,13 +180,14 @@ namespace VoxxWeatherPlugin.Utils
                 Debug.LogWarning("Attempt to call with an empty shader passes. Skipping the call to avoid errors");
                 return;
             }
-            shaderPasses[shaderPasses.Length - 1] = new ShaderTagId(overrideMaterialPassName);
 
             if (shaderPasses.Length == 0)
             {
                 Debug.LogWarning("Attempt to call with an empty shader passes. Skipping the call to avoid errors");
                 return;
             }
+
+            shaderPasses[shaderPasses.Length - 1] = new ShaderTagId(overrideMaterialPassName);
 
             RefreshSnowMaterial(overrideMaterial);
             RefreshSnowMaterial(snowVertexMaterial);

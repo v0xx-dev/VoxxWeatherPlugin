@@ -591,8 +591,6 @@ namespace VoxxWeatherPlugin.Utils
             meshRenderer.gameObject.tag = terrain.gameObject.tag;
             meshRenderer.renderingLayerMask = terrain.renderingLayerMask;
             meshTerrain.isStatic = true;
-            MeshCollider meshCollider = meshTerrain.AddComponent<MeshCollider>();
-            meshCollider.enabled = snowfallData.useMeshCollider; // Disable mesh collider by default
 
             Mesh mesh = new Mesh();
             mesh.name = "MeshTerrain_" + terrain.name;
@@ -841,14 +839,22 @@ namespace VoxxWeatherPlugin.Utils
             mesh.RecalculateNormals();
             mesh.RecalculateTangents();
 
+            if (snowfallData.useMeshCollider)
+            {
+                MeshCollider meshCollider = meshTerrain.AddComponent<MeshCollider>();
+                meshCollider.sharedMesh = mesh;
+                // Disable terrain collider
+                terrain.GetComponent<TerrainCollider>().enabled = false;
+            }
+
             meshFilter.mesh = mesh;
-            meshCollider.sharedMesh = mesh;
             meshRenderer.material = new Material(snowfallData.terraMeshShader);
             // Disable rendering of terrain
             terrain.drawHeightmap = false;
             // terrain.drawInstanced = false; // TODO: Check if this is necessary
 
-            if (snowfallData.copyTrees)
+            //We have to copy the trees if we want to use the mesh collider, no way to disable only the tree colliders at runtime
+            if (snowfallData.copyTrees || snowfallData.useMeshCollider) 
             {
                 //Disable rendering of trees on terrain
                 terrain.treeDistance = 0;

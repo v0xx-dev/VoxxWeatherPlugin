@@ -132,6 +132,7 @@ namespace VoxxWeatherPlugin.Utils
             {
                 if (children == null)
                     return;
+                    
                 foreach (var child in children)
                 {
                     child.GetLeafNodes(leafNodes);

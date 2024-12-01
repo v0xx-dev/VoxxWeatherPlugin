@@ -10,5 +10,7 @@ namespace VoxxWeatherPlugin.Weathers
 
     public abstract class BaseVFXManager: MonoBehaviour
     {
+        internal abstract void Reset();
+        internal abstract void PopulateLevelWithVFX(Bounds levelBounds = default, System.Random? seededRandom = null);
     }
 }

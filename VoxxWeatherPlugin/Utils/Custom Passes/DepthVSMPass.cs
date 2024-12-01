@@ -7,7 +7,6 @@ namespace VoxxWeatherPlugin.Utils
 {
     public class DepthVSMPass : CustomPass
     {
-        public RenderTexture? depthRenderTexture;
         public Material? depthMaterial;
         public int blurRadius = 4; // The radius of the blur kernel for VSM averaging
 
@@ -19,17 +18,25 @@ namespace VoxxWeatherPlugin.Utils
 
         protected override void Execute(CustomPassContext ctx)
         {
-            if (depthMaterial == null || depthRenderTexture == null)
+            if (depthMaterial == null)
             {
-                Debug.LogError("Depth material, texture or baking camera is not assigned.");
+                Debug.LogError("Depth material is not assigned.");
                 return;
             }
+            if (ctx.hdCamera.camera.targetTexture == null)
+            {
+                Debug.LogError("Camera target texture is not assigned for VSM.");
+                return;
+            }
+
             depthMaterial.SetFloat("_BlurKernelSize", blurRadius);
             // Set the aspect ratio of the baking camera to match the render texture
-            ctx.hdCamera.camera.aspect = (float)depthRenderTexture.width / (float)depthRenderTexture.height;
+            int width = ctx.hdCamera.camera.pixelWidth;
+            int height = ctx.hdCamera.camera.pixelHeight;
+            RenderTextureFormat textureFormat = ctx.hdCamera.camera.targetTexture.format;
             //create temporary exact copy
-            RenderTexture tempTexture1 = RenderTexture.GetTemporary(depthRenderTexture.width, depthRenderTexture.height, 0, depthRenderTexture.format);
-            RenderTexture tempTexture2 = RenderTexture.GetTemporary(depthRenderTexture.width, depthRenderTexture.height, 0, depthRenderTexture.format);
+            RenderTexture tempTexture1 = RenderTexture.GetTemporary(width, height, 0, textureFormat);
+            RenderTexture tempTexture2 = RenderTexture.GetTemporary(width, height, 0, textureFormat);
             // Copy the depth map to a temporary texture
             ctx.cmd.Blit(ctx.cameraDepthBuffer, tempTexture1, depthMaterial, 0);
             // Blur the depth map (Horizontal)
@@ -37,7 +44,7 @@ namespace VoxxWeatherPlugin.Utils
             ctx.cmd.Blit(tempTexture1, tempTexture2, depthMaterial, 1);
             // Blur the depth map (Vertical)
             depthMaterial.SetTexture("_MainTex", tempTexture2);
-            ctx.cmd.Blit(tempTexture2, depthRenderTexture, depthMaterial, 2);
+            ctx.cmd.Blit(tempTexture2, ctx.cameraColorBuffer, depthMaterial, 2);
 
             RenderTexture.ReleaseTemporary(tempTexture1);
             RenderTexture.ReleaseTemporary(tempTexture2);

@@ -125,8 +125,6 @@ namespace VoxxWeatherPlugin.Weathers
         [SerializeField]
         internal Vector3 shipPosition;
         [SerializeField]
-        internal Vector3 prevSnowTrackerPosition = Vector3.zero;
-        [SerializeField]
         internal float timeUntilFrostbite = 15f;
         [SerializeField]
         internal SnowfallVFXManager? VFXManager;
@@ -141,6 +139,7 @@ namespace VoxxWeatherPlugin.Weathers
             Instance = this;
 
             SnowOverlayCustomPass? snowOverlayCustomPass = snowVolume!.customPasses[0] as SnowOverlayCustomPass;
+            snowOverlayCustomPass!.snowVertexMaterial = snowVertexMaterial;
 
             originalOverlayRenderingLayers = snowOverlayCustomPass!.renderingLayers;
 
@@ -162,8 +161,8 @@ namespace VoxxWeatherPlugin.Weathers
             levelDepthmapCamera.aspect = 1.0f;
             levelDepthmapCamera.enabled = false;
 
-            DepthVSMPass? depthVSMPass = levelDepthmapCamera.GetComponent<CustomPassVolume>().customPasses[0] as DepthVSMPass;
-            depthVSMPass!.depthRenderTexture = levelDepthmap;
+            // DepthVSMPass? depthVSMPass = levelDepthmapCamera.GetComponent<CustomPassVolume>().customPasses[0] as DepthVSMPass;
+            // depthVSMPass!.depthRenderTexture = levelDepthmap;
 
             snowTracksMap = new RenderTexture(256,
                                             256,
@@ -197,17 +196,14 @@ namespace VoxxWeatherPlugin.Weathers
             FreezeWater();
             ModifyScrollingFog();
             UpdateLevelDepthmap();
-            StartCoroutine(RefreshLevelDepthmapCoroutine(true));
-            SnowThicknessManager.Instance!.inputNeedsUpdate = true;
+            VFXManager?.PopulateLevelWithVFX();
+            // StartCoroutine(RefreshLevelDepthmapCoroutine(true));
         }
 
         internal virtual void OnDisable()
         {
-            PlayerTemperatureManager.isInColdZone = false;
             Destroy(snowMasks);
-            SnowThicknessManager.Instance?.Reset();
-            DisableFootprintTrackers(SnowPatches.snowTrackersDict);
-            DisableFootprintTrackers(SnowPatches.snowShovelDict);
+            VFXManager?.Reset();
         }
 
         internal void OnDestroy()
@@ -215,8 +211,6 @@ namespace VoxxWeatherPlugin.Weathers
             // Release the render textures
             levelDepthmap?.Release();
             snowTracksMap?.Release();
-            SnowPatches.snowTrackersDict.Clear();
-            SnowPatches.snowShovelDict.Clear();
         }
 
         internal virtual void FixedUpdate()
@@ -224,61 +218,67 @@ namespace VoxxWeatherPlugin.Weathers
             shipPosition = StartOfRound.Instance.shipBounds.bounds.center;
             float normalizedSnowTimer =  Mathf.Clamp01(maxSnowNormalizedTime - TimeOfDay.Instance.normalizedTimeOfDay);
             snowIntensity = 10f * normalizedSnowTimer;
-            if (!swappedToSnow && normalizedSnowTimer <= maxSnowNormalizedTime/3f) //TODO Remove if the patch works
-            {
-                foreach (KeyValuePair<GameObject, int> entry in SnowThicknessManager.Instance!.groundToIndex)
-                {
-                    entry.Key.tag = "Snow";
-                }
-                swappedToSnow = true;
-            }
-            UpdateTrackerPosition();
+            // if (!swappedToSnow && normalizedSnowTimer <= maxSnowNormalizedTime/3f) //TODO Remove if the patch works
+            // {
+            //     foreach (KeyValuePair<GameObject, int> entry in SnowThicknessManager.Instance!.groundToIndex)
+            //     {
+            //         entry.Key.tag = "Snow";
+            //     }
+            //     swappedToSnow = true;
+            // }
+            UpdateCameraPosition(snowTrackerCameraContainer, snowTracksCamera, snowTracksMap);
         }
 
-        internal void UpdateTrackerPosition()
+        internal void UpdateCameraPosition(GameObject? cameraContainer, Camera? camera, RenderTexture? renderTexture)
         {
-            Vector3 playerPosition = GameNetworkManager.Instance.localPlayerController.transform.position;
-            if (Vector3.Distance(playerPosition, prevSnowTrackerPosition) >= snowTracksCamera!.orthographicSize / 2f)
+            if (cameraContainer == null || camera == null || renderTexture == null)
             {
-                snowTrackerCameraContainer!.transform.position = playerPosition;
-                prevSnowTrackerPosition = playerPosition;
+                Debug.LogError("Camera container, camera or render texture is null!");
+                return;
             }
+            Vector3 playerPosition = GameNetworkManager.Instance.localPlayerController.transform.position;
+
+            if (Vector3.Distance(playerPosition, cameraContainer.transform.position) >= camera.orthographicSize / 2f)
+            {
+                cameraContainer.transform.position = playerPosition;
+                RefreshDepthmapCoroutine(camera, renderTexture);
+            }
+
         }
 
         internal void UpdateLevelDepthmap()
         {
-            Debug.Log("Updating level depthmap");
+            Debug.LogDebug("Updating level depthmap");
             levelBounds = PlayableAreaCalculator.CalculateZoneSize();
             Vector3 cameraPosition = new Vector3(levelBounds.center.x,
                                                 levelDepthmapCamera!.transform.position.y,
                                                 levelBounds.center.z);
             levelDepthmapCamera.transform.position = cameraPosition;
-            Debug.Log($"Camera position: {levelDepthmapCamera.transform.position}, Barycenter: {levelBounds.center}");
+            Debug.LogDebug($"Camera position: {levelDepthmapCamera.transform.position}, Barycenter: {levelBounds.center}");
             
-            StartCoroutine(RefreshLevelDepthmapCoroutine());
+            StartCoroutine(RefreshDepthmapCoroutine(levelDepthmapCamera, levelDepthmap!));
+
+            Debug.LogDebug("Level depthmap rendered!");
+            
+            SnowThicknessManager.Instance!.inputNeedsUpdate = true;
         }
 
-        internal IEnumerator RefreshLevelDepthmapCoroutine(bool waitForLanding = false)
+        internal IEnumerator RefreshDepthmapCoroutine(Camera camera, RenderTexture renderTexture, bool waitForLanding = false)
         {
             if (waitForLanding)
             {
                 yield return new WaitUntil(() => StartOfRound.Instance.shipHasLanded);
-                SnowThicknessManager.Instance!.inputNeedsUpdate = true;
             }
 
-            levelDepthmapCamera!.targetTexture = levelDepthmap;
-            levelDepthmapCamera.aspect = 1.0f;
-            levelDepthmapCamera.enabled = true;
+            camera.targetTexture = renderTexture;
+            camera.aspect = 1.0f;
+            camera.enabled = true;
             
             yield return new WaitForEndOfFrame();
-            
-            //levelDepthmapCamera.Render();
-            Debug.Log("Level depthmap rendered!");
-            
             yield return new WaitForEndOfFrame();
             
-            levelDepthmapCamera.targetTexture = null;
-            levelDepthmapCamera.enabled = true;
+            camera.targetTexture = null;
+            camera.enabled = false;
         }
 
         internal void FreezeWater()
@@ -477,14 +477,6 @@ namespace VoxxWeatherPlugin.Weathers
             }
         }
 
-        internal void DisableFootprintTrackers(Dictionary <MonoBehaviour, VisualEffect> snowTrackersDict)
-        {
-            foreach (var kvp in snowTrackersDict)
-            {
-                kvp.Value.gameObject?.SetActive(false);
-            }
-        }
-
         internal void RefreshBakeMaterial()
         {
             // Set shader properties
@@ -516,6 +508,8 @@ namespace VoxxWeatherPlugin.Weathers
         internal GameObject? snowVFXContainer;
 
         [SerializeField]
+        internal Volume? frostbiteFilter;
+        [SerializeField]
         internal Volume? frostyFilter;
         [SerializeField]
         internal Volume? underSnowFilter;
@@ -532,27 +526,21 @@ namespace VoxxWeatherPlugin.Weathers
         [Header("Snow Tracker VFX")]
         
         [SerializeField]
-        internal GameObject? footprintsTrackerVFX;
-        [SerializeField]
-        internal GameObject? lowcapFootprintsTrackerVFX;
-        [SerializeField]
-        internal GameObject? itemTrackerVFX;
-        [SerializeField]
-        internal GameObject? shovelVFX;
-        internal static Dictionary <string, GameObject>? snowTrackersDict;
+        internal VisualEffectAsset[]? footprintsTrackerVFX;
+        internal static Dictionary <string, VisualEffectAsset>? snowTrackersDict;
 
         internal void Start()
         {
             snowFootstepIndex = Array.FindIndex(StartOfRound.Instance.footstepSurfaces, surface => surface.surfaceTag == "Snow");
-            PlayerTemperatureManager.freezeEffectVolume = frostyFilter;
+            PlayerTemperatureManager.freezeEffectVolume = frostbiteFilter;
         }
 
         internal virtual void OnEnable()
         {
             snowVFXContainer?.SetActive(true);
             
+            frostbiteFilter!.enabled = true;
             frostyFilter!.enabled = true;
-
             underSnowFilter!.enabled = true;
             
             SnowfallWeather.Instance!.snowVolume!.enabled = true;
@@ -567,6 +555,7 @@ namespace VoxxWeatherPlugin.Weathers
         internal virtual void OnDisable()
         {
             snowVFXContainer?.SetActive(false);
+            // frostbiteFilter!.enabled = false;
             frostyFilter!.enabled = false;
             underSnowFilter!.enabled = false;
             SnowfallWeather.Instance!.snowVolume!.enabled = false;
@@ -649,7 +638,39 @@ namespace VoxxWeatherPlugin.Weathers
 
                 underSnowFilter!.weight = currentWeight;
             }
+        }
 
+        internal void DisableFootprintTrackers(Dictionary <MonoBehaviour, VisualEffect> snowTrackersDict)
+        {
+            foreach (var kvp in snowTrackersDict)
+            {
+                kvp.Value.gameObject?.SetActive(false);
+            }
+        }
+
+        internal override void Reset()
+        {
+            PlayerTemperatureManager.isInColdZone = false;
+            SnowThicknessManager.Instance?.Reset();
+            DisableFootprintTrackers(SnowPatches.snowTrackersDict);
+            DisableFootprintTrackers(SnowPatches.snowShovelDict);
+        }
+
+        internal override void PopulateLevelWithVFX(Bounds levelBounds = default, System.Random? seededRandom = null)
+        {
+            if (snowVFXContainer == null)
+            {
+                Debug.LogError("Snow VFX container is null!");
+                return;
+            }
+            HDRPCameraOrTextureBinder depthBinder = snowVFXContainer.GetComponent<HDRPCameraOrTextureBinder>();
+            depthBinder.depthTexture = SnowfallWeather.Instance!.levelDepthmap; // bind the baked depth texture
+        }
+
+        internal void OnDestroy()
+        {
+            SnowPatches.snowTrackersDict.Clear();
+            SnowPatches.snowShovelDict.Clear();
         }
     }
 }

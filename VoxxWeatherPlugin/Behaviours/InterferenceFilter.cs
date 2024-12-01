@@ -1,7 +1,8 @@
 ﻿using UnityEngine;
 using System;
+using VoxxWeatherPlugin.Utils;
 
-namespace VoxxWeatherPlugin.Utils
+namespace VoxxWeatherPlugin.Behaviours
 {
     [RequireComponent(typeof(AudioSource))]
     public class InterferenceDistortionFilter : MonoBehaviour

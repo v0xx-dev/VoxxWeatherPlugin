@@ -8,18 +8,20 @@ namespace VoxxWeatherPlugin.Weathers
 {
     internal class HeatwaveWeather: BaseWeather
     {
-        internal static HeatwaveWeather Instance { get; private set; }
-        internal VolumeProfile heatwaveFilter; // Filter for visual effects
-        internal HeatwaveVFXManager VFXManager; // Manager for heatwave visual effects
-        private Volume exhaustionFilter; // Filter for visual effects
-        private BoxCollider heatwaveTrigger; // Trigger collider for the heatwave zone
-        private Bounds heatwaveBounds; // Size of the heatwave zone
+        internal static HeatwaveWeather? Instance { get; private set; }
+        [SerializeField]
+        internal HeatwaveVFXManager? VFXManager; // Manager for heatwave visual effects
+        [SerializeField]
+        internal Volume? exhaustionFilter; // Filter for visual effects
+        private BoxCollider? heatwaveTrigger; // Trigger collider for the heatwave zone
+        private Bounds levelBounds; // Size of the playable area
 
-        private System.Random seededRandom;
+        private System.Random? seededRandom;
 
         private float timeUntilStrokeMin => VoxxWeatherPlugin.TimeUntilStrokeMin.Value; // Minimum time until a heatstroke occurs
         private float timeUntilStrokeMax => VoxxWeatherPlugin.TimeUntilStrokeMax.Value; // Maximum time until a heatstroke occurs
-        [SerializeField] private float timeInHeatZoneMax = 50f; // Time before maximum effects are applied
+        [SerializeField]
+        internal float timeInHeatZoneMax = 50f; // Time before maximum effects are applied
 
         private void Awake()
         {
@@ -28,30 +30,21 @@ namespace VoxxWeatherPlugin.Weathers
             if (heatwaveTrigger == null)
                 heatwaveTrigger = gameObject.AddComponent<BoxCollider>();
             heatwaveTrigger.isTrigger = true;
-            // Attach a Volume component to the GameObject
-            Volume volumeComponent = gameObject.AddComponent<Volume>();
-            // Set the volume profile from heatwaveFilter
-            volumeComponent.profile = heatwaveFilter;
-            volumeComponent.weight = 0f;
-            exhaustionFilter = volumeComponent;
             PlayerTemperatureManager.heatEffectVolume = exhaustionFilter;
         }
 
         private void OnEnable()
         {
             seededRandom = new System.Random(StartOfRound.Instance.randomMapSeed);
-            heatwaveBounds = PlayableAreaCalculator.CalculateZoneSize();
-            Debug.LogDebug($"Heatwave zone size: {heatwaveBounds.size}. Placed at {heatwaveBounds.center}");
-            VFXManager.CalculateEmitterRadius();
-            VFXManager.PopulateLevelWithVFX(heatwaveBounds, seededRandom);
+            levelBounds = PlayableAreaCalculator.CalculateZoneSize();
+            Debug.LogDebug($"Heatwave zone size: {levelBounds.size}. Placed at {levelBounds.center}");
+            VFXManager?.PopulateLevelWithVFX(levelBounds, seededRandom);
             SetupHeatwaveWeather();
         }
 
         private void OnDisable()
         {
-            Destroy(VFXManager.heatwaveVFXContainer);
-            VFXManager.heatwaveVFXContainer = null;
-            Debug.LogDebug("Heatwave VFX container destroyed.");
+            VFXManager?.Reset();
             PlayerTemperatureManager.isInHeatZone = false;
             PlayerTemperatureManager.heatTransferRate = 1f;
         }
@@ -59,13 +52,13 @@ namespace VoxxWeatherPlugin.Weathers
         private void SetupHeatwaveWeather()
         {
             // Set the size, position and rotation of the trigger zone
-            heatwaveTrigger.size = heatwaveBounds.size;
-            heatwaveTrigger.transform.position = heatwaveBounds.center;
+            heatwaveTrigger!.size = levelBounds.size;
+            heatwaveTrigger.transform.position = levelBounds.center;
             heatwaveTrigger.transform.rotation = Quaternion.identity;
             Debug.LogDebug($"Heatwave zone placed!");
 
             // Set exhaustion time for the player
-            timeInHeatZoneMax = seededRandom.NextDouble(timeUntilStrokeMin, timeUntilStrokeMax);
+            timeInHeatZoneMax = seededRandom!.NextDouble(timeUntilStrokeMin, timeUntilStrokeMax);
             Debug.LogDebug($"Set time until heatstroke: {timeInHeatZoneMax} seconds");
         }
 
@@ -121,8 +114,8 @@ namespace VoxxWeatherPlugin.Weathers
 
     public class HeatwaveVFXManager: BaseVFXManager
     {
-        public GameObject heatwaveParticlePrefab; // Prefab for the heatwave particle effect
-        public GameObject heatwaveVFXContainer; // GameObject for the particles
+        public GameObject? heatwaveParticlePrefab; // Prefab for the heatwave particle effect
+        public GameObject? heatwaveVFXContainer; // GameObject for the particles
 
         // Variables for emitter placement
         private float emitterSize;
@@ -130,23 +123,32 @@ namespace VoxxWeatherPlugin.Weathers
 
         internal void CalculateEmitterRadius()
         {
-            Transform transform = heatwaveParticlePrefab.transform;
-            emitterSize = Mathf.Max(transform.localScale.x, transform.localScale.z) * 5f;
+            Transform transform = heatwaveParticlePrefab!.transform;
+            emitterSize = Mathf.Max(transform.lossyScale.x, transform.lossyScale.z) * 5f;
         }
 
-        internal void PopulateLevelWithVFX(Bounds heatwaveBounds, System.Random seededRandom)
+        internal override void PopulateLevelWithVFX(Bounds levelBounds, System.Random? seededRandom)
         {
+
+            if (levelBounds == null || seededRandom == null || heatwaveParticlePrefab == null)
+            {
+                Debug.LogError("Level bounds, random seed or heatwave particle prefab not set!");
+                return;
+            }
             
+            CalculateEmitterRadius();
+
             if (heatwaveVFXContainer == null)
                 heatwaveVFXContainer = new GameObject("HeatwaveVFXContainer");
+                heatwaveVFXContainer.transform.parent = HeatwaveWeather.Instance!.transform; // Parent the container to the weather instance
 
             int placedEmittersNum = 0;
 
-            int xCount = Mathf.CeilToInt(heatwaveBounds.size.x / emitterSize);
-            int zCount = Mathf.CeilToInt(heatwaveBounds.size.z / emitterSize);
+            int xCount = Mathf.CeilToInt(levelBounds.size.x / emitterSize);
+            int zCount = Mathf.CeilToInt(levelBounds.size.z / emitterSize);
             Debug.LogDebug($"Placing {xCount * zCount} emitters...");
 
-            Vector3 startPoint = heatwaveBounds.center - heatwaveBounds.size * 0.5f;
+            Vector3 startPoint = levelBounds.center - levelBounds.size * 0.5f;
 
             float minY = -1f;
             float maxY = 1f;
@@ -169,6 +171,7 @@ namespace VoxxWeatherPlugin.Weathers
                         Quaternion rotation = Quaternion.AngleAxis(randomRotation, normal) * Quaternion.LookRotation(normal);
                         //position.y -= 0.5f; // Offset the emitter slightly below the ground
                         GameObject emitter = Instantiate(heatwaveParticlePrefab, position, rotation);
+                        emitter.SetActive(true);
                         emitter.transform.parent = heatwaveVFXContainer.transform; // Parent the emitter to the VFX container
                         placedEmittersNum++;
 
@@ -182,8 +185,8 @@ namespace VoxxWeatherPlugin.Weathers
             float newHeight = (maxY - minY) * 1.1f;
             float newYPos = (minY + maxY) / 2;
 
-            heatwaveBounds.size = new Vector3(heatwaveBounds.size.x, newHeight, heatwaveBounds.size.z);
-            heatwaveBounds.center = new Vector3(heatwaveBounds.center.x, newYPos, heatwaveBounds.center.z);
+            levelBounds.size = new Vector3(levelBounds.size.x, newHeight, levelBounds.size.z);
+            levelBounds.center = new Vector3(levelBounds.center.x, newYPos, levelBounds.center.z);
 
             Debug.Log($"Placed {placedEmittersNum} emitters.");
         }
@@ -205,6 +208,16 @@ namespace VoxxWeatherPlugin.Weathers
                 }
             }
             return (Vector3.zero, Vector3.up);
+        }
+
+        internal override void Reset()
+        {
+            if (heatwaveVFXContainer != null)
+            {
+                Destroy(heatwaveVFXContainer);
+            }
+            heatwaveVFXContainer = null;
+            Debug.LogDebug("Heatwave VFX container destroyed.");
         }
 
         private void OnEnable()

@@ -23,7 +23,9 @@ namespace VoxxWeatherPlugin.Weathers
         public float RadioBreakthroughLength;
         public float RadioFrequencyShift;
         public float FlareSize;
+        [ColorUsage(true, true)]
         public Color AuroraColor1;
+        [ColorUsage(true, true)]
         public Color AuroraColor2;
         public bool IsDoorMalfunction;
     }
@@ -33,15 +35,16 @@ namespace VoxxWeatherPlugin.Weathers
         public static SolarFlareWeather? Instance { get; private set; }
         [SerializeField]
         internal Material? glitchMaterial;
+        [SerializeField]
+        internal CustomPassVolume? glitchVolume;
         internal GlitchEffect? glitchPass;
         // [SerializeField]
         // internal  AudioClip staticElectricitySound;
+        [SerializeField]
         internal FlareData[]? flareTypes;
         internal FlareData? flareData;
-        [SerializeField]
-        internal CustomPassVolume? glitchVolume;
         internal TerminalAccessibleObject[]? bigDoors;
-
+        [SerializeField]
         internal SolarFlareVFXManager? VFXManager;
         // internal Turret[] turrets;
         // internal EnemyAINestSpawnObject[] radMechNests;
@@ -58,57 +61,6 @@ namespace VoxxWeatherPlugin.Weathers
         private void Awake()
         {
             Instance = this;
-        }
-
-        internal void GlitchRadarMap()
-        {
-            //Enable glitch effect for the radar camera
-            GameObject radarCameraObject = GameObject.Find("Systems/GameSystems/ItemSystems/MapCamera");
-            if (radarCameraObject != null)
-            {
-                HDAdditionalCameraData radarCameraData = radarCameraObject.GetComponent<HDAdditionalCameraData>();
-                FrameSettingsOverrideMask radarCameraSettingsMask = radarCameraData.renderingPathCustomFrameSettingsOverrideMask;
-                radarCameraSettingsMask.mask[(uint)FrameSettingsField.CustomPass] = false;
-                radarCameraData.renderingPathCustomFrameSettingsOverrideMask = radarCameraSettingsMask;
-
-                Transform? volumeMainTransform = null;
-                foreach (Transform child in radarCameraObject.transform)
-                {
-                    if (child.name.StartsWith("VolumeMain"))
-                    {
-                        volumeMainTransform = child;
-                        break;
-                    }
-                }
-
-                if (volumeMainTransform != null)
-                {
-                    // Add a Local Custom Pass Volume component.
-                    glitchVolume = volumeMainTransform.gameObject.AddComponent<CustomPassVolume>();
-                    glitchVolume.injectionPoint = CustomPassInjectionPoint.AfterPostProcess;
-                    glitchVolume.isGlobal = false;
-
-                    // Create a new GlitchEffect pass.
-                    glitchPass = new GlitchEffect{
-                        name = "Glitch Pass",
-                        m_Material = glitchMaterial
-                    };
-
-                    // Add the pass to the volume and disable it.
-                    glitchVolume.customPasses.Add(glitchPass);
-                    glitchPass.enabled = false;
-
-                    Debug.Log("Glitch Pass added to the Radar camera.");
-                }
-                else
-                {
-                    Debug.LogError("Radar camera volume not found!");
-                }
-            }
-            else
-            {
-                Debug.LogError("Radar camera not found!");
-            }
         }
 
         private void OnEnable()
@@ -163,11 +115,12 @@ namespace VoxxWeatherPlugin.Weathers
             {
                 glitchPass.enabled = false;
             }
+
             flareData = null;
             bigDoors = null;
             // turrets = null;
             // radMechNests = null;
-            VFXManager?.ResetVFX();
+            VFXManager?.Reset();
         }
 
         private void Update()
@@ -220,6 +173,58 @@ namespace VoxxWeatherPlugin.Weathers
                 //         StartCoroutine(ElectricMalfunctionCoroutine(radMechNest));
                 //     }
                 // }
+            }
+        }
+
+        // TODO: Add compatibility for OpenCams
+        internal void GlitchRadarMap()
+        {
+            //Enable glitch effect for the radar camera
+            GameObject radarCameraObject = GameObject.Find("Systems/GameSystems/ItemSystems/MapCamera");
+            if (radarCameraObject != null)
+            {
+                HDAdditionalCameraData radarCameraData = radarCameraObject.GetComponent<HDAdditionalCameraData>();
+                FrameSettingsOverrideMask radarCameraSettingsMask = radarCameraData.renderingPathCustomFrameSettingsOverrideMask;
+                radarCameraSettingsMask.mask[(uint)FrameSettingsField.CustomPass] = false;
+                radarCameraData.renderingPathCustomFrameSettingsOverrideMask = radarCameraSettingsMask;
+
+                Transform? volumeMainTransform = null;
+                foreach (Transform child in radarCameraObject.transform)
+                {
+                    if (child.name.StartsWith("VolumeMain"))
+                    {
+                        volumeMainTransform = child;
+                        break;
+                    }
+                }
+
+                if (volumeMainTransform != null)
+                {
+                    // Add a Local Custom Pass Volume component.
+                    glitchVolume = volumeMainTransform.gameObject.AddComponent<CustomPassVolume>();
+                    glitchVolume.injectionPoint = CustomPassInjectionPoint.AfterPostProcess;
+                    glitchVolume.isGlobal = false;
+
+                    // Create a new GlitchEffect pass.
+                    glitchPass = new GlitchEffect{
+                        name = "Glitch Pass",
+                        m_Material = glitchMaterial
+                    };
+
+                    // Add the pass to the volume and disable it.
+                    glitchVolume.customPasses.Add(glitchPass);
+                    glitchPass.enabled = false;
+
+                    Debug.Log("Glitch Pass added to the Radar camera.");
+                }
+                else
+                {
+                    Debug.LogError("Radar camera volume not found!");
+                }
+            }
+            else
+            {
+                Debug.LogError("Radar camera not found!");
             }
         }
 
@@ -410,25 +415,24 @@ namespace VoxxWeatherPlugin.Weathers
 
     internal class SolarFlareVFXManager : BaseVFXManager
     {
-        public GameObject? flarePrefab; // Prefab for the flare effect
-        public GameObject? auroraPrefab; // Prefab for the aurora effect
         [SerializeField]
         internal GameObject? flareObject; // GameObject for the flare
         [SerializeField]
         internal GameObject? auroraObject; // GameObject for the particles
         internal HDAdditionalLightData? sunLightData;
-
-        internal float auroraSunThreshold = 8f; // Threshold for sun luminosity in lux to enable aurora
+        
+        // Threshold for sun luminosity in lux to enable aurora
+        internal float auroraSunThreshold => VoxxWeatherPlugin.AuroraVisibilityThreshold.Value; 
 
         // Variables for emitter placement
 
-        internal void PopulateLevelWithVFX()
+        internal override void PopulateLevelWithVFX(Bounds levelBounds = default, System.Random? seededRandom = null)
         {
             GameObject? sunTexture = null;
             
             if (TimeOfDay.Instance.sunDirect == null)
             {
-                Debug.LogWarning("Sun animator is null! Disabling Corona VFX. Aurora force enabled.");
+                Debug.LogWarning("Sun animator is null! Disabling Corona VFX. Aurora forcibly enabled.");
             }
             else foreach (Transform child in TimeOfDay.Instance.sunDirect.transform.parent)
             {
@@ -439,27 +443,27 @@ namespace VoxxWeatherPlugin.Weathers
                 }
             }
 
-            if (flarePrefab == null || auroraPrefab == null)
+            if (flareObject == null || auroraObject == null)
             {
-                Debug.LogError("Flare or aurora prefab is null!");
+                Debug.LogError("Flare or Aurora VFX not instantiated!");
                 return;
             }
 
-            auroraObject = Instantiate(auroraPrefab, Vector3.zero, Quaternion.identity);
+            // Set up the Aurora VFX with the colors from the SolarFlareWeather instance
             auroraObject.SetActive(false);
             VisualEffect auroraVFX = auroraObject.GetComponent<VisualEffect>();
-            if (!(SolarFlareWeather.Instance?.flareData == null))
+            if (SolarFlareWeather.Instance?.flareData != null)
             {
+                auroraObject.transform.parent = SolarFlareWeather.Instance.transform; // to stop it from moving with the player
                 auroraVFX.SetVector4("auroraColor", SolarFlareWeather.Instance.flareData.AuroraColor1);
                 auroraVFX.SetVector4("auroraColor2", SolarFlareWeather.Instance.flareData.AuroraColor2);
                 Debug.LogDebug("Aurora VFX colored.");
             }
-            
-            Debug.LogDebug("Aurora VFX instantiated.");
 
+            // Set up the Corona VFX with the colors from the sun texture
             if (sunTexture != null)
             {
-                flareObject = Instantiate(flarePrefab, sunTexture.transform.position, sunTexture.transform.rotation);
+                // Place the flare object at the sun's position
                 flareObject.transform.SetParent(sunTexture.transform);
                 flareObject.transform.localScale = Vector3.one * (SolarFlareWeather.Instance?.flareData?.FlareSize ?? 1.5f);
                 Texture2D? mainTexture = sunTexture.GetComponent<Renderer>().material.mainTexture as Texture2D;
@@ -479,6 +483,7 @@ namespace VoxxWeatherPlugin.Weathers
                 factor = Mathf.Pow(2, 2.7f);
                 coronaColor2 = new Color(coronaColor2.r * factor, coronaColor2.g * factor, coronaColor2.b * factor, 1f);
 
+                // Set the color of the corona VFX
                 VisualEffect coronaVFX = flareObject.GetComponent<VisualEffect>();
                 coronaVFX.SetVector4("coronaColor", finalColor);
                 coronaVFX.SetVector4("coronaColor2", coronaColor2);
@@ -493,20 +498,15 @@ namespace VoxxWeatherPlugin.Weathers
 
         internal void Update()
         {
-            if (auroraObject == null)
-            {
-                return;
-            }
-
             float sunLuminosity = sunLightData != null ? sunLightData.intensity: 0;
 
             if (sunLuminosity < auroraSunThreshold) //add check for sun's position relative to horizon???
             {
-                auroraObject.SetActive(true);
+                auroraObject?.SetActive(true);
             }
             else
             {
-                auroraObject.SetActive(false);
+                auroraObject?.SetActive(false);
             }
         }
 
@@ -515,7 +515,7 @@ namespace VoxxWeatherPlugin.Weathers
             if (texture == null)
             {
                 Debug.LogError("Texture is null!");
-                return Color.white;
+                return Color.yellow; // Default color for the sun
             }
 
             RenderTexture rt = RenderTexture.GetTemporary(
@@ -557,43 +557,27 @@ namespace VoxxWeatherPlugin.Weathers
             return finalColor; 
         }
 
-        internal void ResetVFX()
+        internal override void Reset()
         {
             sunLightData = null;
-            if (flareObject != null)
-            {
-                Destroy(flareObject);
-                flareObject = null;
-            }
-            if (auroraObject != null)
-            {
-                Destroy(auroraObject);
-                auroraObject = null;
-            }
+            flareObject?.transform.SetParent(transform);
+            flareObject?.SetActive(false);
+            auroraObject?.SetActive(false);
         }
 
         private void OnEnable()
         {
-            if (TimeOfDay.Instance.sunDirect != null && sunLightData == null)
+            if (TimeOfDay.Instance.sunDirect != null)
             {
                 sunLightData = TimeOfDay.Instance.sunDirect.GetComponent<HDAdditionalLightData>();
-            }
-            if (auroraObject != null)
-            {
-                auroraObject.SetActive(true);
-            }
-            if (flareObject != null)
-            {
-                flareObject.SetActive(true);
             }
         }
 
         private void OnDisable()
         {
-            if (auroraObject != null)
-                auroraObject.SetActive(false);
-            if (flareObject != null)
-                flareObject.SetActive(false);
+            // TODO compat for OpenCams
+            auroraObject?.SetActive(false);
+            flareObject?.SetActive(false);
         }
     }
 }

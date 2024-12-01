@@ -1,6 +1,5 @@
 using UnityEngine;
-using UnityEngine.Rendering;
-using System.Collections.Generic;
+using System.Linq;
 using UnityEngine.VFX;
 using WeatherRegistry;
 using VoxxWeatherPlugin.Weathers;
@@ -13,33 +12,35 @@ namespace VoxxWeatherPlugin.Utils
         
         public static void RegisterHeatwaveWeather()
         {
-            GameObject? vfxPrefab = WeatherAssetLoader.LoadAsset<GameObject>(bundleName, "HeatwaveParticlePrefab");
-            VolumeProfile? volumeProfile = WeatherAssetLoader.LoadAsset<VolumeProfile>(bundleName, "HeatExhaustionFilter");
+            GameObject? heatwavePrefab = WeatherAssetLoader.LoadAsset<GameObject>(bundleName, "HeatwaveWeatherContainer");
 
-            if (vfxPrefab == null || volumeProfile == null)
+            if (heatwavePrefab == null)
             {
                 Debug.LogError("Failed to load Heatwave Weather assets. Weather registration failed.");
                 return;
             }
-            GameObject heatwaveVFX = new GameObject("HeatwaveVFX");
-            heatwaveVFX.SetActive(false);
-            GameObject effectObject = GameObject.Instantiate(heatwaveVFX);
-            HeatwaveVFXManager VFXmanager = effectObject.AddComponent<HeatwaveVFXManager>();
-            
-            VisualEffect vfx = vfxPrefab.GetComponent<VisualEffect>();
-            vfx.SetUInt("particleSpawnRate", VoxxWeatherPlugin.HeatwaveParticlesSpawnRate.Value);
-            VFXmanager.heatwaveParticlePrefab = vfxPrefab;
-            effectObject.hideFlags = HideFlags.HideAndDontSave;
-            GameObject.DontDestroyOnLoad(effectObject);
 
-            GameObject heatwaveZone = new GameObject("HeatwaveZone");
-            heatwaveZone.SetActive(false);
-            GameObject effectPermanentObject = GameObject.Instantiate(heatwaveZone);
-            HeatwaveWeather heatwaveWeather = effectPermanentObject.AddComponent<HeatwaveWeather>();
-            heatwaveWeather.heatwaveFilter = volumeProfile;
-            heatwaveWeather.VFXManager = VFXmanager;
-            effectPermanentObject.hideFlags = HideFlags.HideAndDontSave;
-            GameObject.DontDestroyOnLoad(effectPermanentObject);
+            heatwavePrefab.SetActive(false);
+            GameObject heatwaveContainer = GameObject.Instantiate(heatwavePrefab);
+            //snowfallContainer.hideFlags = HideFlags.HideAndDontSave;
+            GameObject.DontDestroyOnLoad(heatwaveContainer);
+
+            HeatwaveWeather heatwaveWeatherController = heatwaveContainer.GetComponentInChildren<HeatwaveWeather>(true);
+            GameObject effectPermanentObject = heatwaveWeatherController.gameObject;
+            effectPermanentObject.SetActive(false);
+
+            HeatwaveVFXManager heatwaveVFXManager = heatwaveContainer.GetComponentInChildren<HeatwaveVFXManager>(true);
+            //Possibly setup vfx configuration here
+            GameObject effectObject = heatwaveVFXManager.gameObject;
+            effectObject.SetActive(false);
+
+            heatwaveWeatherController.VFXManager = heatwaveVFXManager;
+
+            VisualEffect heatwaveVFX = heatwaveVFXManager.heatwaveParticlePrefab!.GetComponent<VisualEffect>();
+            heatwaveVFX.SetUInt("particleSpawnRate", VoxxWeatherPlugin.HeatwaveParticlesSpawnRate.Value);
+            // TODO add blurring strength configuration
+
+            heatwaveContainer.SetActive(true);
 
             ImprovedWeatherEffect heatwaveEffect = new(effectObject, effectPermanentObject) {
                 SunAnimatorBool = "",
@@ -65,48 +66,35 @@ namespace VoxxWeatherPlugin.Utils
 
         public static void RegisterFlareWeather()
         {
-            VisualEffectAsset? auroraVFX = WeatherAssetLoader.LoadAsset<VisualEffectAsset>(bundleName, "AuroraVFX");
-            VisualEffectAsset? coronaVFX = WeatherAssetLoader.LoadAsset<VisualEffectAsset>(bundleName, "CoronaVFX");
-            Material? glitchPassMaterial = WeatherAssetLoader.LoadAsset<Material>(bundleName, "GlitchPassMaterial");
-            if (auroraVFX == null || coronaVFX == null || glitchPassMaterial == null)
+            GameObject? flareWeatherPrefab = WeatherAssetLoader.LoadAsset<GameObject>(bundleName, "SolarFlareWeatherContainer");
+            
+            if (flareWeatherPrefab == null)
             {
                 Debug.LogError("Failed to load Solar Flare Weather assets. Weather registration failed.");
                 return;
             }
 
-            GameObject flareVFXObject = new GameObject("SolarFlareVFX");
-            flareVFXObject.SetActive(false);
-            GameObject effectObject = GameObject.Instantiate(flareVFXObject);
+            flareWeatherPrefab.SetActive(false);
+            GameObject flareContainer = GameObject.Instantiate(flareWeatherPrefab);
+            //snowfallContainer.hideFlags = HideFlags.HideAndDontSave;
+            GameObject.DontDestroyOnLoad(flareContainer);
 
-            GameObject auroraVFXObject = new GameObject("AuroraVFX");
-            auroraVFXObject.SetActive(false);
-            VisualEffect loadedVFX = auroraVFXObject.AddComponent<VisualEffect>();
-            loadedVFX.visualEffectAsset = auroraVFX;
-            loadedVFX.SetUInt("spawnHeight", VoxxWeatherPlugin.AuroraHeight.Value);
-            loadedVFX.SetFloat("spawnBoxSize", VoxxWeatherPlugin.AuroraSpawnAreaBox.Value);
-            loadedVFX.SetFloat("auroraSize", VoxxWeatherPlugin.AuroraSize.Value);
-            loadedVFX.SetFloat("particleSpawnRate", VoxxWeatherPlugin.AuroraSpawnRate.Value);
-            GameObject.DontDestroyOnLoad(auroraVFXObject);
+            SolarFlareWeather flareWeatherController = flareContainer.GetComponentInChildren<SolarFlareWeather>(true);
+            GameObject effectPermanentObject = flareWeatherController.gameObject;
+            effectPermanentObject.SetActive(false);
 
-            GameObject coronaVFXObject = new GameObject("CoronaVFX");
-            coronaVFXObject.SetActive(false);
-            loadedVFX = coronaVFXObject.AddComponent<VisualEffect>();
-            loadedVFX.visualEffectAsset = coronaVFX;
+            SolarFlareVFXManager flareVFXManager = flareContainer.GetComponentInChildren<SolarFlareVFXManager>(true);
+            GameObject effectObject = flareVFXManager.gameObject;
+            effectObject.SetActive(false);
 
-            SolarFlareVFXManager VFXmanager = effectObject.AddComponent<SolarFlareVFXManager>();
-            VFXmanager.auroraSunThreshold = VoxxWeatherPlugin.AuroraVisibilityThreshold.Value;
-            VFXmanager.flarePrefab = coronaVFXObject;
-            VFXmanager.auroraPrefab = auroraVFXObject;
-            effectObject.hideFlags = HideFlags.HideAndDontSave;
-            GameObject.DontDestroyOnLoad(effectObject);
+            flareWeatherController.VFXManager = flareVFXManager;
 
-            GameObject flareEffect = new GameObject("SolarFlareEffect");
-            flareEffect.SetActive(false);
-            GameObject effectPermanentObject = GameObject.Instantiate(flareEffect);
-            SolarFlareWeather flareWeather = effectPermanentObject.AddComponent<SolarFlareWeather>();
-            flareWeather.VFXManager = VFXmanager;
-            effectPermanentObject.hideFlags = HideFlags.HideAndDontSave;
-            GameObject.DontDestroyOnLoad(effectPermanentObject);
+            VisualEffect auroraVFX = flareVFXManager.auroraObject!.GetComponent<VisualEffect>();
+            auroraVFX.SetUInt("spawnHeight", VoxxWeatherPlugin.AuroraHeight.Value);
+            auroraVFX.SetFloat("spawnBoxSize", VoxxWeatherPlugin.AuroraSpawnAreaBox.Value);
+            auroraVFX.SetFloat("auroraSize", VoxxWeatherPlugin.AuroraSize.Value);
+            auroraVFX.SetFloat("particleSpawnRate", VoxxWeatherPlugin.AuroraSpawnRate.Value);
+
             ImprovedWeatherEffect flareWeatherEffect = new(effectObject, effectPermanentObject)
             {
                 SunAnimatorBool = "",
@@ -128,17 +116,33 @@ namespace VoxxWeatherPlugin.Utils
 
         public static void RegisterBlizzardWeather()
         {
-            GameObject blizzardVFXObject = new GameObject("BlizzardVFX");
-            blizzardVFXObject.SetActive(false);
-            GameObject effectObject = GameObject.Instantiate(blizzardVFXObject);
-            effectObject.hideFlags = HideFlags.HideAndDontSave;
-            GameObject.DontDestroyOnLoad(effectObject);
+            GameObject? blizzardPrefab = WeatherAssetLoader.LoadAsset<GameObject>(bundleName, "BlizzardWeatherContainer");
 
-            GameObject blizzardEffect = new GameObject("BlizzardEffect");
-            blizzardEffect.SetActive(false);
-            GameObject effectPermanentObject = GameObject.Instantiate(blizzardEffect);
-            effectPermanentObject.hideFlags = HideFlags.HideAndDontSave;
-            GameObject.DontDestroyOnLoad(effectPermanentObject);
+            if (blizzardPrefab == null)
+            {
+                Debug.LogError("Failed to load Blizzard Weather assets. Weather registration failed.");
+                return;
+            }
+
+            blizzardPrefab.SetActive(false);
+            GameObject blizzardContainer = GameObject.Instantiate(blizzardPrefab);
+            //snowfallContainer.hideFlags = HideFlags.HideAndDontSave;
+            GameObject.DontDestroyOnLoad(blizzardContainer);
+
+            BlizzardWeather blizzardWeatherController = blizzardContainer.GetComponentInChildren<BlizzardWeather>(true);
+            GameObject effectPermanentObject = blizzardWeatherController.gameObject;
+            effectPermanentObject.SetActive(false);
+
+            BlizzardVFXManager blizzardVFXManager = blizzardContainer.GetComponentInChildren<BlizzardVFXManager>(true);
+            //Possibly setup vfx configuration here
+            GameObject effectObject = blizzardVFXManager.gameObject;
+            effectObject.SetActive(false);
+
+            blizzardWeatherController.VFXManager = blizzardVFXManager;
+            
+            // TODO add vfx configs
+
+            blizzardContainer.SetActive(true);
 
             ImprovedWeatherEffect blizzardWeatherEffect = new(effectObject, effectPermanentObject)
             {
@@ -147,7 +151,7 @@ namespace VoxxWeatherPlugin.Utils
 
             Weather BlizzardWeather = new Weather("Blizzard", blizzardWeatherEffect)
             {
-                DefaultLevelFilters = new[] {"Rend", "Dine", "Artifice", "Titan"},
+                DefaultLevelFilters = new[] {"Rend", "Dine", "Artifice", "Titan", "March"},
                 LevelFilteringOption = FilteringOption.Include,
                 Color = Color.cyan,
                 ScrapAmountMultiplier = 1.25f,
@@ -177,18 +181,18 @@ namespace VoxxWeatherPlugin.Utils
             GameObject effectPermanentObject = snowfallWeatherController.gameObject;
             effectPermanentObject.SetActive(false);
 
-            SnowfallVFXManager snowfallVFXManager = snowfallContainer.GetComponentInChildren<SnowfallVFXManager>(true);                                                                        
-            SnowfallVFXManager.snowTrackersDict = new Dictionary<string, GameObject>()
-                                                                                    {
-                                                                                        { "footprintsTrackerVFX", snowfallVFXManager.footprintsTrackerVFX! },           
-                                                                                        { "lowcapFootprintsTrackerVFX", snowfallVFXManager.lowcapFootprintsTrackerVFX! },
-                                                                                        { "itemTrackerVFX", snowfallVFXManager.itemTrackerVFX! },
-                                                                                        { "shovelVFX", snowfallVFXManager.shovelVFX! }
-                                                                                    };
-            snowfallWeatherController.VFXManager = snowfallVFXManager;
+            SnowfallVFXManager snowfallVFXManager = snowfallContainer.GetComponentInChildren<SnowfallVFXManager>(true);
+            //Possibly setup vfx configuration here
             GameObject effectObject = snowfallVFXManager.gameObject;
-
             effectObject.SetActive(false);
+
+            snowfallWeatherController.VFXManager = snowfallVFXManager;
+            //Create a dictionary of the snowfall VFX variants                                                                        
+            string[] keys = new[] {"footprintsTrackerVFX", "lowcapFootprintsTrackerVFX", "itemTrackerVFX", "shovelVFX" };
+            SnowfallVFXManager.snowTrackersDict = keys.Zip(snowfallVFXManager.footprintsTrackerVFX,
+                                                            (k, v) => new { k, v })
+                                                            .ToDictionary(x => x.k, x => x.v);
+            
 
             snowfallContainer.SetActive(true);
 
