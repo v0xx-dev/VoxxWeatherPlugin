@@ -7,21 +7,42 @@ using System.Linq;
 
 namespace VoxxWeatherPlugin.Weathers
 {
-    
-    internal class SolarFlareWeather : MonoBehaviour
+    public enum FlareIntensity
     {
-        public static SolarFlareWeather Instance { get; private set; }
+        Weak,
+        Mild,
+        Average,
+        Strong
+    }
+
+    [Serializable]
+    public class FlareData
+    {
+        public float ScreenDistortionIntensity;
+        public float RadioDistortionIntensity;
+        public float RadioBreakthroughLength;
+        public float RadioFrequencyShift;
+        public float FlareSize;
+        public Color AuroraColor1;
+        public Color AuroraColor2;
+        public bool IsDoorMalfunction;
+    }
+
+    internal class SolarFlareWeather : BaseWeather
+    {
+        public static SolarFlareWeather? Instance { get; private set; }
         [SerializeField]
-        internal static Material glitchMaterial;
-        [SerializeField]
-        internal GlitchEffect glitchPass;
+        internal Material? glitchMaterial;
+        internal GlitchEffect? glitchPass;
         // [SerializeField]
         // internal  AudioClip staticElectricitySound;
-        internal FlareData flareData;
-        internal CustomPassVolume glitchVolume;
-        internal TerminalAccessibleObject[] bigDoors;
+        internal FlareData[]? flareTypes;
+        internal FlareData? flareData;
+        [SerializeField]
+        internal CustomPassVolume? glitchVolume;
+        internal TerminalAccessibleObject[]? bigDoors;
 
-        internal SolarFlareVFXManager solarFlareVFXManager;
+        internal SolarFlareVFXManager? VFXManager;
         // internal Turret[] turrets;
         // internal EnemyAINestSpawnObject[] radMechNests;
         // internal float turretMalfunctionDelay = 1f;
@@ -34,12 +55,9 @@ namespace VoxxWeatherPlugin.Weathers
         internal bool isDoorMalfunctionEnabled => VoxxWeatherPlugin.DoorMalfunctionEnabled.Value;
         internal float doorMalfunctionChance => Mathf.Clamp01(VoxxWeatherPlugin.DoorMalfunctionChance.Value);
 
-        internal SolarFlareWeather()
+        private void Awake()
         {
-            if (Instance == null)
-            {
-                Instance = this;
-            }
+            Instance = this;
         }
 
         internal void GlitchRadarMap()
@@ -53,7 +71,7 @@ namespace VoxxWeatherPlugin.Weathers
                 radarCameraSettingsMask.mask[(uint)FrameSettingsField.CustomPass] = false;
                 radarCameraData.renderingPathCustomFrameSettingsOverrideMask = radarCameraSettingsMask;
 
-                Transform volumeMainTransform = null;
+                Transform? volumeMainTransform = null;
                 foreach (Transform child in radarCameraObject.transform)
                 {
                     if (child.name.StartsWith("VolumeMain"))
@@ -114,13 +132,13 @@ namespace VoxxWeatherPlugin.Weathers
 
             FlareIntensity[] flareIntensities = (FlareIntensity[])Enum.GetValues(typeof(FlareIntensity));
             FlareIntensity randomIntensity = flareIntensities[seededRandom.Next(flareIntensities.Length)];
-            flareData = new FlareData(randomIntensity);
+            flareData = flareTypes?[(int)randomIntensity];
             
-            solarFlareVFXManager.PopulateLevelWithVFX();
+            VFXManager?.PopulateLevelWithVFX();
 
             if (glitchPass != null)
             {
-                glitchPass.intensity.value = flareData.ScreenDistortionIntensity;
+                glitchPass.intensity.value = flareData?.ScreenDistortionIntensity ?? 0f;
                 glitchPass.enabled = true;
             }
             TerminalAccessibleObject[] terminalObjects = FindObjectsOfType<TerminalAccessibleObject>();
@@ -149,7 +167,7 @@ namespace VoxxWeatherPlugin.Weathers
             bigDoors = null;
             // turrets = null;
             // radMechNests = null;
-            solarFlareVFXManager.ResetVFX();
+            VFXManager?.ResetVFX();
         }
 
         private void Update()
@@ -178,7 +196,7 @@ namespace VoxxWeatherPlugin.Weathers
             }
             if (TimeOfDay.Instance.normalizedTimeOfDay % 0.07f < 1e-4)
             {
-                if (flareData.IsDoorMalfunction && bigDoors != null && GameNetworkManager.Instance.isHostingGame && isDoorMalfunctionEnabled)
+                if ((flareData?.IsDoorMalfunction ?? false) && bigDoors != null && GameNetworkManager.Instance.isHostingGame && isDoorMalfunctionEnabled)
                 {
                     foreach (TerminalAccessibleObject door in bigDoors)
                     {
@@ -390,15 +408,15 @@ namespace VoxxWeatherPlugin.Weathers
 
     
 
-    internal class SolarFlareVFXManager : MonoBehaviour
+    internal class SolarFlareVFXManager : BaseVFXManager
     {
-        public GameObject flarePrefab; // Prefab for the flare effect
-        public GameObject auroraPrefab; // Prefab for the aurora effect
+        public GameObject? flarePrefab; // Prefab for the flare effect
+        public GameObject? auroraPrefab; // Prefab for the aurora effect
         [SerializeField]
-        internal GameObject flareObject; // GameObject for the flare
+        internal GameObject? flareObject; // GameObject for the flare
         [SerializeField]
-        internal GameObject auroraObject; // GameObject for the particles
-        internal HDAdditionalLightData sunLightData;
+        internal GameObject? auroraObject; // GameObject for the particles
+        internal HDAdditionalLightData? sunLightData;
 
         internal float auroraSunThreshold = 8f; // Threshold for sun luminosity in lux to enable aurora
 
@@ -406,7 +424,7 @@ namespace VoxxWeatherPlugin.Weathers
 
         internal void PopulateLevelWithVFX()
         {
-            GameObject sunTexture = null;
+            GameObject? sunTexture = null;
             
             if (TimeOfDay.Instance.sunDirect == null)
             {
@@ -430,16 +448,21 @@ namespace VoxxWeatherPlugin.Weathers
             auroraObject = Instantiate(auroraPrefab, Vector3.zero, Quaternion.identity);
             auroraObject.SetActive(false);
             VisualEffect auroraVFX = auroraObject.GetComponent<VisualEffect>();
-            auroraVFX.SetVector4("auroraColor", SolarFlareWeather.Instance.flareData.AuroraColor1);
-            auroraVFX.SetVector4("auroraColor2", SolarFlareWeather.Instance.flareData.AuroraColor2);
+            if (!(SolarFlareWeather.Instance?.flareData == null))
+            {
+                auroraVFX.SetVector4("auroraColor", SolarFlareWeather.Instance.flareData.AuroraColor1);
+                auroraVFX.SetVector4("auroraColor2", SolarFlareWeather.Instance.flareData.AuroraColor2);
+                Debug.LogDebug("Aurora VFX colored.");
+            }
+            
             Debug.LogDebug("Aurora VFX instantiated.");
 
             if (sunTexture != null)
             {
                 flareObject = Instantiate(flarePrefab, sunTexture.transform.position, sunTexture.transform.rotation);
                 flareObject.transform.SetParent(sunTexture.transform);
-                flareObject.transform.localScale = Vector3.one * SolarFlareWeather.Instance.flareData.FlareSize;
-                Texture2D mainTexture = sunTexture.GetComponent<Renderer>().material.mainTexture as Texture2D;
+                flareObject.transform.localScale = Vector3.one * (SolarFlareWeather.Instance?.flareData?.FlareSize ?? 1.5f);
+                Texture2D? mainTexture = sunTexture.GetComponent<Renderer>().material.mainTexture as Texture2D;
                 if (mainTexture == null)
                 {
                     Debug.LogWarning("sunTexture does not have a texture assigned!");
@@ -487,8 +510,14 @@ namespace VoxxWeatherPlugin.Weathers
             }
         }
 
-        internal static Color GetAverageTextureColor(Texture2D texture)
+        internal static Color GetAverageTextureColor(Texture2D? texture)
         {
+            if (texture == null)
+            {
+                Debug.LogError("Texture is null!");
+                return Color.white;
+            }
+
             RenderTexture rt = RenderTexture.GetTemporary(
                 texture.width,
                 texture.height,
@@ -498,10 +527,11 @@ namespace VoxxWeatherPlugin.Weathers
             );
             Graphics.Blit(texture, rt);
             Texture2D readableTexture = new Texture2D(texture.width, texture.height);
+            RenderTexture previous = RenderTexture.active;
             RenderTexture.active = rt;
             readableTexture.ReadPixels(new Rect(0, 0, rt.width, rt.height), 0, 0);
             readableTexture.Apply();
-            RenderTexture.active = null;
+            RenderTexture.active = previous;
             RenderTexture.ReleaseTemporary(rt);
 
             Color[] pixels = readableTexture.GetPixels();

@@ -13,16 +13,17 @@ namespace VoxxWeatherPlugin.Behaviours
 
         internal AudioSource SplitWalkieTarget(GameObject target)
         {
-            if (SolarFlareWeather.flareData != null)
+            if ((SolarFlareWeather.Instance?.IsActive ?? false) &&
+                SolarFlareWeather.Instance.flareData != null)
             {
                 GameObject subTarget = new GameObject("SubTarget");
                 subTarget.transform.position = target.transform.position;
                 subTarget.transform.SetParent(gameObject.transform);
                 AudioSource audioSource = subTarget.AddComponent<AudioSource>();
                 InterferenceDistortionFilter interferenceFilter = subTarget.AddComponent<InterferenceDistortionFilter>();
-                interferenceFilter.distortionChance = SolarFlareWeather.flareData.RadioDistortionIntensity;
-                interferenceFilter.maxClarityDuration = SolarFlareWeather.flareData.RadioBreakthroughLength;
-                interferenceFilter.maxFrequencyShift = SolarFlareWeather.flareData.RadioFrequencyShift;
+                interferenceFilter.distortionChance = SolarFlareWeather.Instance.flareData.RadioDistortionIntensity;
+                interferenceFilter.maxClarityDuration = SolarFlareWeather.Instance.flareData.RadioBreakthroughLength;
+                interferenceFilter.maxFrequencyShift = SolarFlareWeather.Instance.flareData.RadioFrequencyShift;
                 walkieSubTargets.Add(audioSource, subTarget);
                 return audioSource;
             }
@@ -34,7 +35,8 @@ namespace VoxxWeatherPlugin.Behaviours
 
         internal void DisposeWalkieTarget(AudioSource audioSource)
         {
-            if (SolarFlareWeather.flareData != null)
+            if ((SolarFlareWeather.Instance?.IsActive ?? false) &&
+                SolarFlareWeather.Instance.flareData != null)
             {
                 if (walkieSubTargets.TryGetValue(audioSource, out GameObject subTarget))
                 {
@@ -51,7 +53,7 @@ namespace VoxxWeatherPlugin.Behaviours
         public static void UpdateVoiceChatDistortion(AudioSource voiceSource, PlayerControllerB allPlayerScript, bool isUsingWalkieTalkie)
         {
 
-            bool shouldEnableDistortion = !allPlayerScript.isPlayerDead && isUsingWalkieTalkie && SolarFlareWeather.flareData != null;
+            bool shouldEnableDistortion = (SolarFlareWeather.Instance?.IsActive ?? false) && !allPlayerScript.isPlayerDead && isUsingWalkieTalkie && SolarFlareWeather.Instance.flareData != null;
 
             InterferenceDistortionFilter interferenceFilter = GetOrAddFilter(voiceSource);
 
@@ -75,9 +77,9 @@ namespace VoxxWeatherPlugin.Behaviours
             if (!interferenceFilter.enabled)
             {
                 interferenceFilter.enabled = true;
-                interferenceFilter.distortionChance = SolarFlareWeather.flareData.RadioDistortionIntensity;
-                interferenceFilter.maxClarityDuration = SolarFlareWeather.flareData.RadioBreakthroughLength;
-                interferenceFilter.maxFrequencyShift = SolarFlareWeather.flareData.RadioFrequencyShift;
+                interferenceFilter.distortionChance = SolarFlareWeather.Instance.flareData.RadioDistortionIntensity;
+                interferenceFilter.maxClarityDuration = SolarFlareWeather.Instance.flareData.RadioBreakthroughLength;
+                interferenceFilter.maxFrequencyShift = SolarFlareWeather.Instance.flareData.RadioFrequencyShift;
             }
         }
 

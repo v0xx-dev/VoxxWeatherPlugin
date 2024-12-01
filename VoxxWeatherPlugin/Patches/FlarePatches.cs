@@ -14,7 +14,7 @@ namespace VoxxWeatherPlugin.Patches
     {
         internal static System.Random random = new System.Random();
         internal static System.Random seededRandom = new System.Random(42);
-        internal static Transform originalTeleporterPosition;
+        internal static Transform? originalTeleporterPosition;
         internal static float batteryDrainMultiplier => Mathf.Clamp(VoxxWeatherPlugin.BatteryDrainMultiplier.Value, 0, 99);
         internal static bool drainBatteryInFacility => VoxxWeatherPlugin.DrainBatteryInFacility.Value;
         internal static bool doorMalfunctionEnabled => VoxxWeatherPlugin.DoorMalfunctionEnabled.Value;
@@ -59,7 +59,8 @@ namespace VoxxWeatherPlugin.Patches
         [HarmonyPrefix]
         static void GrabbableDischargePatch(GrabbableObject __instance)
         {
-            if (SolarFlareWeather.Instance.flareData != null)
+            if ((SolarFlareWeather.Instance?.IsActive ?? false) &&
+                SolarFlareWeather.Instance?.flareData != null)
             {
                 if (__instance.IsOwner && __instance.hasBeenHeld && __instance.itemProperties.requiresBattery && (!__instance.isInFactory || drainBatteryInFacility))
                 {
@@ -75,7 +76,8 @@ namespace VoxxWeatherPlugin.Patches
         [HarmonyPrefix]
         static void SignalTranslatorDistortionPatch(ref string signalMessage)
         {
-            if (SolarFlareWeather.Instance.flareData != null)
+            if ((SolarFlareWeather.Instance?.IsActive ?? false) &&
+                SolarFlareWeather.Instance?.flareData != null)
             {
                 float distortionIntensity = SolarFlareWeather.Instance.flareData.RadioDistortionIntensity * 0.5f;
                 char[] messageChars = signalMessage.ToCharArray();
@@ -134,7 +136,8 @@ namespace VoxxWeatherPlugin.Patches
 
         static void TeleporterPositionDistorter(ShipTeleporter teleporter)
         {
-            if (SolarFlareWeather.Instance.flareData != null)
+            if ((SolarFlareWeather.Instance?.IsActive ?? false) &&
+                SolarFlareWeather.Instance?.flareData != null)
             {
                 // Store the original teleporter position
                 originalTeleporterPosition = teleporter.teleporterPosition;
@@ -156,7 +159,8 @@ namespace VoxxWeatherPlugin.Patches
 
         static void TeleporterPositionRestorer(ShipTeleporter teleporter)
         {
-            if (SolarFlareWeather.Instance.flareData != null)
+            if ((SolarFlareWeather.Instance?.IsActive ?? false) &&
+                SolarFlareWeather.Instance?.flareData != null)
             {
                 // Restore the original teleporter position
                 teleporter.teleporterPosition = originalTeleporterPosition;
@@ -167,7 +171,9 @@ namespace VoxxWeatherPlugin.Patches
         [HarmonyPrefix]
         static bool DoorTerminalBlocker(TerminalAccessibleObject __instance)
         {
-            if (SolarFlareWeather.Instance.flareData != null && doorMalfunctionEnabled)
+            if ((SolarFlareWeather.Instance?.IsActive ?? false) &&
+                SolarFlareWeather.Instance?.flareData != null &&
+                doorMalfunctionEnabled)
             {
                 if (SolarFlareWeather.Instance.flareData.IsDoorMalfunction && __instance.isBigDoor && seededRandom.NextDouble() < 0.9f)
                 {
@@ -181,7 +187,8 @@ namespace VoxxWeatherPlugin.Patches
         [HarmonyPrefix]
         static void SignalBoosterPrefix(RadarBoosterItem __instance, ref bool enable)
         {
-            if (SolarFlareWeather.Instance.flareData != null)
+            if ((SolarFlareWeather.Instance?.IsActive ?? false) &&
+                SolarFlareWeather.Instance?.flareData != null)
             {
                 if (enable)
                 {

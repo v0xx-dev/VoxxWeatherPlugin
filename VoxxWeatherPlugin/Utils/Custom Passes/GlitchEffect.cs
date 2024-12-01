@@ -25,7 +25,7 @@ namespace VoxxWeatherPlugin.Utils
         public ClampedFloatParameter shake = new ClampedFloatParameter(.7f, 0f, 1f);
 
         [Tooltip("Shader material.")]
-        public Material m_Material;
+        public Material? m_Material;
 
         float m_PrevTime;
         float m_JumpTime;
@@ -34,7 +34,7 @@ namespace VoxxWeatherPlugin.Utils
         int m_BlockStride = 1;
         float m_BlockTime;
 
-        RTHandle tempColorBuffer = null;
+        RTHandle? tempColorBuffer = null;
 
         static class ShaderIDs
         {
@@ -100,7 +100,7 @@ namespace VoxxWeatherPlugin.Utils
 
         protected override void Cleanup()
         {
-            tempColorBuffer.Release();
+            tempColorBuffer?.Release();
             base.Cleanup();
         }
 

@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.Rendering;
+using System.Collections.Generic;
 using UnityEngine.VFX;
 using WeatherRegistry;
 using VoxxWeatherPlugin.Weathers;
@@ -12,8 +13,8 @@ namespace VoxxWeatherPlugin.Utils
         
         public static void RegisterHeatwaveWeather()
         {
-            GameObject vfxPrefab = WeatherAssetLoader.LoadAsset<GameObject>(bundleName, "HeatwaveParticlePrefab");
-            VolumeProfile volumeProfile = WeatherAssetLoader.LoadAsset<VolumeProfile>(bundleName, "HeatExhaustionFilter");
+            GameObject? vfxPrefab = WeatherAssetLoader.LoadAsset<GameObject>(bundleName, "HeatwaveParticlePrefab");
+            VolumeProfile? volumeProfile = WeatherAssetLoader.LoadAsset<VolumeProfile>(bundleName, "HeatExhaustionFilter");
 
             if (vfxPrefab == null || volumeProfile == null)
             {
@@ -36,7 +37,7 @@ namespace VoxxWeatherPlugin.Utils
             GameObject effectPermanentObject = GameObject.Instantiate(heatwaveZone);
             HeatwaveWeather heatwaveWeather = effectPermanentObject.AddComponent<HeatwaveWeather>();
             heatwaveWeather.heatwaveFilter = volumeProfile;
-            heatwaveWeather.heatwaveVFXManager = VFXmanager;
+            heatwaveWeather.VFXManager = VFXmanager;
             effectPermanentObject.hideFlags = HideFlags.HideAndDontSave;
             GameObject.DontDestroyOnLoad(effectPermanentObject);
 
@@ -64,9 +65,9 @@ namespace VoxxWeatherPlugin.Utils
 
         public static void RegisterFlareWeather()
         {
-            VisualEffectAsset auroraVFX = WeatherAssetLoader.LoadAsset<VisualEffectAsset>(bundleName, "AuroraVFX");
-            VisualEffectAsset coronaVFX = WeatherAssetLoader.LoadAsset<VisualEffectAsset>(bundleName, "CoronaVFX");
-            Material glitchPassMaterial = WeatherAssetLoader.LoadAsset<Material>(bundleName, "GlitchPassMaterial");
+            VisualEffectAsset? auroraVFX = WeatherAssetLoader.LoadAsset<VisualEffectAsset>(bundleName, "AuroraVFX");
+            VisualEffectAsset? coronaVFX = WeatherAssetLoader.LoadAsset<VisualEffectAsset>(bundleName, "CoronaVFX");
+            Material? glitchPassMaterial = WeatherAssetLoader.LoadAsset<Material>(bundleName, "GlitchPassMaterial");
             if (auroraVFX == null || coronaVFX == null || glitchPassMaterial == null)
             {
                 Debug.LogError("Failed to load Solar Flare Weather assets. Weather registration failed.");
@@ -103,8 +104,7 @@ namespace VoxxWeatherPlugin.Utils
             flareEffect.SetActive(false);
             GameObject effectPermanentObject = GameObject.Instantiate(flareEffect);
             SolarFlareWeather flareWeather = effectPermanentObject.AddComponent<SolarFlareWeather>();
-            flareWeather.solarFlareVFXManager = VFXmanager;
-            SolarFlareWeather.glitchMaterial = glitchPassMaterial;
+            flareWeather.VFXManager = VFXmanager;
             effectPermanentObject.hideFlags = HideFlags.HideAndDontSave;
             GameObject.DontDestroyOnLoad(effectPermanentObject);
             ImprovedWeatherEffect flareWeatherEffect = new(effectObject, effectPermanentObject)
@@ -162,7 +162,12 @@ namespace VoxxWeatherPlugin.Utils
 
         public static void RegisterSnowfallWeather()
         {
-            GameObject snowfallPrefab = WeatherAssetLoader.LoadAsset<GameObject>(bundleName, "SnowWeatherContainer");
+            GameObject? snowfallPrefab = WeatherAssetLoader.LoadAsset<GameObject>(bundleName, "SnowWeatherContainer");
+            if (snowfallPrefab == null)
+            {
+                Debug.LogError("Failed to load Snowfall Weather assets. Weather registration failed.");
+                return;
+            }
             snowfallPrefab.SetActive(false);
             GameObject snowfallContainer = GameObject.Instantiate(snowfallPrefab);
             //snowfallContainer.hideFlags = HideFlags.HideAndDontSave;
@@ -172,7 +177,17 @@ namespace VoxxWeatherPlugin.Utils
             GameObject effectPermanentObject = snowfallWeatherController.gameObject;
             effectPermanentObject.SetActive(false);
 
-            GameObject effectObject = snowfallContainer.GetComponentInChildren<SnowfallVFXManager>(true).gameObject;
+            SnowfallVFXManager snowfallVFXManager = snowfallContainer.GetComponentInChildren<SnowfallVFXManager>(true);                                                                        
+            SnowfallVFXManager.snowTrackersDict = new Dictionary<string, GameObject>()
+                                                                                    {
+                                                                                        { "footprintsTrackerVFX", snowfallVFXManager.footprintsTrackerVFX! },           
+                                                                                        { "lowcapFootprintsTrackerVFX", snowfallVFXManager.lowcapFootprintsTrackerVFX! },
+                                                                                        { "itemTrackerVFX", snowfallVFXManager.itemTrackerVFX! },
+                                                                                        { "shovelVFX", snowfallVFXManager.shovelVFX! }
+                                                                                    };
+            snowfallWeatherController.VFXManager = snowfallVFXManager;
+            GameObject effectObject = snowfallVFXManager.gameObject;
+
             effectObject.SetActive(false);
 
             snowfallContainer.SetActive(true);
@@ -182,7 +197,7 @@ namespace VoxxWeatherPlugin.Utils
                 SunAnimatorBool = "overcast",
             };
 
-            Weather SnowfallWeather = new Weather("Snowfall", snowyWeatherEffect)
+            Weather SnowfallWeatherEffect = new Weather("Snowfall", snowyWeatherEffect)
             {
                 DefaultLevelFilters = new[] {"Gordion"},
                 LevelFilteringOption = FilteringOption.Exclude,
@@ -192,52 +207,52 @@ namespace VoxxWeatherPlugin.Utils
                 DefaultWeight = 1000
             };
 
-            WeatherManager.RegisterWeather(SnowfallWeather);
+            WeatherManager.RegisterWeather(SnowfallWeatherEffect);
             Debug.Log($"{PluginInfo.PLUGIN_GUID}: Snowfall weather registered!");
 
         }
 
-        public static void RegisterMeteorWeather()
-        {
-            GameObject meteorPrefab = WeatherAssetLoader.LoadAsset<GameObject>(bundleName, "MeteorContainer");
-            meteorPrefab.SetActive(false);
+        // public static void RegisterMeteorWeather()
+        // {
+        //     GameObject meteorPrefab = WeatherAssetLoader.LoadAsset<GameObject>(bundleName, "MeteorContainer");
+        //     meteorPrefab.SetActive(false);
 
-            if (meteorPrefab == null)
-            {
-                Debug.LogError("Failed to load Meteor Weather assets. Weather registration failed.");
-            }
+        //     if (meteorPrefab == null)
+        //     {
+        //         Debug.LogError("Failed to load Meteor Weather assets. Weather registration failed.");
+        //     }
 
-            GameObject meteorEffect = new GameObject("MeteorEffect");
-            meteorEffect.SetActive(false);
-            MeteorWeather meteorWeatherController = meteorEffect.AddComponent<MeteorWeather>();
-            meteorWeatherController.meteorPrefab = meteorPrefab;
-            GameObject effectPermanentObject = GameObject.Instantiate(meteorEffect);
-            GameObject.DontDestroyOnLoad(effectPermanentObject);
-            effectPermanentObject.hideFlags = HideFlags.HideAndDontSave;
+        //     GameObject meteorEffect = new GameObject("MeteorEffect");
+        //     meteorEffect.SetActive(false);
+        //     MeteorWeather meteorWeatherController = meteorEffect.AddComponent<MeteorWeather>();
+        //     meteorWeatherController.meteorPrefab = meteorPrefab;
+        //     GameObject effectPermanentObject = GameObject.Instantiate(meteorEffect);
+        //     GameObject.DontDestroyOnLoad(effectPermanentObject);
+        //     effectPermanentObject.hideFlags = HideFlags.HideAndDontSave;
 
-            GameObject effectObject = GameObject.Instantiate(new GameObject("MeteorVFX"));
-            effectObject.SetActive(false);
-            GameObject.DontDestroyOnLoad(effectObject);
-            effectObject.hideFlags = HideFlags.HideAndDontSave;
+        //     GameObject effectObject = GameObject.Instantiate(new GameObject("MeteorVFX"));
+        //     effectObject.SetActive(false);
+        //     GameObject.DontDestroyOnLoad(effectObject);
+        //     effectObject.hideFlags = HideFlags.HideAndDontSave;
 
-            ImprovedWeatherEffect meteorWeatherEffect = new(effectObject, effectPermanentObject)
-            {
-                SunAnimatorBool = "eclipse",
-            };
+        //     ImprovedWeatherEffect meteorWeatherEffect = new(effectObject, effectPermanentObject)
+        //     {
+        //         SunAnimatorBool = "eclipse",
+        //     };
 
-            Weather MeteorWeather = new Weather("MeteorTest", meteorWeatherEffect)
-            {
-                DefaultLevelFilters = new[] {"Gordion"},
-                LevelFilteringOption = FilteringOption.Exclude,
-                Color = Color.red,
-                ScrapAmountMultiplier = 1.25f,
-                ScrapValueMultiplier = 1.2f,
-                DefaultWeight = 1000
-            };
+        //     Weather MeteorWeather = new Weather("MeteorTest", meteorWeatherEffect)
+        //     {
+        //         DefaultLevelFilters = new[] {"Gordion"},
+        //         LevelFilteringOption = FilteringOption.Exclude,
+        //         Color = Color.red,
+        //         ScrapAmountMultiplier = 1.25f,
+        //         ScrapValueMultiplier = 1.2f,
+        //         DefaultWeight = 1000
+        //     };
 
-            WeatherManager.RegisterWeather(MeteorWeather);
-            Debug.Log($"{PluginInfo.PLUGIN_GUID}: Meteor weather registered!");
+        //     WeatherManager.RegisterWeather(MeteorWeather);
+        //     Debug.Log($"{PluginInfo.PLUGIN_GUID}: Meteor weather registered!");
 
-        }
+        // }
     }
 }

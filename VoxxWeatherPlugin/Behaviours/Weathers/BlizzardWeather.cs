@@ -2,15 +2,13 @@ using UnityEngine;
 using VoxxWeatherPlugin.Utils;
 using System.Collections;
 using GameNetcodeStuff;
-using LethalLib.Modules;
 using UnityEngine.Rendering;
 
 namespace VoxxWeatherPlugin.Weathers
 {
-    public class BlizzardWeather: SnowfallWeather
+    internal class BlizzardWeather: SnowfallWeather
     {
         [Header("Visuals")]
-        
         [SerializeField]
         internal Camera blizzardCollisionCamera;
         [SerializeField]
@@ -57,6 +55,7 @@ namespace VoxxWeatherPlugin.Weathers
 
         internal override void FixedUpdate()
         {
+            base.FixedUpdate();
             if (chillWaveCoroutine == null)
             {
                 timeUntilWave += Time.fixedDeltaTime;
@@ -199,9 +198,6 @@ namespace VoxxWeatherPlugin.Weathers
             chillWaveCoroutine = null;
             
         }
-
-
-
     }
 
     public class BlizzardVFXManager: SnowfallVFXManager

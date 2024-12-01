@@ -1,5 +1,4 @@
 ﻿using GameNetcodeStuff;
-using System.Collections.Generic;
 using UnityEngine.Rendering;
 using UnityEngine;
 using VoxxWeatherPlugin.Utils;
@@ -7,10 +6,11 @@ using UnityEngine.AI;
 
 namespace VoxxWeatherPlugin.Weathers
 {
-    internal class HeatwaveWeather: MonoBehaviour
+    internal class HeatwaveWeather: BaseWeather
     {
+        internal static HeatwaveWeather Instance { get; private set; }
         internal VolumeProfile heatwaveFilter; // Filter for visual effects
-        internal HeatwaveVFXManager heatwaveVFXManager; // Manager for heatwave visual effects
+        internal HeatwaveVFXManager VFXManager; // Manager for heatwave visual effects
         private Volume exhaustionFilter; // Filter for visual effects
         private BoxCollider heatwaveTrigger; // Trigger collider for the heatwave zone
         private Bounds heatwaveBounds; // Size of the heatwave zone
@@ -23,6 +23,7 @@ namespace VoxxWeatherPlugin.Weathers
 
         private void Awake()
         {
+            Instance = this;
             // Add a BoxCollider component as a trigger to the GameObject
             if (heatwaveTrigger == null)
                 heatwaveTrigger = gameObject.AddComponent<BoxCollider>();
@@ -41,15 +42,15 @@ namespace VoxxWeatherPlugin.Weathers
             seededRandom = new System.Random(StartOfRound.Instance.randomMapSeed);
             heatwaveBounds = PlayableAreaCalculator.CalculateZoneSize();
             Debug.LogDebug($"Heatwave zone size: {heatwaveBounds.size}. Placed at {heatwaveBounds.center}");
-            heatwaveVFXManager.CalculateEmitterRadius();
-            heatwaveVFXManager.PopulateLevelWithVFX(heatwaveBounds, seededRandom);
+            VFXManager.CalculateEmitterRadius();
+            VFXManager.PopulateLevelWithVFX(heatwaveBounds, seededRandom);
             SetupHeatwaveWeather();
         }
 
         private void OnDisable()
         {
-            Destroy(heatwaveVFXManager.heatwaveVFXContainer);
-            heatwaveVFXManager.heatwaveVFXContainer = null;
+            Destroy(VFXManager.heatwaveVFXContainer);
+            VFXManager.heatwaveVFXContainer = null;
             Debug.LogDebug("Heatwave VFX container destroyed.");
             PlayerTemperatureManager.isInHeatZone = false;
             PlayerTemperatureManager.heatTransferRate = 1f;
@@ -118,7 +119,7 @@ namespace VoxxWeatherPlugin.Weathers
     }
 
 
-    public class HeatwaveVFXManager: MonoBehaviour
+    public class HeatwaveVFXManager: BaseVFXManager
     {
         public GameObject heatwaveParticlePrefab; // Prefab for the heatwave particle effect
         public GameObject heatwaveVFXContainer; // GameObject for the particles

@@ -19,7 +19,7 @@ namespace VoxxWeatherPlugin.Utils
         private bool isClarity = false;
         private int remainingClaritySamples = 0;
         private int sampleRate;
-        private System.Random random;
+        private System.Random? random;
 
         private void Start()
         {
@@ -40,7 +40,7 @@ namespace VoxxWeatherPlugin.Utils
                 {
                     int averageClarityDuration = (int)(1 + (minClarityDuration + maxClarityDuration) / 2 * sampleRate * channels);
                     float windowChance = -(1 - 1 / (distortionChance + float.Epsilon)) / averageClarityDuration;
-                    if (random.NextDouble() <  windowChance)
+                    if (random?.NextDouble() <  windowChance)
                     {
                         isClarity = true;
                         float clarityDuration = random.NextDouble(minClarityDuration, maxClarityDuration);
@@ -62,7 +62,7 @@ namespace VoxxWeatherPlugin.Utils
                     sample *= freqShiftMultiplier * Mathf.Cos(2 * Mathf.PI* phase);
 
                     // Modulate with noise
-                    sample *= 1 - distortionChance + random.NextDouble(0, distortionChance);
+                    sample *= 1 - distortionChance + (random?.NextDouble(0, distortionChance) ?? distortionChance/2);
 
                     // Clamp to -1 to 1
                     data[i] = Mathf.Clamp(sample, -1f, 1f);
@@ -75,7 +75,7 @@ namespace VoxxWeatherPlugin.Utils
                 }
                 else
                 {
-                    data[i] = random.NextDouble(-noiseLevel, noiseLevel);
+                    data[i] = random?.NextDouble(-noiseLevel, noiseLevel) ?? 0;
                 }
             }
         }

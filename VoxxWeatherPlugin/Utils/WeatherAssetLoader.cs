@@ -8,9 +8,9 @@ namespace VoxxWeatherPlugin.Utils
     {
         private static readonly Dictionary<string, AssetBundle> loadedBundles = new Dictionary<string, AssetBundle>();
 
-        public static T LoadAsset<T>(string bundleName, string assetName) where T : UnityEngine.Object
+        public static T? LoadAsset<T>(string bundleName, string assetName) where T : UnityEngine.Object
         {
-            AssetBundle bundle = LoadBundle(bundleName);
+            AssetBundle? bundle = LoadBundle(bundleName);
             if (bundle == null)
             {
                 return null;
@@ -19,7 +19,7 @@ namespace VoxxWeatherPlugin.Utils
             return bundle.LoadAsset<T>(assetName);
         }
 
-        private static AssetBundle LoadBundle(string bundleName)
+        private static AssetBundle? LoadBundle(string bundleName)
         {
             if (loadedBundles.ContainsKey(bundleName))
             {

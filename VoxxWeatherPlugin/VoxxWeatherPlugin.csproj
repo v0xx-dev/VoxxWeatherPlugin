@@ -38,6 +38,7 @@
         <PackageReference Include="UnityEngine.Modules" Version="2022.3.9" IncludeAssets="compile" />
 		<Reference Include="UnityEditor" HintPath="C:\Program Files\Unity 2022.3.9f1\Editor\Data\Managed\UnityEditor.dll" />
 		<Reference Include="UnityEngine" HintPath="C:\Program Files\Unity 2022.3.9f1\Editor\Data\Managed\UnityEngine.dll" />
+    <Reference Include="Triangle.NET" HintPath=".\libs\Triangle.NET.dll" />
 		</ItemGroup>
 	
 

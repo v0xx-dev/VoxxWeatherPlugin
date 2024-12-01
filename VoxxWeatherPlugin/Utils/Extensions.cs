@@ -6,6 +6,7 @@ using TriangleNet.Geometry;
 using TriangleNet.Meshing;
 using TriangleNet.Smoothing;
 using TriangleNet.Unity;
+using VoxxWeatherPlugin.Weathers;
 
 namespace VoxxWeatherPlugin.Utils
 {
@@ -29,40 +30,24 @@ namespace VoxxWeatherPlugin.Utils
         /// </summary>
         /// <param name="meshTerrainObject">The GameObject whose mesh will be modified.  A copy of this object with the modified mesh will be created.</param>
         /// <param name="levelBounds">The bounds within which the mesh should be processed, in world space.</param>
-        /// <param name="baseEdgeLength">The desired maximum edge length for the refined mesh, in meters.</param>
-        /// <param name="useBounds">Whether to use the provided `levelBounds` for processing.  If false, the original mesh's bounds are used.</param>
-        /// <param name="refineMesh">Whether to refine the mesh by subdividing triangles larger than `baseEdgeLength`.</param>
-        /// <param name="smoothMesh">Whether to smooth the mesh after triangulation.</param>
-        /// <param name="smoothingIterations">The number of smoothing iterations to perform.</param>
-        /// <param name="replaceUvs">Whether to replace the existing UVs with new unwrapped UVs. Only suitable for meshes without splatmaps or other UV-dependent features.</param>
-        /// <param name="constrainEdges">Whether to constrain the edges of the mesh during triangulation to maintain the original shape.</param>
+        /// <param name="snowfallData">The SnowfallData object containing the postprocessing parameters.</param>
         /// <remarks>
         /// This method creates a copy of the original GameObject and modifies its mesh. The original GameObject is not altered.
         /// The height axis of the mesh is automatically determined based on the object's transform.
         /// Triangles completely outside the specified bounds are preserved, while triangles intersecting the bounds are processed.
         /// </remarks>
         /// <exception cref="System.ArgumentNullException">Thrown if `meshTerrainObject` or `levelBounds` is null.</exception>
-        public static GameObject PostprocessMeshTerrain(this GameObject meshTerrainObject, Bounds levelBounds, SnowfallData snowfallData)
+        internal static void PostprocessMeshTerrain(this GameObject meshTerrainObject, Bounds levelBounds, SnowfallWeather snowfallData)
         {
             System.Diagnostics.Stopwatch sw = new System.Diagnostics.Stopwatch();
 
             if (meshTerrainObject == null || levelBounds == null)
             {
                 Debug.LogError("Object to modify and level bounds must be supplied.");
-                return null;
             }
 
-            GameObject processedMeshObject = GameObject.Instantiate(meshTerrainObject); // TODO: Possible problem if there children objects
-            meshTerrainObject.SetActive(false); // Maybe destroy it instead?
-
-            processedMeshObject.transform.position = meshTerrainObject.transform.position;
-            processedMeshObject.transform.rotation = meshTerrainObject.transform.rotation;
-            processedMeshObject.transform.localScale = meshTerrainObject.transform.lossyScale;
-            processedMeshObject.transform.parent = meshTerrainObject.transform.parent;
-            processedMeshObject.name = meshTerrainObject.name + "_Postprocessed";
-
-            Mesh originalMesh = meshTerrainObject.GetComponent<MeshFilter>().sharedMesh;
-            (Mesh newMesh, int submeshIndex) = processedMeshObject.ExtractLargestSubmesh();
+            Mesh originalMesh = meshTerrainObject!.GetComponent<MeshFilter>().sharedMesh;
+            (Mesh newMesh, int submeshIndex) = meshTerrainObject.ExtractLargestSubmesh();
             newMesh.name = originalMesh.name + "_Postprocessed";
             
             Debug.LogDebug("Extracted submesh with " + newMesh.vertexCount + " vertices and " + newMesh.triangles.Length / 3 + " triangles" + " from submesh " + submeshIndex + " of " + meshTerrainObject.name);
@@ -385,10 +370,8 @@ namespace VoxxWeatherPlugin.Utils
             newMesh.RecalculateTangents();
             newMesh.RecalculateBounds();
 
-            MeshFilter meshFilter = processedMeshObject.GetComponent<MeshFilter>();
+            MeshFilter meshFilter = meshTerrainObject.GetComponent<MeshFilter>();
             meshFilter.sharedMesh = newMesh;
-
-            return processedMeshObject;
         }
 
         private static Vector2[] UnwrapUVs(Vector3[] vertices, int upAxis, bool normalize)
@@ -523,7 +506,7 @@ namespace VoxxWeatherPlugin.Utils
         /// <param name="snowfallData"></param> The SnowfallData object containing the bake material, resolution, etc.
         /// <param name="submeshIndex"></param> The index of the submesh to bake the mask for.
         /// <returns></returns> The baked mask texture.
-        public static Texture2D BakeMask(this GameObject objectToBake, SnowfallData snowfallData, int submeshIndex = 0)
+        internal static Texture2D? BakeMask(this GameObject objectToBake, SnowfallWeather snowfallData, int textureIndex = -1, int submeshIndex = 0)
         {
             Mesh mesh = objectToBake.GetComponent<MeshFilter>().sharedMesh;
 
@@ -544,7 +527,7 @@ namespace VoxxWeatherPlugin.Utils
             GL.Clear(true, true, Color.clear);
             
             var matrix = objectToBake.transform.localToWorldMatrix;
-            if (snowfallData.bakeMaterial.SetPass(0))
+            if (snowfallData.bakeMaterial?.SetPass(0) ?? false)
                 Graphics.DrawMeshNow(mesh, matrix, submeshIndex);
 
             RenderTexture blurRT1 = RenderTexture.GetTemporary(snowfallData.bakeResolution, snowfallData.bakeResolution, 0, RenderTextureFormat.ARGBFloat);
@@ -559,13 +542,23 @@ namespace VoxxWeatherPlugin.Utils
             Graphics.Blit(tempRT, blurRT1, snowfallData.bakeMaterial, 1);
             // Blur the normal map vertically
             Graphics.Blit(blurRT1, blurRT2, snowfallData.bakeMaterial, 2);
-            RenderTexture.active = blurRT2;
 
-            Texture2D maskTexture = new Texture2D(snowfallData.bakeResolution, snowfallData.bakeResolution, TextureFormat.RGBAFloat, false);
-            maskTexture.wrapMode = TextureWrapMode.Clamp;
-            maskTexture.filterMode = FilterMode.Trilinear;
-            maskTexture.ReadPixels(new Rect(0, 0, snowfallData.bakeResolution, snowfallData.bakeResolution), 0, 0);
-            maskTexture.Apply(false);
+            RenderTexture.active = blurRT2;
+            Texture2D? maskTexture;
+            
+            if (textureIndex == -1) // Return the texture if no texture index is specified
+            {
+                maskTexture = new Texture2D(snowfallData.bakeResolution, snowfallData.bakeResolution, TextureFormat.RGBAFloat, false);
+                maskTexture.wrapMode = TextureWrapMode.Clamp;
+                maskTexture.filterMode = FilterMode.Trilinear;
+                maskTexture.ReadPixels(new Rect(0, 0, snowfallData.bakeResolution, snowfallData.bakeResolution), 0, 0);
+                maskTexture.Apply(false);
+            }
+            else // Copy the texture to the specified index in the masks texture array
+            {
+                Graphics.CopyTexture(RenderTexture.active, 0, 0, snowfallData.snowMasks, textureIndex, 0);
+                maskTexture = null;
+            }
 
             RenderTexture.active = currentRT;
             RenderTexture.ReleaseTemporary(tempRT);
@@ -575,7 +568,20 @@ namespace VoxxWeatherPlugin.Utils
             return maskTexture;
         }
 
-        public static GameObject Meshify(this Terrain terrain, SnowfallData snowfallData, Bounds levelBounds)
+        /// <summary>
+        ///  Converts a Terrain object to a mesh terrain with the specified SnowfallData parameters.
+        ///  </summary>
+        ///  <param name="terrain">The Terrain object to convert.</param>
+        ///  <param name="snowfallData">The SnowfallData object containing the mesh generation parameters.</param>
+        ///  <param name="levelBounds">The bounds within which the mesh should be generated, in world space.</param>
+        ///  <returns>The GameObject containing the mesh terrain.</returns>
+        ///  <remarks>
+        ///  This method creates a new GameObject with a MeshFilter and MeshRenderer component, and a MeshCollider if specified.
+        ///  The mesh terrain is generated based on the heightmap of the Terrain object.
+        ///  The mesh density is determined by the SnowfallData parameters, with the levelBounds used to refine the mesh within the specified area.
+        ///  </remarks>
+        ///  <exception cref="System.ArgumentNullException">Thrown if `terrain` or `snowfallData` is null.</exception>
+        internal static GameObject Meshify(this Terrain terrain, SnowfallWeather snowfallData, Bounds levelBounds)
         {
             GameObject meshTerrain = new GameObject("MeshTerrain_" + terrain.name);
             MeshFilter meshFilter = meshTerrain.AddComponent<MeshFilter>();

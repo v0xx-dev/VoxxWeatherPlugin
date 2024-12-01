@@ -9,7 +9,7 @@ namespace VoxxWeatherPlugin.Behaviours
     {
       internal int waveDamage = 19;
       internal float waveForce = 10f;
-      internal Coroutine temperatureChangeCoroutine;
+      internal Coroutine? temperatureChangeCoroutine;
 
       private void OnTriggerEnter(Collider other)
       {

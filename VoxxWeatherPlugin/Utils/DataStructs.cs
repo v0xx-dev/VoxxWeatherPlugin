@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace VoxxWeatherPlugin.Utils
 {
-    public struct EdgePair : IEquatable<EdgePair>
+    internal struct EdgePair : IEquatable<EdgePair>
     {
         public readonly int P1;
         public readonly int P2;
@@ -32,10 +32,31 @@ namespace VoxxWeatherPlugin.Utils
         }
     }
 
+    internal struct EntitySnowData
+    {
+        public Vector3 w; // XZ position of the entity
+        public Vector2 uv;
+        public int textureIndex; // Index into the texture array
+        public float snowThickness; // Snow thickness at the entity's position
+
+        public EntitySnowData()
+        {
+            Reset();
+        }
+
+        public void Reset()
+        {
+            w = Vector3.zero;
+            uv = Vector2.zero;
+            textureIndex = -1; // -1 means not on valid ground
+            snowThickness = 0; 
+        }
+    }
+
     internal class QuadTree
     {
         public Bounds bounds;
-        public QuadTree[] children;
+        public QuadTree[]? children;
         public bool isLeaf = true;
 
         public QuadTree(Bounds bounds)
@@ -94,7 +115,7 @@ namespace VoxxWeatherPlugin.Utils
             if (bounds.size.x > actualCellStep * stepSize.x || bounds.size.z > actualCellStep * stepSize.y)
             {
                 Subdivide();
-                foreach (var child in children)
+                foreach (var child in children!)
                 {
                     child.Subdivide(levelBounds, stepSize, minCellStep, maxCellStep, falloffSpeed, maxDistance);
                 }
@@ -109,6 +130,8 @@ namespace VoxxWeatherPlugin.Utils
             }
             else
             {
+                if (children == null)
+                    return;
                 foreach (var child in children)
                 {
                     child.GetLeafNodes(leafNodes);

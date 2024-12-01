@@ -6,6 +6,7 @@ using System.Reflection.Emit;
 using Unity.Netcode;
 using UnityEngine;
 using VoxxWeatherPlugin.Utils;
+using VoxxWeatherPlugin.Weathers;
 
 namespace VoxxWeatherPlugin.Patches
 {
@@ -21,9 +22,9 @@ namespace VoxxWeatherPlugin.Patches
         [HarmonyPriority(Priority.High)]
         private static void HeatStrokePatchPrefix(PlayerControllerB __instance)
         {
-            if (!((NetworkBehaviour)__instance).IsOwner || !__instance.isPlayerControlled)
+            if ((HeatwaveWeather.Instance?.IsActive ?? false) && !((NetworkBehaviour)__instance).IsOwner || !__instance.isPlayerControlled)
                 return;
-            HeatwavePatches.prevSprintMeter = __instance.sprintMeter;
+            prevSprintMeter = __instance.sprintMeter;
         }
 
         [HarmonyPatch(typeof(PlayerControllerB), "LateUpdate")]
@@ -33,6 +34,11 @@ namespace VoxxWeatherPlugin.Patches
         {
             // if (!((NetworkBehaviour)__instance).IsOwner || !__instance.isPlayerControlled)
             //     return;
+
+            if ((HeatwaveWeather.Instance?.IsActive ?? false) && Mathf.Approximately(PlayerTemperatureManager.heatSeverity, 0))
+            {
+                return;
+            }
 
             if (PlayerTemperatureManager.isInHeatZone)
             {
@@ -57,7 +63,7 @@ namespace VoxxWeatherPlugin.Patches
                 PlayerTemperatureManager.ResetPlayerTemperature(Time.deltaTime / timeToCool);
             }
 
-            float severity = PlayerTemperatureManager.normalizedTemperature;
+            float severity = PlayerTemperatureManager.heatSeverity;
 
             //Debug.Log($"Severity: {severity}, inHeatZone: {PlayerTemperatureManager.isInHeatZone}, heatMultiplier {PlayerTemperatureManager.heatSeverityMultiplier}, isInside {__instance.isInsideFactory}");
 

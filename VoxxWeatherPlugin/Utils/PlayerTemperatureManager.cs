@@ -11,9 +11,11 @@ namespace VoxxWeatherPlugin.Utils
         public static bool isInColdZone = false;
         public static float heatTransferRate = 1f;
         public static float normalizedTemperature = 0f; // 0 - room temperature, 1 - heatstroke, -1 - hypothermia
+        public static float heatSeverity => Mathf.Abs(normalizedTemperature);
+        public static float coldSeverity => Mathf.Abs(-normalizedTemperature);
 
-        internal static Volume heatEffectVolume;
-        internal static Volume freezeEffectVolume;
+        internal static Volume? heatEffectVolume;
+        internal static Volume? freezeEffectVolume;
 
         internal static void SetPlayerTemperature(float temperatureDelta)
         {
