@@ -86,7 +86,8 @@ namespace VoxxWeatherPlugin.Patches
         {
             return playerController.beamUpParticle.isPlaying || playerController.isInElevator || 
                     playerController.isInHangarShipRoom || playerController.isUnderwater ||
-                     playerController.isPlayerDead || playerController.isInsideFactory;
+                     playerController.isPlayerDead || playerController.isInsideFactory ||
+                     (playerController.currentAudioTrigger?.setInsideAtmosphere ?? false);
         }
 
         [HarmonyPatch(typeof(SoundManager), "SetAudioFilters")]

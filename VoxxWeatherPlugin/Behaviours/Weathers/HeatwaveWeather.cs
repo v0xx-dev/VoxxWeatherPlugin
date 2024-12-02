@@ -3,6 +3,8 @@ using UnityEngine.Rendering;
 using UnityEngine;
 using VoxxWeatherPlugin.Utils;
 using UnityEngine.AI;
+using UnityEngine.VFX;
+using UnityEngine.Rendering.HighDefinition;
 
 namespace VoxxWeatherPlugin.Weathers
 {
@@ -22,6 +24,8 @@ namespace VoxxWeatherPlugin.Weathers
         private float timeUntilStrokeMax => VoxxWeatherPlugin.TimeUntilStrokeMax.Value; // Maximum time until a heatstroke occurs
         [SerializeField]
         internal float timeInHeatZoneMax = 50f; // Time before maximum effects are applied
+        [SerializeField]
+        float timeOfDayFactor = 1f; // Factor for the time of day
 
         private void Awake()
         {
@@ -40,6 +44,7 @@ namespace VoxxWeatherPlugin.Weathers
             Debug.LogDebug($"Heatwave zone size: {levelBounds.size}. Placed at {levelBounds.center}");
             VFXManager?.PopulateLevelWithVFX(levelBounds, seededRandom);
             SetupHeatwaveWeather();
+            timeOfDayFactor = VFXManager?.CooldownHeatwaveVFX() ?? 1f;
         }
 
         private void OnDisable()
@@ -73,7 +78,7 @@ namespace VoxxWeatherPlugin.Weathers
 
                 if (PlayerTemperatureManager.isInHeatZone)
                 {
-                    PlayerTemperatureManager.SetPlayerTemperature(Time.deltaTime / timeInHeatZoneMax);
+                    PlayerTemperatureManager.SetPlayerTemperature(Time.deltaTime / timeInHeatZoneMax * timeOfDayFactor);
                 }
                 else
                 {
@@ -109,6 +114,15 @@ namespace VoxxWeatherPlugin.Weathers
             //     }
             // }
         }
+
+        private void Update()
+        {
+            // Cooldown the heatwave VFX based on the sun intensity
+            if (TimeOfDay.Instance.normalizedTimeOfDay % 0.1f < 0.01f)
+            {
+                timeOfDayFactor = VFXManager?.CooldownHeatwaveVFX() ?? 1f;
+            }
+        }
     }
 
 
@@ -116,10 +130,14 @@ namespace VoxxWeatherPlugin.Weathers
     {
         public GameObject? heatwaveParticlePrefab; // Prefab for the heatwave particle effect
         public GameObject? heatwaveVFXContainer; // GameObject for the particles
+        [SerializeField]
+        internal AnimationCurve? heatwaveIntensityCurve; // Curve for the intensity of the heatwave
 
         // Variables for emitter placement
         private float emitterSize;
         private float raycastHeight = 500f; // Height from which to cast rays
+        private float maxSunLuminosity = 20f; // Sun luminosity in lux when the heatwave is at its peak
+        private HDAdditionalLightData? sunLightData; // Light data for the sun
 
         internal void CalculateEmitterRadius()
         {
@@ -129,6 +147,7 @@ namespace VoxxWeatherPlugin.Weathers
 
         internal override void PopulateLevelWithVFX(Bounds levelBounds, System.Random? seededRandom)
         {
+            sunLightData = TimeOfDay.Instance.sunDirect.GetComponent<HDAdditionalLightData>();
 
             if (levelBounds == null || seededRandom == null || heatwaveParticlePrefab == null)
             {
@@ -232,6 +251,26 @@ namespace VoxxWeatherPlugin.Weathers
         {
             if (heatwaveVFXContainer != null)
                 heatwaveVFXContainer.SetActive(false);
+        }
+
+        
+        internal float CooldownHeatwaveVFX()
+        {
+            float reductionFactor = 1f;
+            if (heatwaveVFXContainer != null && sunLightData != null)
+            {
+                reductionFactor = Mathf.Clamp01(sunLightData.intensity / maxSunLuminosity);
+                reductionFactor = heatwaveIntensityCurve!.Evaluate(reductionFactor); // Min value in curve is 0.001 to avoid division by zero
+                foreach (Transform child in heatwaveVFXContainer.transform)
+                {
+                    if (child.TryGetComponent(out VisualEffect vfx))
+                    {
+                        vfx.SetFloat("particleSpawnRate", VoxxWeatherPlugin.HeatwaveParticlesSpawnRate.Value * reductionFactor);
+                    }
+                }
+            }
+            // Clamp the reduction factor to a non-zero value to avoid division errors
+            return reductionFactor;
         }
     }
 }

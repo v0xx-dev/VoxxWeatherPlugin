@@ -25,7 +25,7 @@ namespace VoxxWeatherPlugin
         public static ConfigEntry<float> AuroraVisibilityThreshold;
         public static ConfigEntry<float> AuroraSpawnRate;
         public static ConfigEntry<float> AuroraSize;
-        public static ConfigEntry<uint> HeatwaveParticlesSpawnRate;
+        public static ConfigEntry<float> HeatwaveParticlesSpawnRate;
         public static ConfigEntry<float> TimeUntilStrokeMin;
         public static ConfigEntry<float> TimeUntilStrokeMax;
         public static ConfigEntry<bool> DistortOnlyVoiceDuringSolarFlare;
@@ -97,11 +97,14 @@ namespace VoxxWeatherPlugin
 
         private void InitializeConfig()
         {
+            // Weather
             EnableHeatwaveWeather = Config.Bind("Weather", "EnableHeatwaveWeather", true, "Enable or disable Heatwave weather");
             EnableSolarFlareWeather = Config.Bind("Weather", "EnableSolarFlareWeather", true, "Enable or disable Solar Flare weather");
-            HeatwaveParticlesSpawnRate = Config.Bind("Heatwave", "ParticlesSpawnRate", (uint)20, new ConfigDescription("Spawn rate of Heatwave particles. Particles per second", new AcceptableValueRange<uint>(0, 42)));
+            // Heatwave
+            HeatwaveParticlesSpawnRate = Config.Bind("Heatwave", "ParticlesSpawnRate", 20f, new ConfigDescription("Spawn rate of Heatwave particles. Particles per second", new AcceptableValueRange<float>(0, 42)));
             TimeUntilStrokeMin = Config.Bind("Heatwave", "TimeUntilStrokeMin", 40f, new ConfigDescription("Minimal time in seconds until heatstroke (min)", new AcceptableValueRange<float>(1, 9999f)));
             TimeUntilStrokeMax = Config.Bind("Heatwave", "TimeUntilStrokeMax", 80f, new ConfigDescription("Maximal time in seconds until heatstroke (max). Must be higher than min! Actual time is random between min and max", new AcceptableValueRange<float>(1, 9999f)));
+            // Solar Flare
             AuroraHeight = Config.Bind("SolarFlare", "AuroraHeight", (uint)120, "Height of the Aurora effect above the ground");
             AuroraSpawnAreaBox = Config.Bind("SolarFlare", "AuroraSpawnArea", 500f, "Size of the Aurora spawn area. The Aurora effect will spawn randomly within this square area. VFX may disappear at certain angles if the area is too small or too large.");
             AuroraVisibilityThreshold = Config.Bind("SolarFlare", "AuroraVisibilityThreshold", 9f, "Light threshold when Aurora becomes visible (in Lux). Increase to make it more visible.");

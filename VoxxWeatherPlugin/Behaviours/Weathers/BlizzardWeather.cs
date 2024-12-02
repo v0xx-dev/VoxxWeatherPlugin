@@ -38,7 +38,8 @@ namespace VoxxWeatherPlugin.Weathers
         internal float waveInterval = 90f;
         internal bool isChillWaveActive = false;
         internal Coroutine chillWaveCoroutine;
-        internal BlizzardVFXManager VFXManager;
+        [SerializeField]
+        internal new BlizzardVFXManager VFXManager;
 
         internal override void OnEnable()
         {

@@ -37,7 +37,7 @@ namespace VoxxWeatherPlugin.Utils
             heatwaveWeatherController.VFXManager = heatwaveVFXManager;
 
             VisualEffect heatwaveVFX = heatwaveVFXManager.heatwaveParticlePrefab!.GetComponent<VisualEffect>();
-            heatwaveVFX.SetUInt("particleSpawnRate", VoxxWeatherPlugin.HeatwaveParticlesSpawnRate.Value);
+            heatwaveVFX.SetFloat("particleSpawnRate", VoxxWeatherPlugin.HeatwaveParticlesSpawnRate.Value);
             // TODO add blurring strength configuration
 
             heatwaveContainer.SetActive(true);
