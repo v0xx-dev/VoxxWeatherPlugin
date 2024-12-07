@@ -168,14 +168,25 @@ namespace VoxxWeatherPlugin.Patches
         [HarmonyPostfix]
         private static void PlayerSnowTracksPatch(PlayerControllerB __instance)
         {
-            AddFootprintTracker(__instance, 2.7f, 1f, 0.2f);
+            AddFootprintTracker(__instance, 2.6f, 1f, 0.2f);
         }
 
         [HarmonyPatch(typeof(EnemyAI), "Start")]
         [HarmonyPostfix]
         private static void EnemySnowTracksPatch(EnemyAI __instance)
         {
-            AddFootprintTracker(__instance, 2f, 0.167f, 0.2f);
+            if (__instance is ForestGiantAI)
+            {
+                AddFootprintTracker(__instance, 10f, 0.167f, 0.2f);
+            }
+            else if (__instance is RadMechAI)
+            {
+                AddFootprintTracker(__instance, 8f, 0.167f, 0.2f);
+            }
+            else
+            {
+                AddFootprintTracker(__instance, 2f, 0.167f, 0.2f);
+            }
         }
 
         [HarmonyPatch(typeof(GrabbableObject), "Start")]
