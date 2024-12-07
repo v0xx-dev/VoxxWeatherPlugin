@@ -4,7 +4,10 @@ using System.Linq;
 using System.Collections.Generic;
 using GameNetcodeStuff;
 using VoxxWeatherPlugin.Utils;
-using UnityEngine.UIElements.UIR;
+using UnityEngine.Rendering.HighDefinition;
+using DunGen;
+using VoxxWeatherPlugin.Patches;
+using UnityEngine.VFX;
 
 namespace VoxxWeatherPlugin.Behaviours
 {
@@ -22,6 +25,7 @@ namespace VoxxWeatherPlugin.Behaviours
         private int kernelHandle;
         [SerializeField]
         internal bool inputNeedsUpdate = true;
+        [SerializeField]
         internal Vector3 feetPosition; // player's feet position
 
         //Compute buffers
@@ -42,6 +46,16 @@ namespace VoxxWeatherPlugin.Behaviours
         [SerializeField]
         internal bool isOnIce = false;
 
+#if DEBUG
+        [Header("Debug")]
+        public List<string> groundsInfo = new List<string>();
+        public List<string> entityInfo = new List<string>();
+        private Dictionary<MonoBehaviour, RaycastHit> entityHitData = new Dictionary<MonoBehaviour, RaycastHit>();
+        public List<string> entityHitInfo = new List<string>();
+        public SerializableDictionary<GameObject, SnowTrackerData> snowTrackerData = new SerializableDictionary<GameObject, SnowTrackerData>();
+        public SerializableDictionary<GameObject, float> entitySpeeds = new SerializableDictionary<GameObject, float>();
+
+#endif
         public void Awake()
         {
             Instance = this;
@@ -56,10 +70,6 @@ namespace VoxxWeatherPlugin.Behaviours
             entitySnowDataArray = new EntitySnowData[maxEntityCount];
             freeIndices = new Stack<int>(Enumerable.Range(0, maxEntityCount));
             snowThicknessComputeShader.SetBuffer(kernelHandle, "_EntityData", entityDataComputeBuffer);
-
-            // Set static texture buffers
-            snowThicknessComputeShader.SetTexture(kernelHandle, "_SnowTracksTex", snowfallData?.snowMasks);
-            snowThicknessComputeShader.SetTexture(kernelHandle, "_FootprintsTex", snowfallData?.snowTracksMap);
         }
 
         internal void Reset()
@@ -90,12 +100,58 @@ namespace VoxxWeatherPlugin.Behaviours
             if (inputNeedsUpdate)
             {
                 // Update static input parameters
-                snowThicknessComputeShader?.SetFloat("_MaximumSnowHeight", snowfallData.maxSnowHeight);
-                snowThicknessComputeShader?.SetVector("_ShipLocation", snowfallData.shipPosition);
+                snowThicknessComputeShader!.SetFloat("_MaximumSnowHeight", snowfallData.maxSnowHeight);
+                // Set static texture buffers
+                snowThicknessComputeShader.SetTexture(kernelHandle, "_SnowMaskTex", snowfallData?.snowMasks);
+                snowThicknessComputeShader.SetTexture(kernelHandle, "_FootprintsTex", snowfallData?.snowTracksMap);
                 inputNeedsUpdate = false;
+#if DEBUG
+                groundsInfo = new List<string>();
+                foreach (KeyValuePair<GameObject, int> kvp in groundToIndex)
+                {
+                    groundsInfo.Add($"{kvp.Key.name} : {kvp.Value}");
+                }
+
+                entityInfo = new List<string>();
+                foreach (KeyValuePair<MonoBehaviour, int> kvp in entitySnowDataMap)
+                {
+                    EntitySnowData snowData = entitySnowDataArray[kvp.Value];
+                    entityInfo.Add($"{kvp.Key.gameObject.name}: wPos {snowData.w}, texPos {snowData.uv}, texIndex {snowData.textureIndex}, snowThcikness {snowData.snowThickness}");
+                }
+
+                entityHitInfo = new List<string>();
+                foreach (KeyValuePair<MonoBehaviour, RaycastHit> kvp in entityHitData)
+                {
+                    RaycastHit hit = kvp.Value;
+                    string hitString = $"{kvp.Key.gameObject.name}: Valid for snow: {IsEntityValidForSnow(kvp.Key)}, Standing on: {hit.collider.gameObject.name}, On registered ground: {groundToIndex.ContainsKey(hit.collider.gameObject)})";
+                    entityHitInfo.Add(hitString + $", wPos {hit.point}, texPos2 {hit.textureCoord2}");
+                }
+
+                snowTrackerData = new SerializableDictionary<GameObject, SnowTrackerData>();
+
+                foreach (KeyValuePair<MonoBehaviour, VisualEffect> kvp in SnowPatches.snowTrackersDict)
+                {
+                    SnowTrackerData data = new SnowTrackerData();
+                    data.isActive = kvp.Value.GetBool("isTracking");
+                    data.particleSize = kvp.Value.GetFloat("particleSize");
+                    data.lifetimeMultiplier = kvp.Value.GetFloat("lifetimeMultiplier");
+                    data.footprintStrength = kvp.Value.GetFloat("footprintStrength");
+                    data.particleNumber = kvp.Value.aliveParticleCount;
+                    snowTrackerData[kvp.Key.gameObject] = data;
+                }
+
+                foreach (KeyValuePair<MonoBehaviour, int> kvp in entitySnowDataMap)
+                {
+                    if (kvp.Key is EnemyAI enemy)
+                    {
+                        entitySpeeds[enemy.gameObject] = enemy.agent.velocity.magnitude;
+                    }
+                }
+#endif
             }
 
             // Update dynamic input parameters
+            snowThicknessComputeShader?.SetVector("_ShipLocation", snowfallData.shipPosition);
             snowThicknessComputeShader?.SetFloat("_SnowNoisePower", snowfallData.snowIntensity);
             snowThicknessComputeShader?.SetMatrix("_FootprintsViewProjection", snowfallData.snowTracksCamera!.projectionMatrix * snowfallData.snowTracksCamera.worldToCameraMatrix);
                 
@@ -119,7 +175,8 @@ namespace VoxxWeatherPlugin.Behaviours
 
         internal bool isEntityOnNaturalGround(MonoBehaviour entity)
         {
-            return GetEntityData(entity)?.textureIndex != -1;
+            EntitySnowData? data = GetEntityData(entity);
+            return data.HasValue ? data.Value.textureIndex != -1 : false;
         }
 
         internal float GetSnowThickness(MonoBehaviour entity)
@@ -193,12 +250,21 @@ namespace VoxxWeatherPlugin.Behaviours
                 data.Reset();
             }
 
+            entitySnowDataArray[index] = data;
+
             //Update fields for a local player
             if (entity == GameNetworkManager.Instance.localPlayerController) 
             {
                 feetPosition = hit.point;
                 isOnIce = iceObjects.Contains(hit.collider.gameObject);
             }
+
+#if DEBUG
+            // Copy the hit data for debugging
+            RaycastHit hitCopy = hit;
+            entityHitData[entity] = hitCopy;
+#endif 
+
         }
 
         internal void RemoveEntityData(MonoBehaviour entity)
@@ -209,82 +275,6 @@ namespace VoxxWeatherPlugin.Behaviours
                 entitySnowDataArray?[index].Reset();
                 freeIndices.Push(index);
             }
-        }
-
-        internal void UpdatePositionData() // Maybe move this to player/enemy scripts and then pool here?
-        {
-            // isOnIce = false;
-            // entitySnowDataList.Clear();
-            // entitySnowDataList.Capacity = maxEntityCount;
-
-            // RaycastHit[] hits = new RaycastHit[1];
-
-            // foreach (PlayerControllerB playerScript in StartOfRound.Instance.allPlayerScripts) // move to GetCurrentMaterialStandingOn
-            // {
-            //     if (!IsEntityValidForSnow(playerScript))
-            //     {
-            //         continue;
-            //     }
-
-            //     entityToIndex[playerScript] = -1; // Reset entity index to -1, meaning it is not on the ground
-            //     if (Physics.RaycastNonAlloc(playerScript.transform.position, -Vector3.up, hits, 3f,
-            //                         LayerMask.GetMask("Room"), QueryTriggerInteraction.Ignore) > 0)
-            //     {
-            //         Collider collider = hits[0].collider;
-            //         if (groundToIndex.ContainsKey(collider.gameObject)) // Check if the ground object is registered
-            //         {
-            //             int textureIndex = groundToIndex[collider.gameObject];
-            //             entitySnowDataList.Add(new EntitySnowData
-            //             {
-            //                 uv = new Vector2(hits[0].textureCoord2.x, hits[0].textureCoord2.y),
-            //                 textureIndex = textureIndex
-            //             });
-            //             entityToIndex[playerScript] = entitySnowDataList.Count - 1; // Update entity index
-            //         }
-
-            //         if (playerScript == GameNetworkManager.Instance.localPlayerController) //Update fields for local player
-            //         {
-            //             feetPosition = hits[0].point;
-
-            //             if (iceObjects.Contains(collider.gameObject))
-            //             {
-            //                 isOnIce = true;
-            //             }
-            //         }
-            //         Debug.LogDebug($"Feet position: {feetPosition}, isOnNaturalGround: {isOnNaturalGround}, isOnIce: {isOnIce}");
-            //     }
-            // }
-
-            // foreach (EnemyAI enemy in RoundManager.Instance.SpawnedEnemies)
-            // {
-            //     if (!IsEntityValidForSnow(enemy))
-            //     {
-            //         continue;
-            //     }
-
-            //     if (entitySnowDataList.Count >= maxEntityCount)
-            //     {
-            //         break;
-            //     }
-
-            //     entityToIndex[enemy] = -1; // Reset entity index to -1, meaning it is not on the ground
-            //     if (Physics.RaycastNonAlloc(enemy.transform.position, -Vector3.up, hits, 3f,
-            //                         LayerMask.GetMask("Room"), QueryTriggerInteraction.Ignore) > 0)
-            //     {
-            //         Collider collider = hits[0].collider;
-            //         if (groundToIndex.ContainsKey(collider.gameObject)) // Check if the ground object is registered
-            //         {
-            //             int textureIndex = groundToIndex[collider.gameObject];
-            //             entitySnowDataList.Add(new EntitySnowData
-            //             {
-            //                 uv = new Vector2(hits[0].textureCoord2.x, hits[0].textureCoord2.y),
-            //                 textureIndex = textureIndex
-            //             });
-            //             entityToIndex[enemy] = entitySnowDataList.Count - 1; // Update entity index
-            //         }
-            //     }
-            // }
-            // entityDataBuffer.SetData(entitySnowDataList.ToArray());
         }
 
         void OnDestroy()
