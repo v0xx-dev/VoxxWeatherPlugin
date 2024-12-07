@@ -314,7 +314,7 @@ namespace VoxxWeatherPlugin.Patches
         }
 
         [HarmonyPatch(typeof(Shovel), "HitShovelClientRpc")]
-        [HarmonyPostfix]
+        [HarmonyPrefix]
         private static void ShovelSnowPatch(Shovel __instance)
         {
             PlayFootprintTracker(__instance, snowShovelDict, !__instance.isInFactory);
