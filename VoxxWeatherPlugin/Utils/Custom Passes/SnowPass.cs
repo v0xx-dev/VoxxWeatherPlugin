@@ -87,7 +87,7 @@ namespace VoxxWeatherPlugin.Utils
         public SortingCriteria sortingCriteria = SortingCriteria.CommonOpaque;
 
         // Override material
-        public Material? overrideMaterial = null;
+        public Material? snowOverlayMaterial = null;
         public Material? snowVertexMaterial = null;
         [SerializeField] int overrideMaterialPassIndex = 0;
         public string overrideMaterialPassName = "Forward";
@@ -119,8 +119,8 @@ namespace VoxxWeatherPlugin.Utils
         protected override void Setup(ScriptableRenderContext renderContext, CommandBuffer cmd)
         {
             // In case there was a pass index assigned, retrieve the name of this pass
-            if (String.IsNullOrEmpty(overrideMaterialPassName) && overrideMaterial != null)
-                overrideMaterialPassName = overrideMaterial.GetPassName(overrideMaterialPassIndex);
+            if (String.IsNullOrEmpty(overrideMaterialPassName) && snowOverlayMaterial != null)
+                overrideMaterialPassName = snowOverlayMaterial.GetPassName(overrideMaterialPassIndex);
 
             forwardShaderTags = new ShaderTagId[]
             {
@@ -137,13 +137,13 @@ namespace VoxxWeatherPlugin.Utils
                     HDShaderPassNames.s_EmptyName,              // Add an empty slot for the override material
             };
 
-            if (overrideMaterial == null || snowVertexMaterial == null)
+            if (snowOverlayMaterial == null || snowVertexMaterial == null)
             {
                 Debug.LogWarning("Attempt to call with an empty override material. Some variables will be set to default values");
                 return;
             }
 
-            SetupMaterial(overrideMaterial);
+            SetupMaterial(snowOverlayMaterial);
             SetupMaterial(snowVertexMaterial);
         }
 
@@ -158,7 +158,7 @@ namespace VoxxWeatherPlugin.Utils
         protected override void Execute(CustomPassContext ctx)
         {
             var shaderPasses = GetShaderTagIds();
-            if (overrideMaterial == null || snowVertexMaterial == null)
+            if (snowOverlayMaterial == null || snowVertexMaterial == null)
             {   
                 Debug.LogWarning("Attempt to call with an empty override material. Skipping the call to avoid errors");
                 return;
@@ -189,7 +189,7 @@ namespace VoxxWeatherPlugin.Utils
 
             shaderPasses[shaderPasses.Length - 1] = new ShaderTagId(overrideMaterialPassName);
 
-            RefreshSnowMaterial(overrideMaterial);
+            RefreshSnowMaterial(snowOverlayMaterial);
             RefreshSnowMaterial(snowVertexMaterial);
 
             var mask = overrideDepthState ? RenderStateMask.Depth : 0;
@@ -211,8 +211,8 @@ namespace VoxxWeatherPlugin.Utils
                 renderQueueRange = GetRenderQueueRange(renderQueueType),
                 sortingCriteria = sortingCriteria,
                 excludeObjectMotionVectors = false,
-                overrideMaterial = overrideMaterial,
-                overrideMaterialPassIndex = (overrideMaterial != null) ? overrideMaterial.FindPass(overrideMaterialPassName) : 0,
+                overrideMaterial = snowOverlayMaterial,
+                overrideMaterialPassIndex = (snowOverlayMaterial != null) ? snowOverlayMaterial.FindPass(overrideMaterialPassName) : 0,
                 stateBlock = stateBlock,
                 layerMask = layerMask,
                 renderingLayerMask = (uint)renderingLayers
@@ -240,7 +240,7 @@ namespace VoxxWeatherPlugin.Utils
         
         internal void RefreshSnowMaterial(Material material)
         {
-            material.SetFloat(SnowfallShaderIDs.FadeValue, fadeValue);
+            // material.SetFloat(SnowfallShaderIDs.FadeValue, fadeValue);
             material.SetTexture(SnowfallShaderIDs.DepthTex, SnowfallWeather.Instance!.levelDepthmap);
             material.SetTexture(SnowfallShaderIDs.FootprintsTex, SnowfallWeather.Instance!.snowTracksMap);
             material.SetMatrix(SnowfallShaderIDs.FootprintsViewProjection, SnowfallWeather.Instance!.snowTracksCamera!.projectionMatrix * SnowfallWeather.Instance!.snowTracksCamera.worldToCameraMatrix);

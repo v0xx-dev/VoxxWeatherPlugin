@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 namespace VoxxWeatherPlugin.Utils
 {
@@ -34,6 +35,17 @@ namespace VoxxWeatherPlugin.Utils
 
             //Increase the zone extents by 20%
             levelBounds.extents *= 1.2f;
+
+            Debug.LogDebug("Level bounds: " + levelBounds);
+            
+#if DEBUG
+            GameObject debugCube = new GameObject("LevelBounds");
+            BoxCollider box = debugCube.AddComponent<BoxCollider>();
+            box.transform.position = levelBounds.center;
+            box.size = levelBounds.size;
+            box.isTrigger = true;
+            GameObject.Instantiate(debugCube);
+#endif
 
             return levelBounds;
 

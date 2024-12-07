@@ -95,6 +95,8 @@ namespace VoxxWeatherPlugin.Utils
             auroraVFX.SetFloat("auroraSize", VoxxWeatherPlugin.AuroraSize.Value);
             auroraVFX.SetFloat("particleSpawnRate", VoxxWeatherPlugin.AuroraSpawnRate.Value);
 
+            flareContainer.SetActive(true);
+
             ImprovedWeatherEffect flareWeatherEffect = new(effectObject, effectPermanentObject)
             {
                 SunAnimatorBool = "",
@@ -214,6 +216,23 @@ namespace VoxxWeatherPlugin.Utils
             WeatherManager.RegisterWeather(SnowfallWeatherEffect);
             Debug.Log($"{PluginInfo.PLUGIN_GUID}: Snowfall weather registered!");
 
+        }
+
+        public static bool LoadSnowManager()
+        {
+            GameObject? snowThicknessManagerPrefab = WeatherAssetLoader.LoadAsset<GameObject>(bundleName, "SnowThicknessManager");
+            if (snowThicknessManagerPrefab == null)
+            {
+                Debug.LogError("Failed to load Snow Thickness Manager assets. Weather registration failed.");
+                return false;
+            }
+
+            snowThicknessManagerPrefab.SetActive(true);
+            GameObject snowThicknessManager = GameObject.Instantiate(snowThicknessManagerPrefab);
+            GameObject.DontDestroyOnLoad(snowThicknessManager);
+            // snowThicknessManager.hideFlags = HideFlags.HideAndDontSave;
+
+            return true;   
         }
 
         // public static void RegisterMeteorWeather()

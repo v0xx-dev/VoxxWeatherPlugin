@@ -7,6 +7,7 @@ using TriangleNet.Meshing;
 using TriangleNet.Smoothing;
 using TriangleNet.Unity;
 using VoxxWeatherPlugin.Weathers;
+using UnityEngine.Rendering;
 
 namespace VoxxWeatherPlugin.Utils
 {
@@ -62,10 +63,16 @@ namespace VoxxWeatherPlugin.Utils
                 );
                 //Ensure bounds are not negative (take absolute value)
                 objectSpaceBounds.size = new Vector3(Mathf.Abs(objectSpaceBounds.size.x), Mathf.Abs(objectSpaceBounds.size.y), Mathf.Abs(objectSpaceBounds.size.z));
+                //Check if object space bounds intersect with mesh bounds
+                if (!newMesh.bounds.Intersects(objectSpaceBounds))
+                {
+                    Debug.LogDebug("Object's bounds do not intersect with level bounds. No vertices will be processed.");
+                    return;
+                }
             }
             else
             {
-                objectSpaceBounds = originalMesh.bounds;
+                objectSpaceBounds = newMesh.bounds;
             }
 
             Debug.LogDebug("Bounds for triangulation: " + objectSpaceBounds.center + " " + objectSpaceBounds.size);
@@ -117,6 +124,7 @@ namespace VoxxWeatherPlugin.Utils
             
             // Find vertices within bounds and triangles to keep
             // Keep triangles that are outside bounds
+            Debug.LogDebug("Filtering vertices and triangles... Count: " + triangles.Length / 3 + " Vertices: " + vertices.Length);
             sw.Start();
             for (int i = 0; i < triangles.Length; i += 3)
             {
@@ -159,6 +167,7 @@ namespace VoxxWeatherPlugin.Utils
             }
             sw.Stop();
             Debug.LogDebug("Vertex and triangle filtering/deduplication time: " + sw.ElapsedMilliseconds + "ms");
+            Debug.LogDebug("Vertices in bounds: " + vertexIndicesInBounds.Count + " Triangles in bounds: " + trianglesToRefine.Count);
 
             // Allow addition of new vertices
             List<Vector3> newVertices = new List<Vector3>(vertices);
@@ -167,6 +176,7 @@ namespace VoxxWeatherPlugin.Utils
             // Refine triangles
             if (snowfallData.subdivideMesh)
             {
+                Debug.Log($"Refining {trianglesToRefine.Count} triangles...");
                 sw.Restart();
                 Dictionary<Vector3, int> midpointVertices = new Dictionary<Vector3, int>();
                 while (trianglesToRefine.Count > 0)
@@ -372,6 +382,9 @@ namespace VoxxWeatherPlugin.Utils
 
             MeshFilter meshFilter = meshTerrainObject.GetComponent<MeshFilter>();
             meshFilter.sharedMesh = newMesh;
+
+            MeshCollider meshCollider = meshTerrainObject.GetComponent<MeshCollider>();
+            meshCollider.sharedMesh = newMesh;
         }
 
         private static Vector2[] UnwrapUVs(Vector3[] vertices, int upAxis, bool normalize)
@@ -448,27 +461,30 @@ namespace VoxxWeatherPlugin.Utils
         {
             Mesh mesh = meshObject.GetComponent<MeshFilter>().sharedMesh;
             Transform transform = meshObject.transform;
-        
-            var submeshCount = mesh.subMeshCount;
-            if (submeshCount <= 1) return (GameObject.Instantiate(mesh), 0);
+            
+            Mesh meshCopy = mesh.MakeReadableCopy();
+
+            var submeshCount = meshCopy.subMeshCount;
+            if (submeshCount <= 1) return (meshCopy, 0);
+
 
             var largestSubmeshIndex = Enumerable.Range(0, submeshCount)
-                .OrderByDescending(i => mesh.GetSubMesh(i).vertexCount)
+                .OrderByDescending(i => meshCopy.GetSubMesh(i).vertexCount)
                 .First();
 
-            var triangles = mesh.GetTriangles(largestSubmeshIndex);
+            var triangles = meshCopy.GetTriangles(largestSubmeshIndex);
             var usedVertices = new HashSet<int>(triangles);
             var oldToNewVertexMap = new Dictionary<int, int>();
 
-            Vector3[] vertices = mesh.vertices;
-            Vector2[] uv = mesh.uv;
-            Vector3[] normals = mesh.normals;
-            Vector4[] tangents = mesh.tangents;
+            Vector3[] vertices = meshCopy.vertices;
+            Vector2[] uv = meshCopy.uv;
+            Vector3[] normals = meshCopy.normals;
+            Vector4[] tangents = meshCopy.tangents;
             
             var newVertices = new List<Vector3>();
-            var newNormals = mesh.normals.Length > 0 ? new List<Vector3>() : null;
-            var newUVs = mesh.uv.Length > 0 ? new List<Vector2>() : null;
-            var newTangents = mesh.tangents.Length > 0 ? new List<Vector4>() : null;
+            var newNormals = meshCopy.normals.Length > 0 ? new List<Vector3>() : null;
+            var newUVs = meshCopy.uv.Length > 0 ? new List<Vector2>() : null;
+            var newTangents = meshCopy.tangents.Length > 0 ? new List<Vector4>() : null;
 
             foreach (var oldIndex in usedVertices)
             {
@@ -483,10 +499,10 @@ namespace VoxxWeatherPlugin.Utils
 
             var submesh = new Mesh
             {
-                name = mesh.name + "_Submesh" + largestSubmeshIndex,
+                name = meshCopy.name + "_Submesh" + largestSubmeshIndex,
                 vertices = newVertices.ToArray(),
                 triangles = newTriangles,
-                indexFormat = mesh.indexFormat
+                indexFormat = meshCopy.indexFormat
             };
 
             if (newNormals != null) submesh.normals = newNormals.ToArray();
@@ -495,7 +511,59 @@ namespace VoxxWeatherPlugin.Utils
 
             submesh.RecalculateBounds();
 
+            Object.Destroy(meshCopy);
+
             return (submesh, largestSubmeshIndex);
+        }
+
+        //Credit to Matty for this method
+        private static Mesh MakeReadableCopy(this Mesh nonReadableMesh)
+        {
+            if (nonReadableMesh.isReadable)
+                return nonReadableMesh;
+
+            var meshCopy = new Mesh();
+            meshCopy.indexFormat = nonReadableMesh.indexFormat;
+
+            // Handle vertices
+            nonReadableMesh.vertexBufferTarget = GraphicsBuffer.Target.Vertex;
+            if (nonReadableMesh.vertexBufferCount > 0)
+            {
+                var verticesBuffer = nonReadableMesh.GetVertexBuffer(0);
+                var totalSize = verticesBuffer.stride * verticesBuffer.count;
+                var data = new byte[totalSize];
+                verticesBuffer.GetData(data);
+                meshCopy.SetVertexBufferParams(nonReadableMesh.vertexCount, nonReadableMesh.GetVertexAttributes());
+                meshCopy.SetVertexBufferData(data, 0, 0, totalSize);
+                verticesBuffer.Release();
+            }
+
+            // Handle triangles
+            nonReadableMesh.indexBufferTarget = GraphicsBuffer.Target.Index;
+            meshCopy.subMeshCount = nonReadableMesh.subMeshCount;
+            var indexesBuffer = nonReadableMesh.GetIndexBuffer();
+            var tot = indexesBuffer.stride * indexesBuffer.count;
+            var indexesData = new byte[tot];
+            indexesBuffer.GetData(indexesData);
+            meshCopy.SetIndexBufferParams(indexesBuffer.count, nonReadableMesh.indexFormat);
+            meshCopy.SetIndexBufferData(indexesData, 0, 0, tot);
+            indexesBuffer.Release();
+
+            // Restore submesh structure
+            uint currentIndexOffset = 0;
+            for (var i = 0; i < meshCopy.subMeshCount; i++)
+            {
+                var subMeshIndexCount = nonReadableMesh.GetIndexCount(i);
+                meshCopy.SetSubMesh(i, new SubMeshDescriptor((int)currentIndexOffset, (int)subMeshIndexCount));
+                currentIndexOffset += subMeshIndexCount;
+            }
+
+            // Recalculate normals and bounds
+            meshCopy.RecalculateNormals();
+            meshCopy.RecalculateBounds();
+
+            meshCopy.name = $"Readable {nonReadableMesh.name}";
+            return meshCopy;
         }
 
 
@@ -515,6 +583,8 @@ namespace VoxxWeatherPlugin.Utils
                 Debug.LogError("No mesh found on object to bake!");
                 return null;
             }
+
+            Debug.LogDebug("Baking mask for " + objectToBake.name + " with texture index " + textureIndex + " and submesh index " + submeshIndex);
 
             snowfallData.RefreshBakeMaterial();
 
@@ -544,22 +614,52 @@ namespace VoxxWeatherPlugin.Utils
             Graphics.Blit(blurRT1, blurRT2, snowfallData.bakeMaterial, 2);
 
             RenderTexture.active = blurRT2;
-            Texture2D? maskTexture;
-            
-            if (textureIndex == -1) // Return the texture if no texture index is specified
+            Texture2D maskTexture = new Texture2D(snowfallData.bakeResolution, snowfallData.bakeResolution, TextureFormat.RGBAFloat, false);
+            maskTexture.wrapMode = TextureWrapMode.Clamp;
+            maskTexture.filterMode = FilterMode.Trilinear;
+            maskTexture.ReadPixels(new Rect(0, 0, snowfallData.bakeResolution, snowfallData.bakeResolution), 0, 0);
+
+ #if DEBUG
+
+            // *** DEBUG: Display blurRT2 on the screen ***
+            GameObject debugQuad = new GameObject("DebugQuad");
+            debugQuad.transform.position = 5*Vector3.up; // Position as needed
+            MeshRenderer renderer = debugQuad.AddComponent<MeshRenderer>();
+            MeshFilter filter = debugQuad.AddComponent<MeshFilter>();
+
+            Mesh quadMesh = new Mesh();
+            quadMesh.vertices = new Vector3[] {
+                new Vector3(-1, -1, 0),
+                new Vector3(1, -1, 0),
+                new Vector3(1, 1, 0),
+                new Vector3(-1, 1, 0)
+            };
+            quadMesh.uv = new Vector2[] {
+                new Vector2(0, 0),
+                new Vector2(1, 0),
+                new Vector2(1, 1),
+                new Vector2(0, 1)
+            };
+            quadMesh.triangles = new int[] { 0, 2, 1, 0, 3, 2 };
+            quadMesh.RecalculateNormals();
+            quadMesh.RecalculateBounds();
+            filter.mesh = quadMesh;
+
+            Material debugMaterial = new Material(Shader.Find("HDRP/Unlit"));
+            debugMaterial.mainTexture = maskTexture;
+            renderer.material = debugMaterial;
+#endif        
+
+            if (textureIndex != -1) // Copy the texture to the specified index in the masks texture array
             {
-                maskTexture = new Texture2D(snowfallData.bakeResolution, snowfallData.bakeResolution, TextureFormat.RGBAFloat, false);
-                maskTexture.wrapMode = TextureWrapMode.Clamp;
-                maskTexture.filterMode = FilterMode.Trilinear;
-                maskTexture.ReadPixels(new Rect(0, 0, snowfallData.bakeResolution, snowfallData.bakeResolution), 0, 0);
+                Graphics.CopyTexture(maskTexture, 0, 0, snowfallData.snowMasks, textureIndex, 0);
+                Object.DestroyImmediate(maskTexture);
+            }
+            else
+            {
                 maskTexture.Apply(false);
             }
-            else // Copy the texture to the specified index in the masks texture array
-            {
-                Graphics.CopyTexture(RenderTexture.active, 0, 0, snowfallData.snowMasks, textureIndex, 0);
-                maskTexture = null;
-            }
-
+            
             RenderTexture.active = currentRT;
             RenderTexture.ReleaseTemporary(tempRT);
             RenderTexture.ReleaseTemporary(blurRT1);
@@ -586,9 +686,10 @@ namespace VoxxWeatherPlugin.Utils
             GameObject meshTerrain = new GameObject("MeshTerrain_" + terrain.name);
             MeshFilter meshFilter = meshTerrain.AddComponent<MeshFilter>();
             MeshRenderer meshRenderer = meshTerrain.AddComponent<MeshRenderer>();
-            // Set same rendering layer, rendering layer mask and tag as the terrain
+            // Set same rendering layer, rendering layer mask and tag as the terrain (and set the snow overlay custom pass layer)
             meshRenderer.gameObject.layer = terrain.gameObject.layer;
             meshRenderer.gameObject.tag = terrain.gameObject.tag;
+            terrain.renderingLayerMask |= (uint)(snowfallData.snowOverlayCustomPass?.renderingLayers ?? 0);
             meshRenderer.renderingLayerMask = terrain.renderingLayerMask;
             meshTerrain.isStatic = true;
 
@@ -882,6 +983,13 @@ namespace VoxxWeatherPlugin.Utils
                 
                     // Set to static
                     newTree.isStatic = true;
+
+                    // Set rendering layers
+                    newTree.layer = LayerMask.GetMask("Terrain");
+                    if (newTree.TryGetComponent<MeshRenderer>(out MeshRenderer renderer))
+                    {
+                        renderer.renderingLayerMask |= (uint)(snowfallData.snowOverlayCustomPass?.renderingLayers ?? 0);
+                    }
                 }
             }
 
