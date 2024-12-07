@@ -20,6 +20,8 @@ namespace VoxxWeatherPlugin
         // Config entries
         public static ConfigEntry<bool> EnableHeatwaveWeather;
         public static ConfigEntry<bool> EnableSolarFlareWeather;
+        public static ConfigEntry<bool> EnableSnowfallWeather;
+        public static ConfigEntry<bool> EnableBlizzardWeather;
         public static ConfigEntry<uint> AuroraHeight;
         public static ConfigEntry<float> AuroraSpawnAreaBox;
         public static ConfigEntry<float> AuroraVisibilityThreshold;
@@ -46,7 +48,7 @@ namespace VoxxWeatherPlugin
             
             harmony = new Harmony(PluginInfo.PLUGIN_GUID);
 
-            if (VoxxWeatherPlugin.EnableSolarFlareWeather.Value)    
+            if (EnableSolarFlareWeather.Value)    
             {
                 WeatherTypeLoader.RegisterFlareWeather();
                 harmony.PatchAll(typeof(FlarePatches));
@@ -58,22 +60,34 @@ namespace VoxxWeatherPlugin
                 Logger.LogInfo($"{PluginInfo.PLUGIN_GUID} solar flare patches successfully applied!");
             }
 
-            if (VoxxWeatherPlugin.EnableHeatwaveWeather.Value)
+            if (EnableHeatwaveWeather.Value)
             {
                 WeatherTypeLoader.RegisterHeatwaveWeather();
                 harmony.PatchAll(typeof(HeatwavePatches));
                 Logger.LogInfo($"{PluginInfo.PLUGIN_GUID} heatwave patches successfully applied!");
             }
 
-            if (true)
-            {
-                WeatherTypeLoader.RegisterSnowfallWeather();
-                // WeatherTypeLoader.RegisterBlizzardWeather();
-                harmony.PatchAll(typeof(SnowPatches));
-                Logger.LogInfo($"{PluginInfo.PLUGIN_GUID} snow patches successfully applied!");
-            }
+            
 
-            //WeatherTypeLoader.RegisterMeteorWeather();
+            if (EnableBlizzardWeather.Value || EnableSnowfallWeather.Value)
+            {
+                bool snowManagerLoaded = WeatherTypeLoader.LoadSnowManager();
+                if (snowManagerLoaded)
+                {
+                    harmony.PatchAll(typeof(SnowPatches));
+                    Logger.LogInfo($"{PluginInfo.PLUGIN_GUID} snow patches successfully applied!");
+
+                    if (EnableSnowfallWeather.Value)
+                    {
+                        WeatherTypeLoader.RegisterSnowfallWeather();
+                    }
+
+                    if (EnableBlizzardWeather.Value)
+                    {
+                        WeatherTypeLoader.RegisterBlizzardWeather();
+                    }
+                }
+            }
 
             Logger.LogInfo($"Plugin {PluginInfo.PLUGIN_GUID} is loaded!");
         }
@@ -100,6 +114,8 @@ namespace VoxxWeatherPlugin
             // Weather
             EnableHeatwaveWeather = Config.Bind("Weather", "EnableHeatwaveWeather", true, "Enable or disable Heatwave weather");
             EnableSolarFlareWeather = Config.Bind("Weather", "EnableSolarFlareWeather", true, "Enable or disable Solar Flare weather");
+            EnableSnowfallWeather = Config.Bind("Weather", "EnableSnowfallWeather", true, "Enable or disable Snowfall weather");
+            EnableBlizzardWeather = Config.Bind("Weather", "EnableBlizzardWeather", true, "Enable or disable Blizzard weather");
             // Heatwave
             HeatwaveParticlesSpawnRate = Config.Bind("Heatwave", "ParticlesSpawnRate", 20f, new ConfigDescription("Spawn rate of Heatwave particles. Particles per second", new AcceptableValueRange<float>(0, 42)));
             TimeUntilStrokeMin = Config.Bind("Heatwave", "TimeUntilStrokeMin", 40f, new ConfigDescription("Minimal time in seconds until heatstroke (min)", new AcceptableValueRange<float>(1, 9999f)));
