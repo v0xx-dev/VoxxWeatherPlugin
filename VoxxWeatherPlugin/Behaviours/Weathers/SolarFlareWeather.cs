@@ -143,7 +143,7 @@ namespace VoxxWeatherPlugin.Weathers
 
                 foreach (Animator poweredLight in RoundManager.Instance.allPoweredLightsAnimators)
                 {
-                    poweredLight.SetTrigger("Flicker");
+                    poweredLight?.SetTrigger("Flicker");
                 }
 
             }
@@ -419,6 +419,7 @@ namespace VoxxWeatherPlugin.Weathers
         internal GameObject? flareObject; // GameObject for the flare
         [SerializeField]
         internal GameObject? auroraObject; // GameObject for the particles
+        private GameObject? sunTexture; // GameObject for the sun texture
         internal HDAdditionalLightData? sunLightData;
         
         // Threshold for sun luminosity in lux to enable aurora
@@ -428,7 +429,7 @@ namespace VoxxWeatherPlugin.Weathers
 
         internal override void PopulateLevelWithVFX(Bounds levelBounds = default, System.Random? seededRandom = null)
         {
-            GameObject? sunTexture = null;
+            sunTexture = null;
             
             if (TimeOfDay.Instance.sunDirect == null)
             {
@@ -455,6 +456,8 @@ namespace VoxxWeatherPlugin.Weathers
             if (SolarFlareWeather.Instance?.flareData != null)
             {
                 auroraObject.transform.parent = SolarFlareWeather.Instance.transform; // to stop it from moving with the player
+                auroraObject.transform.position = Vector3.zero;
+                auroraObject.transform.rotation = Quaternion.identity;
                 auroraVFX.SetVector4("auroraColor", SolarFlareWeather.Instance.flareData.AuroraColor1);
                 auroraVFX.SetVector4("auroraColor2", SolarFlareWeather.Instance.flareData.AuroraColor2);
                 Debug.LogDebug("Aurora VFX colored.");
@@ -463,9 +466,7 @@ namespace VoxxWeatherPlugin.Weathers
             // Set up the Corona VFX with the colors from the sun texture
             if (sunTexture != null)
             {
-                // Place the flare object at the sun's position
-                flareObject.transform.SetParent(sunTexture.transform);
-                flareObject.transform.localScale = Vector3.one * (SolarFlareWeather.Instance?.flareData?.FlareSize ?? 1.5f);
+                flareObject.transform.parent = SolarFlareWeather.Instance!.transform; // to stop it from moving with the player
                 Texture2D? mainTexture = sunTexture.GetComponent<Renderer>().material.mainTexture as Texture2D;
                 if (mainTexture == null)
                 {
@@ -499,6 +500,14 @@ namespace VoxxWeatherPlugin.Weathers
         internal void Update()
         {
             float sunLuminosity = sunLightData != null ? sunLightData.intensity: 0;
+
+            // Sync flare objects position, rotation and scale with the sun texture absolute values relative to the world
+            if (sunTexture != null)
+            {
+                flareObject!.transform.position = sunTexture.transform.position;
+                flareObject.transform.rotation = sunTexture.transform.rotation;
+                flareObject.transform.localScale = sunTexture.transform.lossyScale * (SolarFlareWeather.Instance?.flareData?.FlareSize ?? 1.5f);
+            }
 
             if (sunLuminosity < auroraSunThreshold) //add check for sun's position relative to horizon???
             {
@@ -560,7 +569,6 @@ namespace VoxxWeatherPlugin.Weathers
         internal override void Reset()
         {
             sunLightData = null;
-            flareObject?.transform.SetParent(transform);
             flareObject?.SetActive(false);
             auroraObject?.SetActive(false);
         }

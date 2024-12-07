@@ -114,7 +114,7 @@ namespace VoxxWeatherPlugin.Patches
                     // Insert the additional condition
                     codes.InsertRange(i + 4, new[]
                     {
-                        new CodeInstruction(OpCodes.Ldsfld, AccessTools.Field(typeof(PlayerTemperatureManager), "heatSeverity")),
+                        new CodeInstruction(OpCodes.Call, AccessTools.PropertyGetter(typeof(PlayerTemperatureManager), "heatSeverity")),
                         new CodeInstruction(OpCodes.Ldc_R4, 0.85f),
                         new CodeInstruction(OpCodes.Ble_Un_S, originalJumpTarget)
                     });
