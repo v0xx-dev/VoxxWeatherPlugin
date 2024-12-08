@@ -5,6 +5,7 @@ using UnityEngine.Rendering;
 
 namespace VoxxWeatherPlugin.Utils
 {
+    // Must be used with a camera that has a target texture
     public class DepthVSMPass : CustomPass
     {
         public Material? depthMaterial;

@@ -55,28 +55,6 @@ namespace VoxxWeatherPlugin.Utils
             Layer31 = 1 << 31,
         }
 
-        static class SnowfallShaderIDs
-        {
-            internal static readonly int FadeValue = Shader.PropertyToID("_FadeValue"); 
-            internal static readonly int DepthTex = Shader.PropertyToID("_DepthTex");
-            internal static readonly int FootprintsTex = Shader.PropertyToID("_FootprintsTex");
-            internal static readonly int LightViewProjection = Shader.PropertyToID("_LightViewProjection");
-            internal static readonly int FootprintsViewProjection = Shader.PropertyToID("_FootprintsViewProjection");
-            internal static readonly int ShadowBias = Shader.PropertyToID("_ShadowBias");
-            // internal static readonly int LightDirection = Shader.PropertyToID("_LightDirection");
-            internal static readonly int PCFKernelSize = Shader.PropertyToID("_PCFKernelSize");
-            internal static readonly int SnowNoisePower = Shader.PropertyToID("_SnowNoisePower");
-            internal static readonly int SnowNoiseScale = Shader.PropertyToID("_SnowNoiseScale");
-            internal static readonly int MaxSnowHeight = Shader.PropertyToID("_MaxSnowHeight");
-            internal static readonly int SnowOcclusionBias = Shader.PropertyToID("_SnowOcclusionBias");
-            internal static readonly int BaseTessellationFactor = Shader.PropertyToID("_BaseTessellationFactor");
-            internal static readonly int MaxTessellationFactor = Shader.PropertyToID("_MaxTessellationFactor");
-            internal static readonly int isAdaptiveTessellation = Shader.PropertyToID("_isAdaptiveTesselation");
-            internal static readonly int ShipPosition = Shader.PropertyToID("_ShipPosition");
-            internal static readonly int Emission = Shader.PropertyToID("_Emission");
-
-        }
-
         // Used only for the UI to keep track of the toggle state
         internal bool filterFoldout;
         internal bool rendererFoldout;
@@ -242,14 +220,14 @@ namespace VoxxWeatherPlugin.Utils
         {
             // material.SetFloat(SnowfallShaderIDs.FadeValue, fadeValue);
             material.SetTexture(SnowfallShaderIDs.DepthTex, SnowfallWeather.Instance!.levelDepthmap);
-            material.SetTexture(SnowfallShaderIDs.FootprintsTex, SnowfallWeather.Instance!.snowTracksMap);
-            material.SetMatrix(SnowfallShaderIDs.FootprintsViewProjection, SnowfallWeather.Instance!.snowTracksCamera!.projectionMatrix * SnowfallWeather.Instance!.snowTracksCamera.worldToCameraMatrix);
-            material.SetMatrix(SnowfallShaderIDs.LightViewProjection, SnowfallWeather.Instance!.levelDepthmapCamera!.projectionMatrix * SnowfallWeather.Instance!.levelDepthmapCamera.worldToCameraMatrix);
-            material.SetFloat(SnowfallShaderIDs.SnowNoisePower, SnowfallWeather.Instance!.snowIntensity);
-            material.SetFloat(SnowfallShaderIDs.SnowNoiseScale, SnowfallWeather.Instance!.snowScale);
-            material.SetFloat(SnowfallShaderIDs.MaxSnowHeight, SnowfallWeather.Instance!.maxSnowHeight);
-            material.SetVector(SnowfallShaderIDs.ShipPosition, SnowfallWeather.Instance!.shipPosition);
-            material.SetFloat(SnowfallShaderIDs.Emission, SnowfallWeather.Instance!.emissionMultiplier);
+            material.SetTexture(SnowfallShaderIDs.FootprintsTex, SnowfallWeather.Instance.snowTracksMap);
+            material.SetMatrix(SnowfallShaderIDs.FootprintsViewProjection, SnowfallWeather.Instance.tracksWorldToClipMatrix ?? Matrix4x4.identity);
+            material.SetMatrix(SnowfallShaderIDs.LightViewProjection, SnowfallWeather.Instance.depthWorldToClipMatrix ?? Matrix4x4.identity);
+            material.SetFloat(SnowfallShaderIDs.SnowNoisePower, SnowfallWeather.Instance.snowIntensity);
+            material.SetFloat(SnowfallShaderIDs.SnowNoiseScale, SnowfallWeather.Instance.snowScale);
+            material.SetFloat(SnowfallShaderIDs.MaxSnowHeight, SnowfallWeather.Instance.maxSnowHeight);
+            material.SetVector(SnowfallShaderIDs.ShipPosition, SnowfallWeather.Instance.shipPosition);
+            material.SetFloat(SnowfallShaderIDs.Emission, SnowfallWeather.Instance.emissionMultiplier);
         }
 
         internal void RenderForwardRendererList(FrameSettings frameSettings,

@@ -100,10 +100,10 @@ namespace VoxxWeatherPlugin.Behaviours
             if (inputNeedsUpdate)
             {
                 // Update static input parameters
-                snowThicknessComputeShader!.SetFloat("_MaximumSnowHeight", snowfallData.maxSnowHeight);
+                snowThicknessComputeShader!.SetFloat(SnowfallShaderIDs.MaxSnowHeight, snowfallData.maxSnowHeight);
                 // Set static texture buffers
-                snowThicknessComputeShader.SetTexture(kernelHandle, "_SnowMaskTex", snowfallData?.snowMasks);
-                snowThicknessComputeShader.SetTexture(kernelHandle, "_FootprintsTex", snowfallData?.snowTracksMap);
+                snowThicknessComputeShader.SetTexture(kernelHandle, SnowfallShaderIDs.SnowMasks, snowfallData?.snowMasks);
+                snowThicknessComputeShader.SetTexture(kernelHandle, SnowfallShaderIDs.FootprintsTex, snowfallData?.snowTracksMap);
                 inputNeedsUpdate = false;
 #if DEBUG
                 groundsInfo = new List<string>();
@@ -115,13 +115,21 @@ namespace VoxxWeatherPlugin.Behaviours
                 entityInfo = new List<string>();
                 foreach (KeyValuePair<MonoBehaviour, int> kvp in entitySnowDataMap)
                 {
+                    if (kvp.Key == null)
+                    {
+                        continue;
+                    }
                     EntitySnowData snowData = entitySnowDataArray[kvp.Value];
-                    entityInfo.Add($"{kvp.Key.gameObject.name}: wPos {snowData.w}, texPos {snowData.uv}, texIndex {snowData.textureIndex}, snowThcikness {snowData.snowThickness}");
+                    entityInfo.Add($"{kvp.Key.gameObject.name}: wPos {snowData.w}, texPos {snowData.uv}, texIndex {snowData.textureIndex}, snowThickness {snowData.snowThickness}");
                 }
 
                 entityHitInfo = new List<string>();
                 foreach (KeyValuePair<MonoBehaviour, RaycastHit> kvp in entityHitData)
                 {
+                    if (kvp.Key == null)
+                    {
+                        continue;
+                    }
                     RaycastHit hit = kvp.Value;
                     string hitString = $"{kvp.Key.gameObject.name}: Valid for snow: {IsEntityValidForSnow(kvp.Key)}, Standing on: {hit.collider.gameObject.name}, On registered ground: {groundToIndex.ContainsKey(hit.collider.gameObject)})";
                     entityHitInfo.Add(hitString + $", wPos {hit.point}, texPos2 {hit.textureCoord2}");
@@ -131,6 +139,10 @@ namespace VoxxWeatherPlugin.Behaviours
 
                 foreach (KeyValuePair<MonoBehaviour, VisualEffect> kvp in SnowPatches.snowTrackersDict)
                 {
+                    if (kvp.Key == null)
+                    {
+                        continue;
+                    }
                     SnowTrackerData data = new SnowTrackerData();
                     data.isActive = kvp.Value.GetBool("isTracking");
                     data.particleSize = kvp.Value.GetFloat("particleSize");
@@ -151,9 +163,9 @@ namespace VoxxWeatherPlugin.Behaviours
             }
 
             // Update dynamic input parameters
-            snowThicknessComputeShader?.SetVector("_ShipLocation", snowfallData.shipPosition);
-            snowThicknessComputeShader?.SetFloat("_SnowNoisePower", snowfallData.snowIntensity);
-            snowThicknessComputeShader?.SetMatrix("_FootprintsViewProjection", snowfallData.snowTracksCamera!.projectionMatrix * snowfallData.snowTracksCamera.worldToCameraMatrix);
+            snowThicknessComputeShader?.SetVector(SnowfallShaderIDs.ShipPosition, snowfallData.shipPosition);
+            snowThicknessComputeShader?.SetFloat(SnowfallShaderIDs.SnowNoisePower, snowfallData.snowIntensity);
+            snowThicknessComputeShader?.SetMatrix(SnowfallShaderIDs.FootprintsViewProjection, snowfallData.snowTracksCamera!.projectionMatrix * snowfallData.snowTracksCamera.worldToCameraMatrix);
                 
             // Update texture space positions
             // UpdatePositionData();

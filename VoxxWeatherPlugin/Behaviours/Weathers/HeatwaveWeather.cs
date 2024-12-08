@@ -265,7 +265,7 @@ namespace VoxxWeatherPlugin.Weathers
                 {
                     if (child.TryGetComponent(out VisualEffect vfx))
                     {
-                        vfx.SetFloat("particleSpawnRate", VoxxWeatherPlugin.HeatwaveParticlesSpawnRate.Value * reductionFactor);
+                        vfx.SetFloat("particleSpawnRate", VoxxWeatherPlugin.HeatwaveParticlesSpawnRate.Value * reductionFactor); // TODO possible to optimize by using property id
                     }
                 }
             }

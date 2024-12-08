@@ -6,7 +6,7 @@ using UnityEngine.VFX.Utility;
 
 namespace VoxxWeatherPlugin.Utils
 {
-
+    // TODO Check why this is not working
     /// <summary>
     /// Camera parameter binding helper class with render texture support.
     /// </summary>
@@ -136,7 +136,7 @@ namespace VoxxWeatherPlugin.Utils
             var depth = AdditionalData.GetGraphicsBuffer(HDAdditionalCameraData.BufferAccessType.Depth);
             var color = AdditionalData.GetGraphicsBuffer(HDAdditionalCameraData.BufferAccessType.Color);
 
-            if (depth == null && color == null)
+            if (depth == null && depthTexture == null || color == null && colorTexture == null)
                 return;
 
             component.SetVector3(m_Position, AdditionalData.transform.position);
@@ -160,7 +160,7 @@ namespace VoxxWeatherPlugin.Utils
             }
             else
             {
-                component.SetVector2(m_Dimensions, new Vector2(m_Camera.pixelWidth * depth.rtHandleProperties.rtHandleScale.x, m_Camera.pixelHeight * depth.rtHandleProperties.rtHandleScale.y));
+                component.SetVector2(m_Dimensions, new Vector2(m_Camera.pixelWidth * depth!.rtHandleProperties.rtHandleScale.x, m_Camera.pixelHeight * depth.rtHandleProperties.rtHandleScale.y));
                 component.SetFloat(m_AspectRatio, m_Camera.aspect);
             }
             
