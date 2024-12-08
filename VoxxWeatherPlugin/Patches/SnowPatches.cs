@@ -124,7 +124,7 @@ namespace VoxxWeatherPlugin.Patches
         [HarmonyPrefix]
         private static void EnemyGroundSamplerPatch(EnemyAI __instance)
         {
-            if (GameNetworkManager.Instance.isHostingGame && (SnowfallWeather.Instance?.IsActive ?? false))
+            if (GameNetworkManager.Instance.isHostingGame && (SnowfallWeather.Instance?.IsActive ?? false) && __instance.isOutside)
             {
                 if (Physics.Raycast(__instance.transform.position, -Vector3.up, out __instance.raycastHit, 6f, StartOfRound.Instance.walkableSurfacesMask, QueryTriggerInteraction.Ignore))
                 {
@@ -313,8 +313,8 @@ namespace VoxxWeatherPlugin.Patches
             PlayFootprintTracker(__instance, snowTrackersDict, !__instance.isInFactory);
         }
 
-        [HarmonyPatch(typeof(Shovel), "HitShovelClientRpc")]
-        [HarmonyPrefix]
+        [HarmonyPatch(typeof(Shovel), "ReelUpSFXClientRpc")]
+        [HarmonyPostfix]
         private static void ShovelSnowPatch(Shovel __instance)
         {
             PlayFootprintTracker(__instance, snowShovelDict, !__instance.isInFactory);
@@ -370,7 +370,7 @@ namespace VoxxWeatherPlugin.Patches
         private static bool SurfaceSamplingOverride(PlayerControllerB playerScript)
         {
             bool isOnGround = Physics.Raycast(playerScript.interactRay, out playerScript.hit, 6f, StartOfRound.Instance.walkableSurfacesMask, QueryTriggerInteraction.Ignore);
-            bool isSameSurface = playerScript.hit.collider.CompareTag(StartOfRound.Instance.footstepSurfaces[playerScript.currentFootstepSurfaceIndex].surfaceTag);
+            bool isSameSurface = isOnGround ? playerScript.hit.collider.CompareTag(StartOfRound.Instance.footstepSurfaces[playerScript.currentFootstepSurfaceIndex].surfaceTag) : true;
             bool snowOverride = false;
 
             if (!(SnowfallWeather.Instance?.IsActive ?? false))
