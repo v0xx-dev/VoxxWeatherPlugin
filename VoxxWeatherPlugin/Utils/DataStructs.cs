@@ -227,7 +227,7 @@ namespace VoxxWeatherPlugin.Utils
 
         // public IEnumerator<SerializableKeyValuePair<TKey, TValue>> GetEnumerator() => dictionary.GetEnumerator();
 
-        public TValue GetValueOrDefault(TKey key, TValue defaultValue = default(TValue)) =>ContainsKey(key)? dictionary[key] : defaultValue;
+        // public TValue GetValueOrDefault(TKey key, TValue defaultValue = default) => ContainsKey(key)? dictionary[key] : defaultValue;
 
     }
 

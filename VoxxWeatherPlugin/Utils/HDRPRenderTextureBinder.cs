@@ -6,11 +6,10 @@ using UnityEngine.VFX.Utility;
 
 namespace VoxxWeatherPlugin.Utils
 {
-    // TODO Check why this is not working
     /// <summary>
     /// Camera parameter binding helper class with render texture support.
     /// </summary>
-    [VFXBinder("HDRP/HDRP Camera&Texture")]
+    [VFXBinder("HDRP/HDRP Texture&Camera")]
     public class HDRPCameraOrTextureBinder : VFXBinderBase
     {
         /// <summary>
@@ -136,7 +135,7 @@ namespace VoxxWeatherPlugin.Utils
             var depth = AdditionalData.GetGraphicsBuffer(HDAdditionalCameraData.BufferAccessType.Depth);
             var color = AdditionalData.GetGraphicsBuffer(HDAdditionalCameraData.BufferAccessType.Color);
 
-            if (depth == null && depthTexture == null || color == null && colorTexture == null)
+            if (depth == null && depthTexture == null && color == null && colorTexture == null)
                 return;
 
             component.SetVector3(m_Position, AdditionalData.transform.position);

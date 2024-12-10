@@ -49,9 +49,9 @@ namespace VoxxWeatherPlugin.Weathers
         [SerializeField]
         internal RenderTexture? levelDepthmap;
         [SerializeField]
-        internal uint PCFKernelSize = 9;
+        internal uint PCFKernelSize = 12;
         [SerializeField]
-        internal float shadowBias = 0.01f;
+        internal float shadowBias = 0.001f;
         [SerializeField]
         internal float snowOcclusionBias = 0.01f;
         internal Matrix4x4? depthWorldToClipMatrix;
@@ -136,9 +136,16 @@ namespace VoxxWeatherPlugin.Weathers
         internal QuicksandTrigger[]? waterObjects; // TODO Remove
         [SerializeField]
         internal List<GameObject> groundObjectCandidates = new List<GameObject>(); // TODO Remove
-        internal string currentSceneName = "None";
+        internal string currentLevelName => StartOfRound.Instance?.currentLevel.sceneName ?? "";
         internal Bounds levelBounds;
         internal System.Random? seededRandom;
+        private HDAdditionalLightData? sunLightData;
+
+#if DEBUG
+
+        public bool rebakeMaps = false;
+
+#endif
 
         internal void Awake()
         {   
@@ -192,7 +199,7 @@ namespace VoxxWeatherPlugin.Weathers
             Instance = this; // Change the global reference to this instance (for patches)
 
             seededRandom = new System.Random(StartOfRound.Instance.randomMapSeed);
-            
+            sunLightData = TimeOfDay.Instance.sunDirect?.GetComponent<HDAdditionalLightData>();
             levelBounds = PlayableAreaCalculator.CalculateZoneSize();
             
             maxSnowHeight = seededRandom.NextDouble(1.7f, 3f);
@@ -223,10 +230,22 @@ namespace VoxxWeatherPlugin.Weathers
 
         internal virtual void FixedUpdate()
         {
+            // Update for moving ship and compat for different ship landing positions
             shipPosition = StartOfRound.Instance.shipBounds.bounds.center;
+            // Accumulate snow on the ground
             float normalizedSnowTimer =  Mathf.Clamp01(maxSnowNormalizedTime - TimeOfDay.Instance.normalizedTimeOfDay);
             snowIntensity = 10f * normalizedSnowTimer;
+            // Update the snow glow based on the sun intensity
+            float sunIntensity = Mathf.Min(sunLightData?.intensity ?? 0f, TimeOfDay.Instance.sunDirect?.intensity ?? 0f);
+            emissionMultiplier = Mathf.Clamp01(sunIntensity/40f)*0.3f;
             UpdateCameraPosition(snowTrackerCameraContainer, snowTracksCamera);
+#if DEBUG
+            if (rebakeMaps)
+            {
+                rebakeMaps = false;
+                StartCoroutine(RefreshDepthmapCoroutine(levelDepthmapCamera!, levelDepthmap!, bakeSnowMaps: true));
+            }
+#endif
         }
 
         internal void UpdateCameraPosition(GameObject? cameraContainer, Camera? camera)
@@ -290,7 +309,7 @@ namespace VoxxWeatherPlugin.Weathers
 
         internal void FreezeWater()
         {
-            waterObjects = FindObjectsOfType<QuicksandTrigger>().Where(x => x.gameObject.activeSelf && x.isWater && x.gameObject.scene.name == currentSceneName).ToArray(); //&& !x.isInsideWater
+            waterObjects = FindObjectsOfType<QuicksandTrigger>().Where(x => x.gameObject.activeSelf && x.isWater && x.gameObject.scene.name == currentLevelName).ToArray(); //&& !x.isInsideWater
             HashSet<GameObject> iceObjects = new HashSet<GameObject>();
 
             foreach (QuicksandTrigger waterObject in waterObjects)
@@ -325,7 +344,7 @@ namespace VoxxWeatherPlugin.Weathers
         internal void ModifyScrollingFog()
         {
             LocalVolumetricFog[] fogArray = GameObject.FindObjectsOfType<LocalVolumetricFog>();
-            fogArray = fogArray.Where(x => x.gameObject.activeSelf && x.gameObject.scene.name == currentSceneName).ToArray();
+            fogArray = fogArray.Where(x => x.gameObject.activeSelf && x.gameObject.scene.name == currentLevelName).ToArray();
             foreach (LocalVolumetricFog fog in fogArray)
             {
                 fog.parameters.textureScrollingSpeed = Vector3.zero;
@@ -440,15 +459,14 @@ namespace VoxxWeatherPlugin.Weathers
         public List<GameObject> GetObjectsAboveThreshold()
         {
             GameObject dungeonAnchor = FindAnyObjectByType<RuntimeDungeon>().Root;
-            // Weird way to obtain scene name without dependencies
-            currentSceneName = dungeonAnchor.gameObject.scene.name;
             // Set threshold to 1/3 of distance from the ship to the top of the dungeon
             float heightThreshold = -Mathf.Abs(dungeonAnchor.transform.position.y/3); 
+
             LayerMask mask = LayerMask.GetMask("Default", "Room", "Terrain", "Foliage");
             List<GameObject> objectsAboveThreshold = new List<GameObject>();
 
             // Get the target scene
-            Scene scene = SceneManager.GetSceneByName(currentSceneName);
+            Scene scene = SceneManager.GetSceneByName(currentLevelName);
 
             // Reset the list of ground objects to find possible mesh terrains to render snow on
             groundObjectCandidates = new List<GameObject>();
@@ -590,7 +608,6 @@ namespace VoxxWeatherPlugin.Weathers
         private float fadeSpeed = 2f; // Units per second
         private bool isFading = false;
         private bool isUnderSnowPreviousFrame = false;
-        private HDAdditionalLightData? sunLightData;
 
         [Header("Snow Tracker VFX")]
         
@@ -614,7 +631,6 @@ namespace VoxxWeatherPlugin.Weathers
             
             SnowfallWeather.Instance!.snowVolume!.enabled = true;
             SnowfallWeather.Instance.snowTrackerCameraContainer?.SetActive(true);
-            sunLightData = TimeOfDay.Instance.sunDirect?.GetComponent<HDAdditionalLightData>();
             // if (sunLightData != null)
             // {
             //     sunLightData.lightUnit = LightUnit.Lux;
@@ -639,7 +655,7 @@ namespace VoxxWeatherPlugin.Weathers
         {   
             SnowThicknessManager.Instance!.CalculateThickness(); 
             
-            if (SnowThicknessManager.Instance.isOnNaturalGround)
+            if (SnowThicknessManager.Instance.isOnNaturalGround && GameNetworkManager.Instance.localPlayerController.physicsParent == null)
             {
                 snowThickness = SnowThicknessManager.Instance.GetSnowThickness(GameNetworkManager.Instance.localPlayerController);
                 float eyeBias = 0.3f;
@@ -678,8 +694,6 @@ namespace VoxxWeatherPlugin.Weathers
             {
                 PlayerTemperatureManager.SetPlayerTemperature(-Time.fixedDeltaTime / SnowfallWeather.Instance!.timeUntilFrostbite);
             }
-            // Update the snow glow based on the sun intensity
-            SnowfallWeather.Instance!.emissionMultiplier = sunLightData == null ? 0f : Mathf.Clamp01(sunLightData.intensity/40f)*0.3f;
         }
 
         private void StartFade(float target)
