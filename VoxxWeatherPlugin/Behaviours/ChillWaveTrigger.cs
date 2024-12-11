@@ -13,15 +13,8 @@ namespace VoxxWeatherPlugin.Behaviours
         [SerializeField]
         internal float waveForce = 40f;
         internal Coroutine? temperatureChangeCoroutine;
+        [SerializeField]
         internal bool collidedWithLocalPlayer = false;
-
-        private void Awake()
-        {
-            if (GameNetworkManager.Instance.localPlayerController != null)
-            {
-                PlayerTemperatureManager.isInColdZone = true;
-            }
-        }
 
         private void OnTriggerEnter(Collider other)
         {

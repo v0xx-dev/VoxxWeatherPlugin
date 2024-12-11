@@ -50,7 +50,7 @@ namespace VoxxWeatherPlugin.Weathers
             windForce = seededRandom.NextDouble(minWindForce, maxWindForce);
             maxSnowHeight = seededRandom.NextDouble(1.0f, 1.7f);
             maxSnowNormalizedTime = seededRandom.NextDouble(0.1f, 0.3f);
-            timeUntilFrostbite = seededRandom.NextDouble(60f, 120f);
+            timeUntilFrostbite = seededRandom.NextDouble(40f, 100f);
             
         }
 
@@ -108,7 +108,7 @@ namespace VoxxWeatherPlugin.Weathers
                     UnityEngine.Debug.DrawLine(playerHeadPos, hit.point, Color.green, Time.fixedDeltaTime);
                     // Debug.LogDebug($"Hit object: {hit.collider.gameObject.name}");
                 }
-            }           
+            }       
 #endif
 
             if (IsWindAllowed(localPlayer) && isPlayerInBlizzard)
@@ -141,10 +141,44 @@ namespace VoxxWeatherPlugin.Weathers
 
         internal bool IsWindAllowed(PlayerControllerB localPlayer)
         {
+#if DEBUG
+            if (localPlayer.isClimbingLadder)
+            {
+                Debug.LogDebug("Player is climbing ladder");
+            }
+            if (localPlayer.physicsParent != null)
+            {
+                Debug.LogDebug("Player is in vehicle");
+            }
+            if (localPlayer.isInHangarShipRoom)
+            {
+                Debug.LogDebug("Player is in hangar ship room");
+            }
+            if (localPlayer.isInsideFactory)
+            {
+                Debug.LogDebug("Player is inside factory");
+            }
+            if (localPlayer.isInElevator)
+            {
+                Debug.LogDebug("Player is in elevator");
+            }
+            if (localPlayer.inAnimationWithEnemy)
+            {
+                Debug.LogDebug("Player is in animation with enemy");
+            }
+            if (localPlayer.isPlayerDead)
+            {
+                Debug.LogDebug("Player is dead");
+            }
+            if (localPlayer.currentAudioTrigger?.insideLighting ?? false)
+            {
+                Debug.LogDebug("Player is inside interior lighting");
+            }
+#endif
             return !(localPlayer.isClimbingLadder || localPlayer.physicsParent != null || 
                     localPlayer.isInHangarShipRoom || localPlayer.isInsideFactory ||
                      localPlayer.isInElevator || localPlayer.inAnimationWithEnemy ||
-                      localPlayer.isPlayerDead || (localPlayer.currentAudioTrigger?.setInsideAtmosphere ?? false));
+                      localPlayer.isPlayerDead || (localPlayer.currentAudioTrigger?.insideLighting ?? false));
         }
 
         internal IEnumerator ChangeWindDirectionCoroutine()
@@ -206,7 +240,11 @@ namespace VoxxWeatherPlugin.Weathers
 
                 // Place and enable the chill wave
                 chillWaveContainer.transform.position = initialPosition;
-                chillWaveContainer.SetActive(true);
+
+                if (!GameNetworkManager.Instance.localPlayerController.isInsideFactory)
+                {
+                    chillWaveContainer.SetActive(true);
+                }
 
                 // Calculate target position (diametrically opposite)
                 Vector3 targetPosition = levelBounds.center - initialDirection * levelRadius;

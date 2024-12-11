@@ -54,6 +54,7 @@ namespace VoxxWeatherPlugin.Behaviours
         public List<string> entityHitInfo = new List<string>();
         public SerializableDictionary<GameObject, SnowTrackerData> snowTrackerData = new SerializableDictionary<GameObject, SnowTrackerData>();
         public SerializableDictionary<GameObject, float> entitySpeeds = new SerializableDictionary<GameObject, float>();
+        public AudioReverbTrigger? reverbTrigger;
 
 #endif
         public void Awake()
@@ -106,6 +107,7 @@ namespace VoxxWeatherPlugin.Behaviours
                 snowThicknessComputeShader.SetTexture(kernelHandle, SnowfallShaderIDs.FootprintsTex, snowfallData?.snowTracksMap);
                 inputNeedsUpdate = false;
 #if DEBUG
+                reverbTrigger = GameNetworkManager.Instance.localPlayerController.currentAudioTrigger;
                 groundsInfo = new List<string>();
                 foreach (KeyValuePair<GameObject, int> kvp in groundToIndex)
                 {
