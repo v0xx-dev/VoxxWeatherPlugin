@@ -45,10 +45,11 @@ namespace VoxxWeatherPlugin.Weathers
         {
             base.OnEnable();
             waveInterval = seededRandom.NextDouble(60f, 180f);
-            windForce = seededRandom.NextDouble(5f, 15f);
+            windForce = seededRandom.NextDouble(10f, 20f);
             maxSnowHeight = seededRandom.NextDouble(1.0f, 1.7f);
             maxSnowNormalizedTime = seededRandom.NextDouble(0.1f, 0.3f);
             timeUntilFrostbite = seededRandom.NextDouble(60f, 120f);
+            
         }
 
         internal override void FixedUpdate()
@@ -64,7 +65,7 @@ namespace VoxxWeatherPlugin.Weathers
                 }
             }
 
-            if (windChangeCoroutine == null)
+            if (windChangeCoroutine == null && !isChillWaveActive)
             {
                 timeUntilWindChange += Time.fixedDeltaTime;
                 if (timeUntilWindChange > windChangeInterval)
@@ -77,9 +78,38 @@ namespace VoxxWeatherPlugin.Weathers
             PlayerControllerB localPlayer = GameNetworkManager.Instance.localPlayerController;
             Vector3 playerHeadPos = localPlayer.gameplayCamera.transform.position;
             // Could be optimized since the camera position is constant relative to the player, TODO?
-            if (!IsWindBlocked(localPlayer) &&
-                !Physics.Linecast(GetNearestPointOnPlane(playerHeadPos, blizzardCollisionCamera.transform.position, windDirection),
-                                    playerHeadPos, LayerMask.GetMask("Room", "Terrain", "Default"), QueryTriggerInteraction.Ignore))
+            // Vector3 nearestPointOnPlane = GetNearestPointOnPlane(playerHeadPos, blizzardCollisionCamera.transform.position, windDirection);
+            
+            // Calculate the direction vector from playerHeadPos to blizzard source
+            Vector3 directionToSource = (blizzardCollisionCamera.transform.position - playerHeadPos).normalized;
+
+            // Calculate the point 20 meters away in the direction of the blizzard source
+            Vector3 targetPoint = playerHeadPos + directionToSource * 20f;
+            
+            bool isPlayerInBlizzard = !Physics.Linecast(playerHeadPos, targetPoint,
+                                        LayerMask.GetMask("Room", "Terrain", "Default", "NavigationSurface"),
+                                            QueryTriggerInteraction.Ignore);
+
+#if DEBUG
+            // Visualize the Linecast
+            UnityEngine.Debug.DrawLine(playerHeadPos, targetPoint, Color.red, Time.fixedDeltaTime);
+            // Visualize the Wind Direction
+            UnityEngine.Debug.DrawRay(blizzardCollisionCamera.transform.position, windDirection * 10, Color.blue, Time.fixedDeltaTime);
+            // If linecast hits, visualize the hit point by doing a raycast and drawing a line
+            if (!isPlayerInBlizzard)
+            {
+                RaycastHit hit;
+                if (Physics.Raycast(playerHeadPos, targetPoint - playerHeadPos, out hit, 99f,
+                                    LayerMask.GetMask("Room", "Terrain", "Default", "NavigationSurface"),
+                                        QueryTriggerInteraction.Ignore))
+                {
+                    UnityEngine.Debug.DrawLine(playerHeadPos, hit.point, Color.green, Time.fixedDeltaTime);
+                    // Debug.LogDebug($"Hit object: {hit.collider.gameObject.name}");
+                }
+            }           
+#endif
+
+            if (IsWindAllowed(localPlayer) && isPlayerInBlizzard)
             {
                 localPlayer.externalForces += windDirection * windForce * Time.fixedDeltaTime;
                 PlayerTemperatureManager.isInColdZone = true;
@@ -98,12 +128,12 @@ namespace VoxxWeatherPlugin.Weathers
             return point + planeNormal * distance;
         }
 
-        internal bool IsWindBlocked(PlayerControllerB localPlayer)
+        internal bool IsWindAllowed(PlayerControllerB localPlayer)
         {
-            return localPlayer.isClimbingLadder || localPlayer.physicsParent != null || 
+            return !(localPlayer.isClimbingLadder || localPlayer.physicsParent != null || 
                     localPlayer.isInHangarShipRoom || localPlayer.isInsideFactory ||
                      localPlayer.isInElevator || localPlayer.inAnimationWithEnemy ||
-                      localPlayer.isPlayerDead;
+                      localPlayer.isPlayerDead || (localPlayer.currentAudioTrigger?.setInsideAtmosphere ?? false));
         }
 
         internal IEnumerator ChangeWindDirectionCoroutine()
@@ -145,7 +175,7 @@ namespace VoxxWeatherPlugin.Weathers
             chillWaveContainer.transform.rotation = targetRotation;
 
             windDirection = Quaternion.Euler(0f, randomAngle, 0f) * windDirection;
-            windForce = seededRandom.NextDouble(5f, 15f);
+            windForce = seededRandom.NextDouble(10f, 20);
             windChangeCoroutine = null; 
         }
 
@@ -212,6 +242,12 @@ namespace VoxxWeatherPlugin.Weathers
         internal override void OnDisable()
         {
             base.OnDisable();
+            blizzardWaveContainer.SetActive(false);
+        }
+
+        internal override void Reset()
+        {
+            base.Reset();
             blizzardWaveContainer.SetActive(false);
         }
     }

@@ -18,7 +18,7 @@ namespace VoxxWeatherPlugin.Utils
         public HDAdditionalCameraData AdditionalData;
         public RenderTexture? depthTexture;
         public RenderTexture? colorTexture;
-        Camera m_Camera;
+        internal Camera m_Camera;
 
         [VFXPropertyBinding("UnityEditor.VFX.CameraType"), SerializeField]
         ExposedProperty CameraProperty = "Camera";

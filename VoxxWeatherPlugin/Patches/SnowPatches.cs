@@ -108,7 +108,8 @@ namespace VoxxWeatherPlugin.Patches
 
             float severity = PlayerTemperatureManager.coldSeverity;
 
-            // Debug.LogDebug($"Severity: {severity}, inColdZone: {PlayerTemperatureManager.isInColdZone}, frostbiteTimer: {frostbiteTimer}");
+            Debug.LogDebug($"Severity: {severity}, inColdZone: {PlayerTemperatureManager.isInColdZone}, frostbiteTimer: {frostbiteTimer}");
+            
             if (severity >= frostbiteThreshold)
             {
                 frostbiteTimer += Time.deltaTime;
