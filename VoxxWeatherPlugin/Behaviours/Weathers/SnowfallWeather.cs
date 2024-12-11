@@ -544,6 +544,10 @@ namespace VoxxWeatherPlugin.Weathers
                     isOutOfBoundsInMesh = nameString.Contains("outofbounds");
                 }
             }
+            else
+            {
+                return false;
+            }
 
             bool isTerrainInMaterial = false;
             bool isOutOfBoundsInMaterial = false;
@@ -559,6 +563,10 @@ namespace VoxxWeatherPlugin.Weathers
                     isOutOfBoundsInMaterial = nameString.Contains("outofbounds");
                     isDecalLayerMatched = (meshRenderer.renderingLayerMask & decalLayerMask) != 0;
                 }
+            }
+            else
+            {
+                return false;
             }
 
             return  (isTerrainInName || isTerrainInMaterial || isTerrainInMesh) &&
@@ -618,12 +626,12 @@ namespace VoxxWeatherPlugin.Weathers
         internal void Start()
         {
             snowFootstepIndex = Array.FindIndex(StartOfRound.Instance.footstepSurfaces, surface => surface.surfaceTag == "Snow");
-            PlayerTemperatureManager.freezeEffectVolume = frostbiteFilter;
         }
 
         internal virtual void OnEnable()
         {
             snowVFXContainer?.SetActive(true);
+            PlayerTemperatureManager.freezeEffectVolume = frostbiteFilter;
             
             frostbiteFilter!.enabled = true;
             frostyFilter!.enabled = true;
@@ -674,7 +682,7 @@ namespace VoxxWeatherPlugin.Weathers
                 // Slow down the player if they are in snow (only if snow thickness is above 0.4, caps at 2.5 height)
                 snowMovementHindranceMultiplier = 1 + 5*Mathf.Clamp01((snowThickness - 0.4f)/2.1f);
 
-                Debug.LogDebug($"Hindrance multiplier: {snowMovementHindranceMultiplier}, localPlayerEyeY: {localPlayerEyeY}, isUnderSnow: {isUnderSnow}");
+                // Debug.LogDebug($"Hindrance multiplier: {snowMovementHindranceMultiplier}, localPlayerEyeY: {localPlayerEyeY}, isUnderSnow: {isUnderSnow}");
             }
             else
             {
@@ -686,10 +694,10 @@ namespace VoxxWeatherPlugin.Weathers
                 isUnderSnowPreviousFrame = false;
                 snowMovementHindranceMultiplier = 1f;
                 snowThickness = 0f;
-                Debug.LogDebug("Not on natural ground");
+                // Debug.LogDebug("Not on natural ground");
             }
             
-            PlayerTemperatureManager.isInColdZone = isUnderSnowPreviousFrame;
+            PlayerTemperatureManager.isInColdZone |= isUnderSnowPreviousFrame;
             if (PlayerTemperatureManager.isInColdZone)
             {
                 PlayerTemperatureManager.SetPlayerTemperature(-Time.fixedDeltaTime / SnowfallWeather.Instance!.timeUntilFrostbite);
@@ -750,7 +758,10 @@ namespace VoxxWeatherPlugin.Weathers
                 return;
             }
             HDRPCameraOrTextureBinder depthBinder = snowVFXContainer.GetComponent<HDRPCameraOrTextureBinder>();
-            depthBinder.depthTexture = SnowfallWeather.Instance!.levelDepthmap; // bind the baked depth texture
+            if (depthBinder.m_Camera == SnowfallWeather.Instance!.levelDepthmapCamera) // to avoid setting the depth texture for blizzard
+            {
+                depthBinder.depthTexture = SnowfallWeather.Instance.levelDepthmap; // bind the baked depth texture
+            }
         }
 
         internal void OnDestroy()
