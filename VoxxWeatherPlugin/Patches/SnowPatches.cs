@@ -17,11 +17,11 @@ namespace VoxxWeatherPlugin.Patches
         public static Dictionary<MonoBehaviour, VisualEffect> snowTrackersDict = new Dictionary<MonoBehaviour, VisualEffect>();
         public static Dictionary<MonoBehaviour, VisualEffect> snowShovelDict = new Dictionary<MonoBehaviour, VisualEffect>();
         public static Dictionary<EnemyAI, (float, float)> agentSpeedCache = new Dictionary<EnemyAI, (float, float)>();
-        public static float timeToWarm = 17f;   // Time to warm up from cold to room temperature
+        public static float timeToWarm = 20f;   // Time to warm up from cold to room temperature
         internal static float frostbiteTimer = 0f;
         internal static float frostbiteDamageInterval = 10f;
         internal static int frostbiteDamage = 10;
-        internal static float frostbiteThreshold = 0.5f; // Severity at which frostbite starts to occur
+        internal static float frostbiteThreshold = 0.5f; // Severity at which frostbite starts to occur, should be below 0.9
 
         [HarmonyPatch(typeof(PlayerControllerB), "Update")]
         [HarmonyTranspiler]
@@ -58,7 +58,6 @@ namespace VoxxWeatherPlugin.Patches
 
         [HarmonyPatch(typeof(PlayerControllerB), "GetCurrentMaterialStandingOn")]
         [HarmonyTranspiler]
-        [HarmonyDebug]
         private static IEnumerable<CodeInstruction> GroundSamplingTranspiler(IEnumerable<CodeInstruction> instructions)
         {
             var codeMatcher = new CodeMatcher(instructions);
@@ -93,7 +92,6 @@ namespace VoxxWeatherPlugin.Patches
         [HarmonyPriority(Priority.Low)]
         private static void FrostbiteLatePostfix(PlayerControllerB __instance)
         {
-            //PlayerTemperatureManager.heatTransferRate = 1f; // should be 1 if heatwave patches work correctly
 
             if (!(SnowfallWeather.Instance?.IsActive ?? false) && Mathf.Approximately(PlayerTemperatureManager.coldSeverity, 0))
             {
@@ -108,7 +106,7 @@ namespace VoxxWeatherPlugin.Patches
 
             float severity = PlayerTemperatureManager.coldSeverity;
 
-            Debug.LogDebug($"Severity: {severity}, inColdZone: {PlayerTemperatureManager.isInColdZone}, frostbiteTimer: {frostbiteTimer}");
+            Debug.LogDebug($"Severity: {severity}, inColdZone: {PlayerTemperatureManager.isInColdZone}, frostbiteTimer: {frostbiteTimer}, heatTransferRate: {PlayerTemperatureManager.heatTransferRate}");
             
             if (severity >= frostbiteThreshold)
             {

@@ -24,7 +24,9 @@ namespace VoxxWeatherPlugin.Weathers
         [SerializeField]
         internal float windChangeInterval = 20f;
         [SerializeField]
-        internal float windForce = 10f;
+        internal float windForce = 0.25f;
+        internal float minWindForce = 0.1f;
+        internal float maxWindForce = 0.5f;
         internal Coroutine windChangeCoroutine;
 
         [Header("Chill Waves")]
@@ -45,7 +47,7 @@ namespace VoxxWeatherPlugin.Weathers
         {
             base.OnEnable();
             waveInterval = seededRandom.NextDouble(60f, 180f);
-            windForce = seededRandom.NextDouble(10f, 20f);
+            windForce = seededRandom.NextDouble(minWindForce, maxWindForce);
             maxSnowHeight = seededRandom.NextDouble(1.0f, 1.7f);
             maxSnowNormalizedTime = seededRandom.NextDouble(0.1f, 0.3f);
             timeUntilFrostbite = seededRandom.NextDouble(60f, 120f);
@@ -111,7 +113,16 @@ namespace VoxxWeatherPlugin.Weathers
 
             if (IsWindAllowed(localPlayer) && isPlayerInBlizzard)
             {
-                localPlayer.externalForces += windDirection * windForce * Time.fixedDeltaTime;
+                if (localPlayer.physicsParent != null)
+                {
+                    PlayerTemperatureManager.heatTransferRate = 0.05f; // Cooling down slower in vehicles
+                }
+                else
+                {
+                    PlayerTemperatureManager.heatTransferRate = 1f; // Cooling down faster outdoors
+                }
+
+                localPlayer.externalForces += windDirection * windForce;
                 PlayerTemperatureManager.isInColdZone = true;
                 PlayerTemperatureManager.SetPlayerTemperature(-Time.fixedDeltaTime / timeUntilFrostbite);
             }
@@ -175,18 +186,20 @@ namespace VoxxWeatherPlugin.Weathers
             chillWaveContainer.transform.rotation = targetRotation;
 
             windDirection = Quaternion.Euler(0f, randomAngle, 0f) * windDirection;
-            windForce = seededRandom.NextDouble(10f, 20);
+            windForce = seededRandom.NextDouble(minWindForce, maxWindForce);
             windChangeCoroutine = null; 
         }
 
         internal IEnumerator GenerateChillWaveCoroutine()
         {
             GameObject chillWaveContainer = VFXManager.blizzardWaveContainer;
-            float levelRadius = levelBounds.size.magnitude / 2;
+            float levelRadius = levelBounds.size.magnitude; // Actually the diameter to make the wave go through the whole level + some extra
 
             for (int i = 0; i < numOfWaves; i++)
             {
                 isChillWaveActive = true;
+                // Shake screen and play sound
+                VFXManager.PlaySonicBoomSFX();
                 // Calculate initial position
                 Vector3 initialDirection = -windDirection.normalized;
                 Vector3 initialPosition = levelBounds.center + initialDirection * levelRadius;
@@ -231,24 +244,48 @@ namespace VoxxWeatherPlugin.Weathers
     public class BlizzardVFXManager: SnowfallVFXManager
     {
         [SerializeField]
-        internal GameObject blizzardWaveContainer;
+        internal GameObject? blizzardWaveContainer;
+        [SerializeField]
+        internal AudioSource? blizzardSFXPlayer;
+        [SerializeField]
+        internal AudioClip? sonicBoomSFX;
+        [SerializeField]
+        internal AudioClip? wavePassSFX;
+
+        internal void Awake()
+        {
+            blizzardSFXPlayer = GetComponent<AudioSource>();
+            blizzardSFXPlayer.spatialBlend = 0; // 2D sound
+        }
 
         internal override void OnEnable()
         {
             base.OnEnable();
-            blizzardWaveContainer.SetActive(true);
+            blizzardWaveContainer?.SetActive(true);
         }
 
         internal override void OnDisable()
         {
             base.OnDisable();
-            blizzardWaveContainer.SetActive(false);
+            blizzardWaveContainer?.SetActive(false);
         }
 
         internal override void Reset()
         {
             base.Reset();
-            blizzardWaveContainer.SetActive(false);
+            blizzardWaveContainer?.SetActive(false);
+        }
+
+        internal void PlayWavePassSFX()
+        {
+            HUDManager.Instance.ShakeCamera(ScreenShakeType.VeryStrong);
+            blizzardSFXPlayer?.PlayOneShot(wavePassSFX);
+        }
+
+        internal void PlaySonicBoomSFX()
+        {
+            HUDManager.Instance.ShakeCamera(ScreenShakeType.Big);
+            blizzardSFXPlayer?.PlayOneShot(sonicBoomSFX);
         }
     }
 }

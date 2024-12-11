@@ -84,6 +84,8 @@ namespace VoxxWeatherPlugin
 
                     if (EnableBlizzardWeather.Value)
                     {
+                        harmony.PatchAll(typeof(BlizzardPatches));
+                        Logger.LogInfo($"{PluginInfo.PLUGIN_GUID} blizzard patches successfully applied!");
                         WeatherTypeLoader.RegisterBlizzardWeather();
                     }
                 }

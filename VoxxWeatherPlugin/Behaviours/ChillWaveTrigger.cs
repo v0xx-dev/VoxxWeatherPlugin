@@ -2,6 +2,7 @@ using UnityEngine;
 using GameNetcodeStuff;
 using VoxxWeatherPlugin.Utils;
 using System.Collections;
+using VoxxWeatherPlugin.Weathers;
 
 namespace VoxxWeatherPlugin.Behaviours
 {
@@ -10,15 +11,24 @@ namespace VoxxWeatherPlugin.Behaviours
         [SerializeField]
         internal int waveDamage = 19;
         [SerializeField]
-        internal float waveForce = 10f;
+        internal float waveForce = 40f;
         internal Coroutine? temperatureChangeCoroutine;
+        internal bool collidedWithLocalPlayer = false;
+
+        private void Awake()
+        {
+            if (GameNetworkManager.Instance.localPlayerController != null)
+            {
+                PlayerTemperatureManager.isInColdZone = true;
+            }
+        }
 
         private void OnTriggerEnter(Collider other)
         {
             if (other.CompareTag("Player"))
             {
                 PlayerControllerB playerController = other.gameObject.GetComponent<PlayerControllerB>();
-                if (playerController != GameNetworkManager.Instance.localPlayerController)
+                if (playerController != GameNetworkManager.Instance.localPlayerController || collidedWithLocalPlayer)
                     return;
                 if (PlayerTemperatureManager.isInColdZone)
                 {
@@ -27,24 +37,22 @@ namespace VoxxWeatherPlugin.Behaviours
                         temperatureChangeCoroutine = StartCoroutine(TemperatureChangeCoroutine());
                     }
                     playerController.DamagePlayer(waveDamage, causeOfDeath: CauseOfDeath.Unknown);
-                    playerController.externalForces += transform.forward * waveForce;
-                    HUDManager.Instance.ShakeCamera(ScreenShakeType.Big);
-                }
-                else if (temperatureChangeCoroutine != null)
-                {
-                    StopCoroutine(temperatureChangeCoroutine);
-                    temperatureChangeCoroutine = null;
+                    playerController.externalForceAutoFade += transform.forward * waveForce;
+                    BlizzardVFXManager? blizzardVFX = SnowfallWeather.Instance?.VFXManager as BlizzardVFXManager; // TODO: super cursed, but ok for now
+                    blizzardVFX?.PlayWavePassSFX();
+                    collidedWithLocalPlayer = true;
                 }
             }
         }
 
+        // Decrease the player's temperature to simulate the cold wave effect (0.5 seconds duration)
         internal IEnumerator TemperatureChangeCoroutine()
         {
             float targetTemperature = -0.8f;
             float initialTemperature = PlayerTemperatureManager.normalizedTemperature;
             if (initialTemperature > targetTemperature)
             {
-                float duration = 0.25f; // quarter of a second
+                float duration = 0.5f; // half of a second
                 float elapsedTime = 0f;
 
                 while (elapsedTime < duration)
@@ -60,5 +68,16 @@ namespace VoxxWeatherPlugin.Behaviours
                 PlayerTemperatureManager.SetPlayerTemperature(finalDelta);
             }
         } 
+
+        internal void OnDisable()
+        {
+            if (temperatureChangeCoroutine != null)
+            {
+                StopCoroutine(temperatureChangeCoroutine);
+                temperatureChangeCoroutine = null;
+            }
+
+            collidedWithLocalPlayer = false;
+        }
     }
 }
