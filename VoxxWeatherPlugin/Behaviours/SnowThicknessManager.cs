@@ -24,7 +24,7 @@ namespace VoxxWeatherPlugin.Behaviours
         internal SnowfallWeather? snowfallData => SnowfallWeather.Instance;
         private int kernelHandle;
         [SerializeField]
-        internal bool inputNeedsUpdate = true;
+        internal bool inputNeedsUpdate = false;
         [SerializeField]
         internal Vector3 feetPosition; // player's feet position
 
@@ -98,13 +98,20 @@ namespace VoxxWeatherPlugin.Behaviours
                 return;
             }
 
+
             if (inputNeedsUpdate)
             {
+                if (snowfallData.snowMasks == null)
+                {
+                    Debug.LogError("Snow masks texture is null, cannot calculate snow thickness!");
+                    return;
+                }
+
                 // Update static input parameters
                 snowThicknessComputeShader!.SetFloat(SnowfallShaderIDs.MaxSnowHeight, snowfallData.maxSnowHeight);
                 // Set static texture buffers
-                snowThicknessComputeShader.SetTexture(kernelHandle, SnowfallShaderIDs.SnowMasks, snowfallData?.snowMasks);
-                snowThicknessComputeShader.SetTexture(kernelHandle, SnowfallShaderIDs.FootprintsTex, snowfallData?.snowTracksMap);
+                snowThicknessComputeShader.SetTexture(kernelHandle, SnowfallShaderIDs.SnowMasks, snowfallData.snowMasks);
+                snowThicknessComputeShader.SetTexture(kernelHandle, SnowfallShaderIDs.FootprintsTex, snowfallData.snowTracksMap);
                 inputNeedsUpdate = false;
 #if DEBUG
                 reverbTrigger = GameNetworkManager.Instance.localPlayerController.currentAudioTrigger;
@@ -167,7 +174,7 @@ namespace VoxxWeatherPlugin.Behaviours
             // Update dynamic input parameters
             snowThicknessComputeShader?.SetVector(SnowfallShaderIDs.ShipPosition, snowfallData.shipPosition);
             snowThicknessComputeShader?.SetFloat(SnowfallShaderIDs.SnowNoisePower, snowfallData.snowIntensity);
-            snowThicknessComputeShader?.SetMatrix(SnowfallShaderIDs.FootprintsViewProjection, snowfallData.snowTracksCamera!.projectionMatrix * snowfallData.snowTracksCamera.worldToCameraMatrix);
+            snowThicknessComputeShader?.SetMatrix(SnowfallShaderIDs.FootprintsViewProjection, snowfallData.tracksWorldToClipMatrix ?? Matrix4x4.identity);
                 
             // Update texture space positions
             // UpdatePositionData();

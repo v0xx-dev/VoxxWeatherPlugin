@@ -406,7 +406,8 @@ namespace VoxxWeatherPlugin.Patches
                 bool trackingNeedsUpdating = footprintsTrackerVFX.GetBool("isTracking") ^ enableTracker;
                 if (trackingNeedsUpdating)
                 {
-                    footprintsTrackerVFX?.SetBool("isTracking", enableTracker);
+                    footprintsTrackerVFX.SetBool("isTracking", enableTracker);
+                    footprintsTrackerVFX.gameObject.SetActive(enableTracker);
                 }
             }
         }

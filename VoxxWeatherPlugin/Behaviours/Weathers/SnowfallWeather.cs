@@ -520,6 +520,11 @@ namespace VoxxWeatherPlugin.Weathers
 
         private bool CheckIfObjectIsTerrain(GameObject obj)
         {
+            if (!obj.activeInHierarchy)
+            {
+                return false;
+            }
+            
             bool isTagMatched = false;
 
             foreach (string tag in SnowThicknessManager.Instance!.groundTags)
@@ -632,6 +637,8 @@ namespace VoxxWeatherPlugin.Weathers
         private float fadeSpeed = 2f; // Units per second
         private bool isFading = false;
         internal bool isUnderSnowPreviousFrame = false;
+        [SerializeField]
+        internal float eyeBias = 0.3f;
 
         [Header("Snow Tracker VFX")]
         
@@ -681,7 +688,7 @@ namespace VoxxWeatherPlugin.Weathers
             if (SnowThicknessManager.Instance!.isOnNaturalGround && GameNetworkManager.Instance.localPlayerController.physicsParent == null)
             {
                 snowThickness = SnowThicknessManager.Instance.GetSnowThickness(GameNetworkManager.Instance.localPlayerController);
-                float eyeBias = 0.3f;
+                eyeBias = 0.3f;
                 // White out the screen if the player is under snow
                 float localPlayerEyeY = GameNetworkManager.Instance.localPlayerController.playerEye.position.y;
                 bool isUnderSnow = SnowThicknessManager.Instance.feetPosition.y + snowThickness >= localPlayerEyeY - eyeBias;
