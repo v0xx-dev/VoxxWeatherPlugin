@@ -18,6 +18,8 @@ namespace VoxxWeatherPlugin.Weathers
 
         [Header("Wind")]
         [SerializeField]
+        internal bool isPlayerInBlizzard = false;
+        [SerializeField]
         internal Vector3 windDirection = new Vector3(0, 0, 1);
         [SerializeField]
         internal float timeUntilWindChange = 0;
@@ -25,9 +27,9 @@ namespace VoxxWeatherPlugin.Weathers
         internal float windChangeInterval = 20f;
         [SerializeField]
         internal float windForce = 0.25f;
-        internal float minWindForce = 0.1f;
-        internal float maxWindForce = 0.5f;
-        internal Coroutine windChangeCoroutine;
+        internal float minWindForce = 0.25f;
+        internal float maxWindForce = 0.6f;
+        internal Coroutine? windChangeCoroutine;
 
         [Header("Chill Waves")]
         [SerializeField]
@@ -38,8 +40,7 @@ namespace VoxxWeatherPlugin.Weathers
         internal float waveSpeed;
         [SerializeField]
         internal float waveInterval = 90f;
-        internal bool isChillWaveActive = false;
-        internal Coroutine chillWaveCoroutine;
+        internal Coroutine? chillWaveCoroutine;
         [SerializeField]
         internal new BlizzardVFXManager VFXManager;
 
@@ -60,17 +61,17 @@ namespace VoxxWeatherPlugin.Weathers
             if (chillWaveCoroutine == null)
             {
                 timeUntilWave += Time.fixedDeltaTime;
-                if (timeUntilWave > waveInterval)
+                if (timeUntilWave > waveInterval && windChangeCoroutine == null)
                 {
                     chillWaveCoroutine = StartCoroutine(GenerateChillWaveCoroutine());
                     timeUntilWave = 0f;
                 }
             }
 
-            if (windChangeCoroutine == null && !isChillWaveActive)
+            if (windChangeCoroutine == null)
             {
                 timeUntilWindChange += Time.fixedDeltaTime;
-                if (timeUntilWindChange > windChangeInterval)
+                if (timeUntilWindChange > windChangeInterval && chillWaveCoroutine == null)
                 {
                     windChangeCoroutine = StartCoroutine(ChangeWindDirectionCoroutine());
                     timeUntilWindChange = 0f;
@@ -88,7 +89,7 @@ namespace VoxxWeatherPlugin.Weathers
             // Calculate the point 20 meters away in the direction of the blizzard source
             Vector3 targetPoint = playerHeadPos + directionToSource * 20f;
             
-            bool isPlayerInBlizzard = !Physics.Linecast(playerHeadPos, targetPoint,
+            bool isInWind = !Physics.Linecast(playerHeadPos, targetPoint,
                                         LayerMask.GetMask("Room", "Terrain", "Default", "NavigationSurface"),
                                             QueryTriggerInteraction.Ignore);
 
@@ -98,7 +99,7 @@ namespace VoxxWeatherPlugin.Weathers
             // Visualize the Wind Direction
             UnityEngine.Debug.DrawRay(blizzardCollisionCamera.transform.position, windDirection * 10, Color.blue, Time.fixedDeltaTime);
             // If linecast hits, visualize the hit point by doing a raycast and drawing a line
-            if (!isPlayerInBlizzard)
+            if (!isInWind)
             {
                 RaycastHit hit;
                 if (Physics.Raycast(playerHeadPos, targetPoint - playerHeadPos, out hit, 99f,
@@ -111,7 +112,7 @@ namespace VoxxWeatherPlugin.Weathers
             }       
 #endif
 
-            if (IsWindAllowed(localPlayer) && isPlayerInBlizzard)
+            if (IsWindAllowed(localPlayer) && isInWind)
             {
                 if (localPlayer.physicsParent != null)
                 {
@@ -123,14 +124,18 @@ namespace VoxxWeatherPlugin.Weathers
                 }
 
                 localPlayer.externalForces += windDirection * windForce;
-                PlayerTemperatureManager.isInColdZone = true;
-                PlayerTemperatureManager.SetPlayerTemperature(-Time.fixedDeltaTime / timeUntilFrostbite);
+                isPlayerInBlizzard = true;
             }
             else
             {
-                PlayerTemperatureManager.isInColdZone = false;
+                isPlayerInBlizzard = false;
             }
 
+        }
+
+        internal override void SetColdZoneState()
+        {
+            PlayerTemperatureManager.isInColdZone = VFXManager.isUnderSnowPreviousFrame || isPlayerInBlizzard;
         }
 
         Vector3 GetNearestPointOnPlane(Vector3 point, Vector3 planePoint, Vector3 planeNormal)
@@ -187,7 +192,7 @@ namespace VoxxWeatherPlugin.Weathers
             GameObject chillWaveContainer = VFXManager.blizzardWaveContainer;
 
             // Generate a random angle
-            float randomAngle = seededRandom.NextDouble(-45f, 45f);
+            float randomAngle = seededRandom.NextDouble(-25f, 45f); // So it would tend to change direction clockwise
 
             // Get the initial rotation.
             Quaternion startRotation = windContainer.transform.rotation;
@@ -202,7 +207,7 @@ namespace VoxxWeatherPlugin.Weathers
             while (elapsedTime < windChangeInterval)
             {
                 //Pause if chill wave is active
-                if (isChillWaveActive)
+                if (chillWaveCoroutine != null)
                 {
                     yield return null;
                 }
@@ -227,11 +232,10 @@ namespace VoxxWeatherPlugin.Weathers
         internal IEnumerator GenerateChillWaveCoroutine()
         {
             GameObject chillWaveContainer = VFXManager.blizzardWaveContainer;
-            float levelRadius = levelBounds.size.magnitude; // Actually the diameter to make the wave go through the whole level + some extra
+            float levelRadius = levelBounds.size.magnitude; // Actually the diameter to make the wave go through the whole level
 
             for (int i = 0; i < numOfWaves; i++)
             {
-                isChillWaveActive = true;
                 // Shake screen and play sound
                 VFXManager.PlaySonicBoomSFX();
                 // Calculate initial position
@@ -248,6 +252,9 @@ namespace VoxxWeatherPlugin.Weathers
 
                 // Calculate target position (diametrically opposite)
                 Vector3 targetPosition = levelBounds.center - initialDirection * levelRadius;
+
+                // Face the chill wave towards the target position
+                chillWaveContainer.transform.LookAt(targetPosition);
 
                 // Smoothly move the chill wave
                 float distance = Vector3.Distance(initialPosition, targetPosition);
@@ -267,15 +274,16 @@ namespace VoxxWeatherPlugin.Weathers
                 // Hide the chill wave
                 chillWaveContainer.SetActive(false);
 
-                isChillWaveActive = false;
                 // Wait for a bit
                 yield return new WaitForSeconds(5f);
+
+                // Reset the chill wave
+                chillWaveCoroutine = null;
             }
 
             waveInterval = seededRandom.NextDouble(60f, 180f);
             numOfWaves = seededRandom.Next(1, 5);
             chillWaveCoroutine = null;
-            
         }
     }
 
@@ -325,5 +333,6 @@ namespace VoxxWeatherPlugin.Weathers
             HUDManager.Instance.ShakeCamera(ScreenShakeType.Big);
             blizzardSFXPlayer?.PlayOneShot(sonicBoomSFX);
         }
+
     }
 }

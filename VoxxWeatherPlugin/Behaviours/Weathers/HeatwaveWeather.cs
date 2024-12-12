@@ -25,7 +25,7 @@ namespace VoxxWeatherPlugin.Weathers
         [SerializeField]
         internal float timeInHeatZoneMax = 50f; // Time before maximum effects are applied
         [SerializeField]
-        float timeOfDayFactor = 1f; // Factor for the time of day
+        internal float timeOfDayFactor = 1f; // Factor for the time of day
 
         private void Awake()
         {
@@ -40,7 +40,7 @@ namespace VoxxWeatherPlugin.Weathers
         private void OnEnable()
         {
             seededRandom = new System.Random(StartOfRound.Instance.randomMapSeed);
-            levelBounds = PlayableAreaCalculator.CalculateZoneSize();
+            levelBounds = PlayableAreaCalculator.CalculateZoneSize(1.75f);
             Debug.LogDebug($"Heatwave zone size: {levelBounds.size}. Placed at {levelBounds.center}");
             VFXManager?.PopulateLevelWithVFX(levelBounds, seededRandom);
             SetupHeatwaveWeather();
@@ -50,8 +50,6 @@ namespace VoxxWeatherPlugin.Weathers
         private void OnDisable()
         {
             VFXManager?.Reset();
-            PlayerTemperatureManager.isInHeatZone = false;
-            PlayerTemperatureManager.heatTransferRate = 1f;
         }
 
         private void SetupHeatwaveWeather()
@@ -76,14 +74,7 @@ namespace VoxxWeatherPlugin.Weathers
                 if (playerController != GameNetworkManager.Instance.localPlayerController)
                     return;
 
-                if (PlayerTemperatureManager.isInHeatZone)
-                {
-                    PlayerTemperatureManager.SetPlayerTemperature(Time.deltaTime / timeInHeatZoneMax * timeOfDayFactor);
-                }
-                else
-                {
-                    PlayerTemperatureManager.isInHeatZone = true;
-                }
+                PlayerTemperatureManager.isInHeatZone = true;
             }
             // else if (other.CompareTag("Aluminum") && LayerMask.LayerToName(other.gameObject.layer) == "Vehicle")
             // {
@@ -138,6 +129,12 @@ namespace VoxxWeatherPlugin.Weathers
         private float raycastHeight = 500f; // Height from which to cast rays
         private float maxSunLuminosity = 20f; // Sun luminosity in lux when the heatwave is at its peak
         private HDAdditionalLightData? sunLightData; // Light data for the sun
+        private int spawnRatePropertyID; // Property ID for the spawn rate of the particles
+
+        internal void Awake()
+        {
+            spawnRatePropertyID = Shader.PropertyToID("particleSpawnRate");
+        }
 
         internal void CalculateEmitterRadius()
         {
@@ -237,6 +234,9 @@ namespace VoxxWeatherPlugin.Weathers
             }
             heatwaveVFXContainer = null;
             Debug.LogDebug("Heatwave VFX container destroyed.");
+            
+            PlayerTemperatureManager.isInHeatZone = false;
+            PlayerTemperatureManager.heatTransferRate = 1f;
         }
 
         private void OnEnable()
@@ -265,7 +265,7 @@ namespace VoxxWeatherPlugin.Weathers
                 {
                     if (child.TryGetComponent(out VisualEffect vfx))
                     {
-                        vfx.SetFloat("particleSpawnRate", VoxxWeatherPlugin.HeatwaveParticlesSpawnRate.Value * reductionFactor); // TODO possible to optimize by using property id
+                        vfx.SetFloat(spawnRatePropertyID, VoxxWeatherPlugin.HeatwaveParticlesSpawnRate.Value * reductionFactor); 
                     }
                 }
             }

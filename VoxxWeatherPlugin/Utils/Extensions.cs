@@ -647,7 +647,7 @@ namespace VoxxWeatherPlugin.Utils
 
             Material debugMaterial = new Material(Shader.Find("HDRP/Unlit"));
             debugMaterial.mainTexture = maskTexture;
-            renderer.material = debugMaterial;
+            renderer.sharedMaterial = debugMaterial;
 #endif        
 
             if (textureIndex != -1) // Copy the texture to the specified index in the masks texture array
@@ -949,7 +949,7 @@ namespace VoxxWeatherPlugin.Utils
             }
 
             meshFilter.mesh = mesh;
-            meshRenderer.material = new Material(snowfallData.terraMeshShader);
+            meshRenderer.sharedMaterial = new Material(snowfallData.terraMeshShader);
             // Disable rendering of terrain
             terrain.drawHeightmap = false;
             // terrain.drawInstanced = false; // TODO: Check if this is necessary
@@ -1187,6 +1187,12 @@ namespace VoxxWeatherPlugin.Utils
             }
 
             return duplicate;
+        }
+
+        public static void RestoreShader(this Material material)
+        {
+            Shader m_Shader = Shader.Find(material.shader.name); 
+            material.shader = m_Shader;
         }
     
     }

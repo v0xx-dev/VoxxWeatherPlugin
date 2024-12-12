@@ -6,7 +6,7 @@ namespace VoxxWeatherPlugin.Utils
 {
     public class PlayableAreaCalculator
     {
-       public static Bounds CalculateZoneSize()
+       public static Bounds CalculateZoneSize(float sizeMultiplier = 1.2f)
         {
             Bounds levelBounds = new Bounds(Vector3.zero, Vector3.zero);
             levelBounds.Encapsulate(StartOfRound.Instance.shipInnerRoomBounds.bounds);
@@ -34,7 +34,7 @@ namespace VoxxWeatherPlugin.Utils
             }
 
             //Increase the zone extents by 20%
-            levelBounds.extents *= 1.2f;
+            levelBounds.extents *= sizeMultiplier;
 
             Debug.LogDebug("Level bounds: " + levelBounds);
             

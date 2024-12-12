@@ -103,6 +103,10 @@ namespace VoxxWeatherPlugin.Patches
             {
                 PlayerTemperatureManager.ResetPlayerTemperature(Time.deltaTime / timeToWarm);
             }
+            else
+            {
+                PlayerTemperatureManager.SetPlayerTemperature(-Time.deltaTime / SnowfallWeather.Instance!.timeUntilFrostbite);
+            }
 
             float severity = PlayerTemperatureManager.coldSeverity;
 

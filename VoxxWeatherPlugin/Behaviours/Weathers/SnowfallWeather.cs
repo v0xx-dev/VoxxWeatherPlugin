@@ -151,6 +151,10 @@ namespace VoxxWeatherPlugin.Weathers
         {   
             Instance = this;
 
+            // Restore shaders (otherwise there might be issues with incorrectly set flags)
+            snowOverlayMaterial?.RestoreShader();
+            snowVertexMaterial?.RestoreShader();
+
             snowOverlayCustomPass = snowVolume!.customPasses[0] as SnowOverlayCustomPass;
             snowOverlayCustomPass!.snowOverlayMaterial = snowOverlayMaterial;
             snowOverlayCustomPass.snowVertexMaterial = snowVertexMaterial;
@@ -239,6 +243,13 @@ namespace VoxxWeatherPlugin.Weathers
             float sunIntensity = Mathf.Min(sunLightData?.intensity ?? 0f, TimeOfDay.Instance.sunDirect?.intensity ?? 0f);
             emissionMultiplier = Mathf.Clamp01(sunIntensity/40f)*0.3f;
             UpdateCameraPosition(snowTrackerCameraContainer, snowTracksCamera);
+            SetColdZoneState();
+            // Update the snow thickness (host must constantly update for enemies, clients only when not in factory)
+            if (GameNetworkManager.Instance.isHostingGame || !GameNetworkManager.Instance.localPlayerController.isInsideFactory)
+            {
+                SnowThicknessManager.Instance!.CalculateThickness(); 
+            }
+
 #if DEBUG
             if (rebakeMaps)
             {
@@ -246,6 +257,11 @@ namespace VoxxWeatherPlugin.Weathers
                 StartCoroutine(RefreshDepthmapCoroutine(levelDepthmapCamera!, levelDepthmap!, bakeSnowMaps: true));
             }
 #endif
+        }
+
+        internal virtual void SetColdZoneState()
+        {
+            PlayerTemperatureManager.isInColdZone = VFXManager!.isUnderSnowPreviousFrame;
         }
 
         internal void UpdateCameraPosition(GameObject? cameraContainer, Camera? camera)
@@ -322,7 +338,7 @@ namespace VoxxWeatherPlugin.Weathers
                     filter.mesh = GetPrimitiveMesh(PrimitiveType.Cube);
                 }
                 renderer.enabled = true;
-                renderer.material = iceMaterial;
+                renderer.sharedMaterial = iceMaterial;
                 Vector3 icePosition = waterObject.transform.position;
                 // Rise slightly above the water plane
                 icePosition.y += 1f;
@@ -615,7 +631,7 @@ namespace VoxxWeatherPlugin.Weathers
         private float currentWeight = 0f;
         private float fadeSpeed = 2f; // Units per second
         private bool isFading = false;
-        private bool isUnderSnowPreviousFrame = false;
+        internal bool isUnderSnowPreviousFrame = false;
 
         [Header("Snow Tracker VFX")]
         
@@ -661,9 +677,8 @@ namespace VoxxWeatherPlugin.Weathers
 
         internal void FixedUpdate()
         {   
-            SnowThicknessManager.Instance!.CalculateThickness(); 
             
-            if (SnowThicknessManager.Instance.isOnNaturalGround && GameNetworkManager.Instance.localPlayerController.physicsParent == null)
+            if (SnowThicknessManager.Instance!.isOnNaturalGround && GameNetworkManager.Instance.localPlayerController.physicsParent == null)
             {
                 snowThickness = SnowThicknessManager.Instance.GetSnowThickness(GameNetworkManager.Instance.localPlayerController);
                 float eyeBias = 0.3f;
@@ -695,12 +710,6 @@ namespace VoxxWeatherPlugin.Weathers
                 snowMovementHindranceMultiplier = 1f;
                 snowThickness = 0f;
                 // Debug.LogDebug("Not on natural ground");
-            }
-            
-            PlayerTemperatureManager.isInColdZone |= isUnderSnowPreviousFrame;
-            if (PlayerTemperatureManager.isInColdZone)
-            {
-                PlayerTemperatureManager.SetPlayerTemperature(-Time.fixedDeltaTime / SnowfallWeather.Instance!.timeUntilFrostbite);
             }
         }
 

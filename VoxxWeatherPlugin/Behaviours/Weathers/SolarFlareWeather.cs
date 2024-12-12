@@ -467,7 +467,7 @@ namespace VoxxWeatherPlugin.Weathers
             if (sunTexture != null)
             {
                 flareObject.transform.parent = SolarFlareWeather.Instance!.transform; // to stop it from moving with the player
-                Texture2D? mainTexture = sunTexture.GetComponent<Renderer>().material.mainTexture as Texture2D;
+                Texture2D? mainTexture = sunTexture.GetComponent<Renderer>().sharedMaterial.mainTexture as Texture2D;
                 if (mainTexture == null)
                 {
                     Debug.LogWarning("sunTexture does not have a texture assigned!");
@@ -475,7 +475,7 @@ namespace VoxxWeatherPlugin.Weathers
                 
                 // Get the average color of the sun texture
                 Color averageTextureColor = GetAverageTextureColor(mainTexture);
-                Color baseColor = sunTexture.GetComponent<Renderer>().material.color;
+                Color baseColor = sunTexture.GetComponent<Renderer>().sharedMaterial.color;
                 Color finalColor = Color.Lerp(baseColor, averageTextureColor, baseColor.a);
                 Color coronaColor2 = finalColor;
                 coronaColor2.r += .2f; // Increase red channel
