@@ -244,7 +244,7 @@ namespace VoxxWeatherPlugin.Weathers
             float normalizedSnowTimer =  Mathf.Clamp01(maxSnowNormalizedTime - TimeOfDay.Instance.normalizedTimeOfDay);
             snowIntensity = 10f * normalizedSnowTimer;
             // Update the snow glow based on the sun intensity
-            float sunIntensity = Mathf.Min(sunLightData?.intensity ?? 0f, TimeOfDay.Instance.sunDirect?.intensity ?? 0f);
+            float sunIntensity = sunLightData?.intensity ?? 0f;
             emissionMultiplier = Mathf.Clamp01(sunIntensity/40f)*0.3f;
             UpdateCameraPosition(snowTrackerCameraContainer, snowTracksCamera);
             SetColdZoneState();
@@ -480,6 +480,13 @@ namespace VoxxWeatherPlugin.Weathers
         internal void BakeSnowMasks()
         {
             //TODO PARALLELIZE THIS
+
+            if (groundObjectCandidates.Count == 0)
+            {
+                Debug.LogDebug("No ground objects to bake snow masks for!");
+                return;
+            }
+
             // Bake the snow masks into a Texture2DArray
             snowMasks = new Texture2DArray(bakeResolution,
                                            bakeResolution,
@@ -709,8 +716,11 @@ namespace VoxxWeatherPlugin.Weathers
             frostyFilter!.enabled = true;
             underSnowFilter!.enabled = true;
             
-            SnowfallWeather.Instance!.snowVolume!.enabled = true;
-            SnowfallWeather.Instance.snowTrackerCameraContainer?.SetActive(true);
+            if (SnowfallWeather.Instance != null)
+            {
+                SnowfallWeather.Instance.snowVolume!.enabled = true;
+                SnowfallWeather.Instance.snowTrackerCameraContainer?.SetActive(true);
+            }
             // if (sunLightData != null)
             // {
             //     sunLightData.lightUnit = LightUnit.Lux;
@@ -734,7 +744,7 @@ namespace VoxxWeatherPlugin.Weathers
         internal void FixedUpdate()
         {   
             
-            if (SnowThicknessManager.Instance!.isOnNaturalGround && GameNetworkManager.Instance.localPlayerController.physicsParent == null)
+            if ((SnowThicknessManager.Instance?.isOnNaturalGround ?? false) && GameNetworkManager.Instance.localPlayerController.physicsParent == null)
             {
                 snowThickness = SnowThicknessManager.Instance.GetSnowThickness(GameNetworkManager.Instance.localPlayerController);
                 // White out the screen if the player is under snow
