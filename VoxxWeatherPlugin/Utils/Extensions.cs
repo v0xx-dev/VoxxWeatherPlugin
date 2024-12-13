@@ -1107,6 +1107,12 @@ namespace VoxxWeatherPlugin.Utils
             for (int i = 0; i < layerCount; i++)
             {
                 TerrainLayer layer = terrainLayers[i];
+
+                //Skip empty layers
+                if (layer.diffuseTexture == null)
+                {
+                    continue;
+                }
                 
                 // Set textures
                 targetMaterial.SetTexture($"_Albedo_{i}", layer.diffuseTexture);

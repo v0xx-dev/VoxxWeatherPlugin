@@ -98,6 +98,14 @@ namespace VoxxWeatherPlugin
             }
 
             Logger.LogInfo($"Plugin {PluginInfo.PLUGIN_GUID} is loaded!");
+
+#if DEBUG
+        // disable overhead of stack trace in dev build
+        Application.SetStackTraceLogType(LogType.Log, StackTraceLogType.None);
+        Application.SetStackTraceLogType(LogType.Warning, StackTraceLogType.None);
+        Application.SetStackTraceLogType(LogType.Error, StackTraceLogType.None);
+        Application.SetStackTraceLogType(LogType.Assert, StackTraceLogType.None);
+#endif
         }
 
         private static void NetcodePatcher()
@@ -203,10 +211,10 @@ namespace VoxxWeatherPlugin
                 }
                 catch(ReflectionTypeLoadException ex)
                 {
-                    Debug.LogError($"Error loading types from assembly: {assembly.FullName}");
+                    Debug.LogDebug($"Error loading types from assembly: {assembly.FullName}");
                     foreach(var loaderEx in ex.LoaderExceptions)
                     {
-                        Debug.LogError($" - {loaderEx.Message}");
+                        Debug.LogDebug($" - {loaderEx.Message}");
                     }
                 }
 

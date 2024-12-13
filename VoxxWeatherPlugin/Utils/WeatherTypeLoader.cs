@@ -22,7 +22,7 @@ namespace VoxxWeatherPlugin.Utils
 
             heatwavePrefab.SetActive(false);
             GameObject heatwaveContainer = GameObject.Instantiate(heatwavePrefab);
-            //snowfallContainer.hideFlags = HideFlags.HideAndDontSave;
+            heatwaveContainer.hideFlags = HideFlags.HideAndDontSave;
             GameObject.DontDestroyOnLoad(heatwaveContainer);
 
             HeatwaveWeather heatwaveWeatherController = heatwaveContainer.GetComponentInChildren<HeatwaveWeather>(true);
@@ -76,7 +76,7 @@ namespace VoxxWeatherPlugin.Utils
 
             flareWeatherPrefab.SetActive(false);
             GameObject flareContainer = GameObject.Instantiate(flareWeatherPrefab);
-            //snowfallContainer.hideFlags = HideFlags.HideAndDontSave;
+            flareContainer.hideFlags = HideFlags.HideAndDontSave;
             GameObject.DontDestroyOnLoad(flareContainer);
 
             SolarFlareWeather flareWeatherController = flareContainer.GetComponentInChildren<SolarFlareWeather>(true);
@@ -128,7 +128,7 @@ namespace VoxxWeatherPlugin.Utils
 
             blizzardPrefab.SetActive(false);
             GameObject blizzardContainer = GameObject.Instantiate(blizzardPrefab);
-            //snowfallContainer.hideFlags = HideFlags.HideAndDontSave;
+            blizzardContainer.hideFlags = HideFlags.HideAndDontSave;
             GameObject.DontDestroyOnLoad(blizzardContainer);
 
             BlizzardWeather blizzardWeatherController = blizzardContainer.GetComponentInChildren<BlizzardWeather>(true);
@@ -176,7 +176,7 @@ namespace VoxxWeatherPlugin.Utils
             }
             snowfallPrefab.SetActive(false);
             GameObject snowfallContainer = GameObject.Instantiate(snowfallPrefab);
-            //snowfallContainer.hideFlags = HideFlags.HideAndDontSave;
+            snowfallContainer.hideFlags = HideFlags.HideAndDontSave;
             GameObject.DontDestroyOnLoad(snowfallContainer);
 
             SnowfallWeather snowfallWeatherController = snowfallContainer.GetComponentInChildren<SnowfallWeather>(true);
@@ -230,7 +230,7 @@ namespace VoxxWeatherPlugin.Utils
             snowThicknessManagerPrefab.SetActive(true);
             GameObject snowThicknessManager = GameObject.Instantiate(snowThicknessManagerPrefab);
             GameObject.DontDestroyOnLoad(snowThicknessManager);
-            // snowThicknessManager.hideFlags = HideFlags.HideAndDontSave;
+            snowThicknessManager.hideFlags = HideFlags.HideAndDontSave;
 
             return true;   
         }
