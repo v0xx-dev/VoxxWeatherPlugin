@@ -6,6 +6,8 @@ using VoxxWeatherPlugin.Utils;
 using BepInEx.Logging;
 using System.Reflection;
 using BepInEx.Configuration;
+using System;
+using System.Collections.Generic;
 
 namespace VoxxWeatherPlugin
 {
@@ -77,6 +79,10 @@ namespace VoxxWeatherPlugin
                     harmony.PatchAll(typeof(SnowPatches));
                     Logger.LogInfo($"{PluginInfo.PLUGIN_GUID} snow patches successfully applied!");
 
+                    MethodInfo patchMethod = typeof(SnowPatches).GetMethod("EnemySnowHindrancePatch", BindingFlags.NonPublic | BindingFlags.Static);
+                    DynamicHarmonyPatcher.PatchAllTypes(typeof(EnemyAI), "Update", patchMethod, PatchType.Postfix, harmony, SnowPatches.unaffectedEnemyTypes); 
+                    Logger.LogInfo($"{PluginInfo.PLUGIN_GUID} enemy snow hindrance patches successfully applied!");
+
                     if (EnableSnowfallWeather.Value)
                     {
                         WeatherTypeLoader.RegisterSnowfallWeather();
@@ -147,6 +153,135 @@ namespace VoxxWeatherPlugin
         public static void LogDebug(string message) => Logger.LogDebug(message);
         public static void LogMessage(string message) => Logger.LogMessage(message);
         public static void LogFatal(string message) => Logger.LogFatal(message);
+    }
+
+    public enum PatchType
+    {
+        Prefix,
+        Postfix,
+        Transpiler
+    }
+
+    public class DynamicHarmonyPatcher
+    {
+
+        public static void PatchAllTypes(Type baseType, string methodToPatch, MethodInfo patchMethod,
+                                         PatchType patchType, Harmony harmonyInstance, HashSet<Type>? blackList = null)
+        {
+            List<Type> derivedTypes = FindDerivedTypes(baseType, methodToPatch);
+            // Filter out blacklisted types
+            if (blackList != null)
+            {
+                derivedTypes.RemoveAll(blackList.Contains);
+            }
+            PatchMethodsInTypes(derivedTypes, methodToPatch, patchMethod, patchType, harmonyInstance);
+        }
+
+        private static List<Type> FindDerivedTypes(Type baseType, string methodName)
+        {
+            var derivedTypes = new List<Type>();
+
+            // Get all loaded assemblies in the current AppDomain
+            Assembly[] assemblies = AppDomain.CurrentDomain.GetAssemblies();
+
+            foreach (Assembly assembly in assemblies)
+            {
+                try
+                {
+                    foreach (Type type in assembly.GetTypes())
+                    {
+                        if (baseType.IsAssignableFrom(type) && type != baseType && !type.IsAbstract && !type.IsInterface)
+                        {
+                            MethodInfo originalMethod = type.GetMethod(methodName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
+                            //Check if a method is an override of the base method and not the base method itself.
+                            if(originalMethod != null && originalMethod.DeclaringType != baseType)
+                            {
+                                derivedTypes.Add(type);
+                            }
+                        }
+                    }
+                }
+                catch(ReflectionTypeLoadException ex)
+                {
+                    Debug.LogError($"Error loading types from assembly: {assembly.FullName}");
+                    foreach(var loaderEx in ex.LoaderExceptions)
+                    {
+                        Debug.LogError($" - {loaderEx.Message}");
+                    }
+                }
+
+            }
+
+            return derivedTypes;
+        }
+
+        private static void PatchMethodsInTypes(List<Type> typesToPatch, string methodName, MethodInfo patchMethod, PatchType patchType, Harmony harmonyInstance)
+        {
+
+            if (typesToPatch == null || typesToPatch.Count == 0)
+            {
+                Debug.LogWarning("No types to patch provided.");
+                return;
+            }
+
+            if (string.IsNullOrEmpty(methodName))
+            {
+                Debug.LogError("Method name cannot be null or empty.");
+                return;
+            }
+
+            if (patchMethod == null)
+            {
+                Debug.LogError("Patch method cannot be null.");
+                return;
+            }
+
+            if (harmonyInstance == null)
+            {
+                Debug.LogError("Harmony instance cannot be null.");
+                return;
+            }
+
+
+            foreach (var type in typesToPatch)
+            {
+                try
+                {
+                    MethodInfo originalMethod = type.GetMethod(methodName, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                    
+                    if (originalMethod == null)
+                    {
+                        Debug.LogWarning($"Method '{methodName}' not found on type '{type.FullName}'. Skipping.");
+                        continue;
+                    }
+
+                    HarmonyMethod harmonyPatchMethod = new HarmonyMethod(patchMethod);
+
+                    switch (patchType)
+                    {
+                        case PatchType.Prefix:
+                            harmonyInstance.Patch(originalMethod, prefix: harmonyPatchMethod);
+                            break;
+                        case PatchType.Postfix:
+                            harmonyInstance.Patch(originalMethod, postfix: harmonyPatchMethod);
+                            break;
+                        case PatchType.Transpiler:
+                            harmonyInstance.Patch(originalMethod, transpiler: harmonyPatchMethod);
+                            break;
+                        default:
+                            Debug.LogError($"Invalid patch type: '{patchType}'.");
+                            break;
+                    }
+                    Debug.LogDebug($"Patched '{methodName}' in '{type.FullName}' using method {patchMethod.Name}");
+            
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError($"Error patching '{methodName}' in '{type.FullName}': {ex}");
+                }
+            }
+        }
+
     }
 
 }

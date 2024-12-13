@@ -6,8 +6,10 @@ using System.Reflection.Emit;
 using GameNetcodeStuff;
 using UnityEngine.VFX;
 using VoxxWeatherPlugin.Utils;
-using System;
 using VoxxWeatherPlugin.Behaviours;
+using System;
+
+
 
 namespace VoxxWeatherPlugin.Patches
 {
@@ -17,11 +19,16 @@ namespace VoxxWeatherPlugin.Patches
         public static Dictionary<MonoBehaviour, VisualEffect> snowTrackersDict = new Dictionary<MonoBehaviour, VisualEffect>();
         public static Dictionary<MonoBehaviour, VisualEffect> snowShovelDict = new Dictionary<MonoBehaviour, VisualEffect>();
         public static Dictionary<EnemyAI, (float, float)> agentSpeedCache = new Dictionary<EnemyAI, (float, float)>();
+        private static readonly int isTrackingID = Shader.PropertyToID("isTracking");
         public static float timeToWarm = 20f;   // Time to warm up from cold to room temperature
         internal static float frostbiteTimer = 0f;
         internal static float frostbiteDamageInterval = 10f;
         internal static int frostbiteDamage = 10;
         internal static float frostbiteThreshold = 0.5f; // Severity at which frostbite starts to occur, should be below 0.9
+        internal static HashSet<Type> unaffectedEnemyTypes = new HashSet<Type> {typeof(ForestGiantAI), typeof(RadMechAI), typeof(DoublewingAI),
+                                                                                typeof(ButlerBeesEnemyAI), typeof(DocileLocustBeesAI), typeof(RedLocustBees),
+                                                                                typeof(DressGirlAI)};//, typeof(SandWormAI)}; TODO: Add SandWormAI if it's affected by snow hindrance
+
 
         [HarmonyPatch(typeof(PlayerControllerB), "Update")]
         [HarmonyTranspiler]
@@ -129,41 +136,50 @@ namespace VoxxWeatherPlugin.Patches
         {
             if (GameNetworkManager.Instance.isHostingGame && (SnowfallWeather.Instance?.IsActive ?? false) && __instance.isOutside)
             {
-                if (Physics.Raycast(__instance.transform.position, -Vector3.up, out __instance.raycastHit, 6f, StartOfRound.Instance.walkableSurfacesMask, QueryTriggerInteraction.Ignore))
+                // Check if enemy is affected by snow hindrance
+                if (!unaffectedEnemyTypes.Contains(__instance.GetType()))
                 {
-                    SnowThicknessManager.Instance?.UpdateEntityData(__instance, __instance.raycastHit);
+                    if (Physics.Raycast(__instance.transform.position, -Vector3.up, out __instance.raycastHit, 6f, StartOfRound.Instance.walkableSurfacesMask, QueryTriggerInteraction.Ignore))
+                    {
+                        SnowThicknessManager.Instance?.UpdateEntityData(__instance, __instance.raycastHit);
+                    }
                 }
             }
         }
 
-        [HarmonyPatch(typeof(EnemyAI), "Update")]
-        [HarmonyPrefix]
+        //Generic patch for all enemies, we patch manually since each derived enemy type overrides the base implementation
         private static void EnemySnowHindrancePatch(EnemyAI __instance)
         {
-            if (GameNetworkManager.Instance.isHostingGame && (SnowfallWeather.Instance?.IsActive ?? false))
+            if (GameNetworkManager.Instance.isHostingGame && (SnowfallWeather.Instance?.IsActive ?? false) && __instance.isOutside)
             {
+                // float snowThickness = SnowThicknessManager.Instance!.GetSnowThickness(__instance);
+                // // Slow down if the entity in snow (only if snow thickness is above 0.4, caps at 2.5 height)
+                // float snowMovementHindranceMultiplier = 1 + 5*Mathf.Clamp01((snowThickness - 0.4f)/2.1f);
+                // if (agentSpeedCache.TryGetValue(__instance, out (float, float) cache))
+                // {
+                //     (float supposedAgentSpeed, float prevSnowHindranceMultiplier) = cache;
+                //     // Check if the agent speed has changed and if the speed without snow hindrance is different from the cached value
+                //     // EnemyAI agent speed can be changed elsewhere, so we need to do this check to be able to restore the intended speed
+                //     if (!Mathf.Approximately(supposedAgentSpeed, __instance.agent.speed) && 
+                //         !Mathf.Approximately(supposedAgentSpeed, __instance.agent.speed * prevSnowHindranceMultiplier))
+                //     {
+                //         supposedAgentSpeed = __instance.agent.speed;
+                //     }
+                //     __instance.agent.speed = supposedAgentSpeed / snowMovementHindranceMultiplier;
+                //     agentSpeedCache[__instance] = (supposedAgentSpeed, snowMovementHindranceMultiplier);
+                // }
+                // else
+                // {
+                //     // Cache the agent speed and the hindrance multiplier to be able to restore original speed
+                //     agentSpeedCache[__instance] = (__instance.agent.speed, snowMovementHindranceMultiplier);
+                //     __instance.agent.speed /= snowMovementHindranceMultiplier;
+                // }
+
                 float snowThickness = SnowThicknessManager.Instance!.GetSnowThickness(__instance);
                 // Slow down if the entity in snow (only if snow thickness is above 0.4, caps at 2.5 height)
                 float snowMovementHindranceMultiplier = 1 + 5*Mathf.Clamp01((snowThickness - 0.4f)/2.1f);
-                if (agentSpeedCache.TryGetValue(__instance, out (float, float) cache))
-                {
-                    (float supposedAgentSpeed, float prevSnowHindranceMultiplier) = cache;
-                    // Check if the agent speed has changed and if the speed without snow hindrance is different from the cached value
-                    // EnemyAI agent speed can be changed elsewhere, so we need to do this check to be able to restore the intended speed
-                    if (!Mathf.Approximately(supposedAgentSpeed, __instance.agent.speed) && 
-                        !Mathf.Approximately(supposedAgentSpeed, __instance.agent.speed * prevSnowHindranceMultiplier))
-                    {
-                        supposedAgentSpeed = __instance.agent.speed;
-                    }
-                    __instance.agent.speed = supposedAgentSpeed / snowMovementHindranceMultiplier;
-                    agentSpeedCache[__instance] = (supposedAgentSpeed, snowMovementHindranceMultiplier);
-                }
-                else
-                {
-                    // Cache the agent speed and the hindrance multiplier to be able to restore original speed
-                    agentSpeedCache[__instance] = (__instance.agent.speed, snowMovementHindranceMultiplier);
-                    __instance.agent.speed /= snowMovementHindranceMultiplier;
-                }   
+
+                __instance.agent.speed /= snowMovementHindranceMultiplier;
             }
         }
 
@@ -186,7 +202,11 @@ namespace VoxxWeatherPlugin.Patches
             {
                 AddFootprintTracker(__instance, 8f, 0.167f, 0.2f);
             }
-            else
+            else if (__instance is SandWormAI)
+            {
+                AddFootprintTracker(__instance, 10f, 0.167f, 1f);
+            }
+            else if (!unaffectedEnemyTypes.Contains(__instance.GetType()))
             {
                 AddFootprintTracker(__instance, 2f, 0.167f, 0.2f);
             }
@@ -335,7 +355,14 @@ namespace VoxxWeatherPlugin.Patches
 
             GameObject trackerObj = new GameObject("FootprintsTracker");
             trackerObj.transform.SetParent(obj.transform);
-            trackerObj.transform.localPosition = Vector3.zero;
+            if (obj is VehicleController)
+            {
+                trackerObj.transform.localPosition = new Vector3(0, 0, 1.5f); // Offset the tracker to the front of the vehicle
+            }
+            else
+            {
+                trackerObj.transform.localPosition = Vector3.zero;
+            }
             trackerObj.transform.localRotation = Quaternion.identity;
             trackerObj.transform.localScale = Vector3.one;
             trackerObj.layer = LayerMask.NameToLayer("Vehicle"); // Must match the culling mask of the FootprintsTrackerCamera in SnowfallWeather
@@ -403,10 +430,10 @@ namespace VoxxWeatherPlugin.Patches
         {
             if (snowTrackersDict.TryGetValue(obj, out VisualEffect footprintsTrackerVFX))
             {
-                bool trackingNeedsUpdating = footprintsTrackerVFX.GetBool("isTracking") ^ enableTracker;
+                bool trackingNeedsUpdating = footprintsTrackerVFX.GetBool(isTrackingID) ^ enableTracker;
                 if (trackingNeedsUpdating)
                 {
-                    footprintsTrackerVFX.SetBool("isTracking", enableTracker);
+                    footprintsTrackerVFX.SetBool(isTrackingID, enableTracker);
                     footprintsTrackerVFX.gameObject.SetActive(enableTracker);
                 }
             }

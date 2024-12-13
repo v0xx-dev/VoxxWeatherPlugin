@@ -91,9 +91,6 @@ namespace VoxxWeatherPlugin.Utils
         static ShaderTagId[]? forwardShaderTags;
         static ShaderTagId[]? depthShaderTags;
 
-        // Cache the shaderTagIds so we don't allocate a new array each frame
-        ShaderTagId[]? cachedShaderTagIDs;
-
         protected override void Setup(ScriptableRenderContext renderContext, CommandBuffer cmd)
         {
             // In case there was a pass index assigned, retrieve the name of this pass

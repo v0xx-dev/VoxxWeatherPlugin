@@ -1174,7 +1174,7 @@ namespace VoxxWeatherPlugin.Utils
                 MeshRenderer[] renderers = duplicate.GetComponentsInChildren<MeshRenderer>();
                 foreach (MeshRenderer renderer in renderers)
                 {
-                    renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                    renderer.shadowCastingMode = ShadowCastingMode.Off;
                 }
             }
             if (removeCollider)
