@@ -133,9 +133,11 @@ namespace VoxxWeatherPlugin.Weathers
         [SerializeField]
         internal SnowfallVFXManager? VFXManager;
         [SerializeField]
-        internal QuicksandTrigger[]? waterObjects; // TODO Remove
+        internal QuicksandTrigger[]? waterTriggerObjects;
         [SerializeField]
-        internal List<GameObject> groundObjectCandidates = new List<GameObject>(); // TODO Remove
+        internal List<GameObject> waterSurfaceObjects = new List<GameObject>();
+        [SerializeField]
+        internal List<GameObject> groundObjectCandidates = new List<GameObject>();
         internal string currentLevelName => StartOfRound.Instance?.currentLevel.sceneName ?? "";
         internal Bounds levelBounds;
         internal System.Random? seededRandom;
@@ -222,6 +224,8 @@ namespace VoxxWeatherPlugin.Weathers
         internal virtual void OnDisable()
         {
             Destroy(snowMasks);
+            groundObjectCandidates.Clear();
+            waterSurfaceObjects.Clear();
             VFXManager?.Reset();
         }
 
@@ -325,33 +329,55 @@ namespace VoxxWeatherPlugin.Weathers
 
         internal void FreezeWater()
         {
-            waterObjects = FindObjectsOfType<QuicksandTrigger>().Where(x => x.gameObject.activeSelf && x.isWater && x.gameObject.scene.name == currentLevelName).ToArray(); //&& !x.isInsideWater
+            waterTriggerObjects = FindObjectsOfType<QuicksandTrigger>().Where(x => x.gameObject.activeSelf && x.isWater && x.gameObject.scene.name == currentLevelName).ToArray(); //&& !x.isInsideWater TODO
             HashSet<GameObject> iceObjects = new HashSet<GameObject>();
 
-            foreach (QuicksandTrigger waterObject in waterObjects)
+            foreach (QuicksandTrigger waterObject in waterTriggerObjects)
             {
-                //get renderer component or add one if it doesn't exist
-                Renderer renderer = waterObject.GetComponent<Renderer>() ?? waterObject.gameObject.AddComponent<Renderer>();
-                if (waterObject.GetComponent<MeshFilter>() == null)
-                {
-                    MeshFilter filter = waterObject.gameObject.AddComponent<MeshFilter>();
-                    filter.mesh = GetPrimitiveMesh(PrimitiveType.Cube);
-                }
-                renderer.enabled = true;
-                renderer.sharedMaterial = iceMaterial;
-                Vector3 icePosition = waterObject.transform.position;
-                // Rise slightly above the water plane
-                icePosition.y += 1f;
-                waterObject.transform.position = icePosition;
-                if (waterObject.TryGetComponent<Collider>(out Collider collider))
-                {
-                    collider.isTrigger = false;
-                }
+                // //get renderer component or add one if it doesn't exist
+                // Renderer renderer = waterObject.GetComponent<Renderer>() ?? waterObject.gameObject.AddComponent<Renderer>();
+                // if (waterObject.GetComponent<MeshFilter>() == null)
+                // {
+                //     MeshFilter filter = waterObject.gameObject.AddComponent<MeshFilter>();
+                //     filter.mesh = GetPrimitiveMesh(PrimitiveType.Cube);
+                // }
+                // renderer.enabled = true;
+                // renderer.sharedMaterial = iceMaterial;
+                // Vector3 icePosition = waterObject.transform.position;
+                // // Rise slightly above the water plane
+                // icePosition.y += 1f;
+                // waterObject.transform.position = icePosition;
+                // if (waterObject.TryGetComponent<Collider>(out Collider collider))
+                // {
+                //     collider.isTrigger = false;
+                // }
+                // // Change footstep sounds
+                // waterObject.gameObject.tag = "Rock"; 
+                // iceObjects.Add(waterObject.gameObject);
+
                 // Disable sinking
                 waterObject.enabled = false;
+            }
+            foreach (GameObject waterSurface in waterSurfaceObjects)
+            {
+                //Check for collider and if it exists, consider it a false positive, otherwise add a mesh collider
+                if (!waterSurface.TryGetComponent<Collider>(out Collider collider))
+                {
+                    MeshCollider meshCollider = waterSurface.AddComponent<MeshCollider>();
+                    meshCollider.sharedMesh = waterSurface.GetComponent<MeshFilter>().sharedMesh;
+                }
+                else continue;
+
+                //Get renderer component, we know it exists since we checked it in the CheckIfObjectIsTerrain method
+                Renderer renderer = waterSurface.GetComponent<Renderer>();
+                renderer.sharedMaterial = iceMaterial;
+
+                // Rise slightly
+                waterSurface.transform.position += 0.75f*Vector3.up;
+                
                 // Change footstep sounds
-                waterObject.gameObject.tag = "Rock"; // TODO Check why this is not working
-                iceObjects.Add(waterObject.gameObject);
+                waterSurface.tag = "Rock";
+                iceObjects.Add(waterSurface);
             }
             // Store the ice objects
             SnowThicknessManager.Instance!.iceObjects = iceObjects;
@@ -378,47 +404,64 @@ namespace VoxxWeatherPlugin.Weathers
 
         internal void FindAndSetupGround()
         {
-            // MAKE THIS PARALLELILIZABLE
+            // TODO: PARALLELIZE THIS
 
+            // Stores mesh terrains and actual Unity terrains to keep track of of walkable ground objects and their texture index in the baked masks
             Dictionary <GameObject, int> groundToIndex = new Dictionary<GameObject, int>(); 
-
-            Terrain[] terrains = Terrain.activeTerrains;
-            if (terrains.Length > 0)
-            {
-                foreach (Terrain terrain in terrains)
-                {
-                    // Turn the terrain into a mesh
-                    GameObject meshTerrain = terrain.Meshify(this, levelBounds);
-                    // Setup the Lit terrain material
-                    Material terrainMaterial = meshTerrain.GetComponent<MeshRenderer>().sharedMaterial;
-                    terrainMaterial.SetupMaterialFromTerrain(terrain);
-                    // Add the terrain to the dictionary
-                    PrepareMeshForSnow(meshTerrain, groundToIndex);
-                    if (!useMeshCollider)
-                    {
-                        groundToIndex.Add(terrain.gameObject, groundToIndex.Count);
-                    }
-                }
-            }
-
+            
+            int textureIndex = 0;
             // Process possible mesh terrains to render snow on
-            if (groundObjectCandidates.Count > 0)
+            foreach (GameObject meshTerrain in groundObjectCandidates)
             {
-                foreach (GameObject meshTerrain in groundObjectCandidates)
-                {
-                    // Process the mesh to remove thin triangles and smooth the mesh
-                    // TODO ADD OPTION TO FILTER BY LEVEL NAME
-                    meshTerrain.PostprocessMeshTerrain(levelBounds, this);
-                    // Add the terrain to the dictionary
-                    PrepareMeshForSnow(meshTerrain, groundToIndex);
-                }
+                // Process the mesh to remove thin triangles and smooth the mesh
+                // TODO ADD OPTION TO FILTER BY LEVEL NAME
+                meshTerrain.PostprocessMeshTerrain(levelBounds, this);
+                // Setup the index in the material property block for the snow masks
+                PrepareMeshForSnow(meshTerrain, textureIndex);
+                // Add the terrain to the dictionary
+                groundToIndex.Add(meshTerrain, textureIndex);
+
+                textureIndex++;
             }
             
+            Terrain[] terrains = Terrain.activeTerrains;
+            
+            foreach (Terrain terrain in terrains)
+            {
+                //Check if terrain data is null
+                if (terrain.terrainData == null)
+                {
+                    continue;
+                }
+                // Turn the terrain into a mesh
+                GameObject meshTerrain = terrain.Meshify(this, levelBounds);
+                // Setup the Lit terrain material
+                Material terrainMaterial = meshTerrain.GetComponent<MeshRenderer>().sharedMaterial;
+                terrainMaterial.SetupMaterialFromTerrain(terrain);
+                // Setup the index in the material property block for the snow masks
+                PrepareMeshForSnow(meshTerrain, textureIndex);
+                if (useMeshCollider)
+                {
+                    // Use mesh terrain for snow thickness calculation
+                    groundToIndex.Add(meshTerrain, textureIndex);
+                }
+                else
+                {
+                    // Use terrain collider for snow thickness calculation
+                    groundToIndex.Add(terrain.gameObject, textureIndex);
+                }
+                
+                // Store the mesh terrain in the list for baking later
+                groundObjectCandidates.Add(meshTerrain);
+
+                textureIndex++;
+            }
+
             // Store the ground objects mapping
             SnowThicknessManager.Instance!.groundToIndex = groundToIndex;
         }
 
-        internal void PrepareMeshForSnow(GameObject meshTerrain, Dictionary <GameObject, int> groundToIndex)
+        internal void PrepareMeshForSnow(GameObject meshTerrain, int texId)
         {
             // Duplicate the mesh and set the snow vertex material
             GameObject snowGround = meshTerrain.Duplicate(disableShadows: true, removeCollider: true);
@@ -426,22 +469,21 @@ namespace VoxxWeatherPlugin.Weathers
             meshRenderer.sharedMaterial = snowVertexMaterial;
             // Deselect snow OVERLAY rendering layers from vertex snow objects
             meshRenderer.renderingLayerMask &= ~(uint)snowOverlayCustomPass!.renderingLayers;
-            // Upload the mesh to the GPU to save RAM
-            snowGround.GetComponent<MeshFilter>().sharedMesh.UploadMeshData(true);
+            // Upload the mesh to the GPU to save RAM. TODO: Prevents NavMesh baking
+            // snowGround.GetComponent<MeshFilter>().sharedMesh.UploadMeshData(true);
             // Override the material property block to set the object ID to sample from a single Texture2DArray
             MaterialPropertyBlock propertyBlock = new MaterialPropertyBlock();
-            propertyBlock.SetFloat(SnowfallShaderIDs.TexIndex, groundToIndex.Count);
+            propertyBlock.SetFloat(SnowfallShaderIDs.TexIndex, texId);
             meshRenderer.SetPropertyBlock(propertyBlock);
-            // Add the terrain and material to the dictionary
-            groundToIndex.Add(meshTerrain, groundToIndex.Count);
         }
 
         internal void BakeSnowMasks()
         {
+            //TODO PARALLELIZE THIS
             // Bake the snow masks into a Texture2DArray
             snowMasks = new Texture2DArray(bakeResolution,
                                            bakeResolution,
-                                           SnowThicknessManager.Instance!.groundToIndex.Count,
+                                           groundObjectCandidates.Count,
                                            TextureFormat.RGBAFloat,
                                            false, // TODO: Maybe optionally allow mipmaps (also see .Apply)
                                            false,
@@ -449,9 +491,9 @@ namespace VoxxWeatherPlugin.Weathers
             snowMasks.filterMode = FilterMode.Trilinear;
             snowMasks.wrapMode = TextureWrapMode.Clamp;
             
-            foreach (KeyValuePair<GameObject, int> entry in SnowThicknessManager.Instance.groundToIndex)
+            for (int texIndex = 0; texIndex < groundObjectCandidates.Count; texIndex++)
             {
-                entry.Key.BakeMask(this, entry.Value);
+                groundObjectCandidates[texIndex].BakeMask(this, texIndex);
             }
 
             snowMasks.Apply(updateMipmaps:false, makeNoLongerReadable: true); // Move to the GPU
@@ -518,9 +560,38 @@ namespace VoxxWeatherPlugin.Weathers
             }
         }
 
+        // This method checks if an object is a terrain object based on its name, material or mesh and ALSO collects water surface objects
         private bool CheckIfObjectIsTerrain(GameObject obj)
         {
             if (!obj.activeInHierarchy)
+            {
+                return false;
+            }
+
+            string nameString;
+
+            bool isTerrainInMaterial = false;
+            bool isOutOfBoundsInMaterial = false;
+            bool isDecalLayerMatched = false;
+            int decalLayerMask = 1 << 10; // Layer 10 (Quicksand Decal) bitmask
+
+            if (obj.TryGetComponent<MeshRenderer>(out MeshRenderer meshRenderer))
+            {
+                if (meshRenderer.sharedMaterial != null)
+                {
+                    nameString = meshRenderer.sharedMaterial.name.ToLower();
+                    isTerrainInMaterial = nameString.Contains("terrain");
+                    isOutOfBoundsInMaterial = nameString.Contains("outofbounds");
+                    isDecalLayerMatched = (meshRenderer.renderingLayerMask & decalLayerMask) != 0;
+
+                    // Collect water surface objects
+                    if (nameString.Contains("water"))
+                    {
+                        waterSurfaceObjects.Add(obj);
+                    }
+                }
+            }
+            else
             {
                 return false;
             }
@@ -542,8 +613,6 @@ namespace VoxxWeatherPlugin.Weathers
                 return false;
             }
 
-            string nameString;
-
             bool isTerrainInName = obj.name.ToLower().Contains("terrain");
             bool isOutOfBoundsInName = obj.name.ToLower().Contains("outofbounds");
 
@@ -563,26 +632,6 @@ namespace VoxxWeatherPlugin.Weathers
                     nameString = collider.sharedMesh.name.ToLower();
                     isTerrainInMesh = nameString.Contains("terrain");
                     isOutOfBoundsInMesh = nameString.Contains("outofbounds");
-                }
-            }
-            else
-            {
-                return false;
-            }
-
-            bool isTerrainInMaterial = false;
-            bool isOutOfBoundsInMaterial = false;
-            bool isDecalLayerMatched = false;
-            int decalLayerMask = 1 << 10; // Layer 10 (Quicksand Decal) bitmask
-
-            if (obj.TryGetComponent<MeshRenderer>(out MeshRenderer meshRenderer))
-            {
-                if (meshRenderer.sharedMaterial != null)
-                {
-                    nameString = meshRenderer.sharedMaterial.name.ToLower();
-                    isTerrainInMaterial = nameString.Contains("terrain");
-                    isOutOfBoundsInMaterial = nameString.Contains("outofbounds");
-                    isDecalLayerMatched = (meshRenderer.renderingLayerMask & decalLayerMask) != 0;
                 }
             }
             else
@@ -688,7 +737,6 @@ namespace VoxxWeatherPlugin.Weathers
             if (SnowThicknessManager.Instance!.isOnNaturalGround && GameNetworkManager.Instance.localPlayerController.physicsParent == null)
             {
                 snowThickness = SnowThicknessManager.Instance.GetSnowThickness(GameNetworkManager.Instance.localPlayerController);
-                eyeBias = 0.3f;
                 // White out the screen if the player is under snow
                 float localPlayerEyeY = GameNetworkManager.Instance.localPlayerController.playerEye.position.y;
                 bool isUnderSnow = SnowThicknessManager.Instance.feetPosition.y + snowThickness >= localPlayerEyeY - eyeBias;
@@ -774,9 +822,9 @@ namespace VoxxWeatherPlugin.Weathers
                 return;
             }
             HDRPCameraOrTextureBinder depthBinder = snowVFXContainer.GetComponent<HDRPCameraOrTextureBinder>();
-            if (depthBinder.m_Camera == SnowfallWeather.Instance!.levelDepthmapCamera) // to avoid setting the depth texture for blizzard
+            if (!(SnowfallWeather.Instance is BlizzardWeather)) // to avoid setting the depth texture for blizzard
             {
-                depthBinder.depthTexture = SnowfallWeather.Instance.levelDepthmap; // bind the baked depth texture
+                depthBinder.depthTexture = SnowfallWeather.Instance!.levelDepthmap; // bind the baked depth texture
             }
         }
 

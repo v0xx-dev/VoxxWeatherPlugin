@@ -75,7 +75,7 @@ namespace VoxxWeatherPlugin.Behaviours
 
         internal void Reset()
         {
-            inputNeedsUpdate = true;
+            inputNeedsUpdate = false;
             entitySnowDataMap.Clear();
             freeIndices.Clear();
             groundToIndex.Clear();
@@ -129,7 +129,7 @@ namespace VoxxWeatherPlugin.Behaviours
                         continue;
                     }
                     EntitySnowData snowData = entitySnowDataArray[kvp.Value];
-                    entityInfo.Add($"{kvp.Key.gameObject.name}: wPos {snowData.w}, texPos {snowData.uv}, texIndex {snowData.textureIndex}, snowThickness {snowData.snowThickness}");
+                    entityInfo.Add($"{kvp.Key.gameObject.name}: wPos {snowData.w}, texPos {snowData.uv}, texIndex {snowData.textureIndex}, snowThickness {GetSnowThickness(kvp.Key)}");
                 }
 
                 entityHitInfo = new List<string>();
