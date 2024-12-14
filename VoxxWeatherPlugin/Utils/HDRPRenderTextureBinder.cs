@@ -132,8 +132,22 @@ namespace VoxxWeatherPlugin.Utils
         /// <param name="component">Component to update.</param>
         public override void UpdateBinding(VisualEffect component)
         {
-            var depth = AdditionalData.GetGraphicsBuffer(HDAdditionalCameraData.BufferAccessType.Depth);
-            var color = AdditionalData.GetGraphicsBuffer(HDAdditionalCameraData.BufferAccessType.Color);
+            // Prioritize textures over camera buffers
+            bool useDepthTexture = depthTexture != null;
+            bool useColorTexture = colorTexture != null;
+
+            RTHandle? depth = null;
+            RTHandle? color = null;
+
+            if (!useDepthTexture)
+            {
+                depth = AdditionalData.GetGraphicsBuffer(HDAdditionalCameraData.BufferAccessType.Depth);
+            }
+            
+            if (!useColorTexture)
+            {
+                color = AdditionalData.GetGraphicsBuffer(HDAdditionalCameraData.BufferAccessType.Color);
+            }
 
             if (depth == null && depthTexture == null && color == null && colorTexture == null)
                 return;
@@ -147,32 +161,31 @@ namespace VoxxWeatherPlugin.Utils
             component.SetFloat(m_NearPlane, m_Camera.nearClipPlane);
             component.SetFloat(m_FarPlane, m_Camera.farClipPlane);
             
-            if (depthTexture != null)
+            if (useDepthTexture)
             {
-                component.SetVector2(m_Dimensions, new Vector2(depthTexture.width, depthTexture.height));
+                component.SetVector2(m_Dimensions, new Vector2(depthTexture!.width, depthTexture.height));
                 component.SetFloat(m_AspectRatio, (float)depthTexture.width / (float)depthTexture.height);
             }
-            else if (colorTexture != null)
+            else if (useColorTexture)
             {
-                component.SetVector2(m_Dimensions, new Vector2(colorTexture.width, colorTexture.height));
+                component.SetVector2(m_Dimensions, new Vector2(colorTexture!.width, colorTexture.height));
                 component.SetFloat(m_AspectRatio, (float)colorTexture.width / (float)colorTexture.height);
             }
-            else
+            else if (depth != null)
             {
-                component.SetVector2(m_Dimensions, new Vector2(m_Camera.pixelWidth * depth!.rtHandleProperties.rtHandleScale.x, m_Camera.pixelHeight * depth.rtHandleProperties.rtHandleScale.y));
+                component.SetVector2(m_Dimensions, new Vector2(m_Camera.pixelWidth * depth.rtHandleProperties.rtHandleScale.x, m_Camera.pixelHeight * depth.rtHandleProperties.rtHandleScale.y));
                 component.SetFloat(m_AspectRatio, m_Camera.aspect);
             }
             
-            
-            if (depthTexture != null)
+            if (useDepthTexture)
                 component.SetTexture(m_DepthBuffer, depthTexture);
-            else if (depth != null)
-                component.SetTexture(m_DepthBuffer, depth.rt);
+            else
+                component.SetTexture(m_DepthBuffer, depth!.rt);
 
-            if (colorTexture != null)
+            if (useColorTexture)
                 component.SetTexture(m_ColorBuffer, colorTexture);
-            else if (color != null)
-                component.SetTexture(m_ColorBuffer, color.rt);
+            else
+                component.SetTexture(m_ColorBuffer, color!.rt);
 
         }
 
