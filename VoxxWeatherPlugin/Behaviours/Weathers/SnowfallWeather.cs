@@ -803,37 +803,27 @@ namespace VoxxWeatherPlugin.Weathers
             }
         }
 
-        internal void DisableFootprintTrackers(Dictionary <MonoBehaviour, VisualEffect> snowTrackersDict)
-        {
-            foreach (var kvp in snowTrackersDict)
-            {
-                if (kvp.Value != null)
-                {
-                    kvp.Value.gameObject.SetActive(false);
-                }
-            }
-        }
 
         internal override void Reset()
         {
             PlayerTemperatureManager.isInColdZone = false;
             SnowThicknessManager.Instance?.Reset();
-            DisableFootprintTrackers(SnowPatches.snowTrackersDict);
-            DisableFootprintTrackers(SnowPatches.snowShovelDict);
+            SnowPatches.CleanupFootprintTrackers(SnowPatches.snowTrackersDict);
+            SnowPatches.CleanupFootprintTrackers(SnowPatches.snowShovelDict);
+            SnowPatches.ToggleFootprintTrackers(SnowPatches.snowTrackersDict, false);
+            SnowPatches.ToggleFootprintTrackers(SnowPatches.snowShovelDict, false);
         }
 
         internal override void PopulateLevelWithVFX(Bounds levelBounds = default, System.Random? seededRandom = null)
         {
-            if (snowVFXContainer == null)
-            {
-                Debug.LogError("Snow VFX container is null!");
-                return;
-            }
-            HDRPCameraOrTextureBinder depthBinder = snowVFXContainer.GetComponent<HDRPCameraOrTextureBinder>();
             if (!(SnowfallWeather.Instance is BlizzardWeather)) // to avoid setting the depth texture for blizzard
             {
+                HDRPCameraOrTextureBinder depthBinder = snowVFXContainer!.GetComponent<HDRPCameraOrTextureBinder>();
                 depthBinder.depthTexture = SnowfallWeather.Instance!.levelDepthmap; // bind the baked depth texture
             }
+
+            SnowPatches.ToggleFootprintTrackers(SnowPatches.snowTrackersDict, true);
+            SnowPatches.ToggleFootprintTrackers(SnowPatches.snowShovelDict, true);
 
             SnowfallWeather.Instance.snowVolume!.enabled = true;
             SnowfallWeather.Instance.snowTrackerCameraContainer?.SetActive(true);

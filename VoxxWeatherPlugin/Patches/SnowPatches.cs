@@ -257,28 +257,6 @@ namespace VoxxWeatherPlugin.Patches
         //         snowShovelDict.Remove(shovel);
         //     }
         // }
-
-        // Manual cleanup for GrabbableObjects D:
-        [HarmonyPatch(typeof(StartOfRound), "PassTimeToNextDay")]
-        [HarmonyPostfix]
-        private static void SnowTracksCleanupPatch()
-        {
-            // remove null entries from the dictionary
-            List<MonoBehaviour> keysToRemove = new List<MonoBehaviour>(); // Store keys to remove
-
-            foreach (var key in snowTrackersDict.Keys) 
-            {
-                if (key == null)
-                {
-                    keysToRemove.Add(key);
-                }
-            }
-
-            foreach (var key in keysToRemove)
-            {
-                snowTrackersDict.Remove(key);
-            }
-        }
         
         [HarmonyPatch(typeof(VehicleController), "DestroyCar")]
         [HarmonyPrefix]
@@ -427,7 +405,6 @@ namespace VoxxWeatherPlugin.Patches
                 if (trackingNeedsUpdating)
                 {
                     footprintsTrackerVFX.SetBool(isTrackingID, enableTracker);
-                    footprintsTrackerVFX.gameObject.SetActive(enableTracker);
                 }
             }
         }
@@ -439,6 +416,37 @@ namespace VoxxWeatherPlugin.Patches
                 footprintsTrackerVFX?.Play();
             }
         }
+
+        // Removes null entries from the dictionary
+        internal static void CleanupFootprintTrackers(Dictionary<MonoBehaviour, VisualEffect> trackersDict)
+        {
+            List<MonoBehaviour> keysToRemove = new List<MonoBehaviour>(); // Store keys to remove
+
+            foreach (var key in trackersDict.Keys) 
+            {
+                if (key == null)
+                {
+                    keysToRemove.Add(key);
+                }
+            }
+
+            foreach (var key in keysToRemove)
+            {
+                trackersDict.Remove(key);
+            }
+        }
+
+        internal static void ToggleFootprintTrackers(Dictionary<MonoBehaviour, VisualEffect> trackersDict, bool enable)
+        {
+            foreach (var kvp in trackersDict)
+            {
+                if (kvp.Key != null)
+                {
+                    kvp.Value.gameObject.SetActive(enable);
+                }
+            }
+        }
+
     }
 
 }
