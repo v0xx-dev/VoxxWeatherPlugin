@@ -187,7 +187,7 @@ namespace VoxxWeatherPlugin.Patches
         [HarmonyPostfix]
         private static void PlayerSnowTracksPatch(PlayerControllerB __instance)
         {
-            AddFootprintTracker(__instance, 2.6f, 1f, 0.2f);
+            AddFootprintTracker(__instance, 2.6f, 1f, 0.2f, new Vector3(0, 0, -1f));
         }
 
         [HarmonyPatch(typeof(EnemyAI), "Start")]
@@ -223,7 +223,7 @@ namespace VoxxWeatherPlugin.Patches
         [HarmonyPostfix]
         private static void VehicleSnowTracksPatch(VehicleController __instance)
         {
-            AddFootprintTracker(__instance, 6f, 0.75f, 1f);
+            AddFootprintTracker(__instance, 6f, 0.75f, 1f, new Vector3(0, 0, 1.5f));
         }
 
         // Not required since player scripts are never destroyed
@@ -343,7 +343,7 @@ namespace VoxxWeatherPlugin.Patches
             PlayFootprintTracker(__instance, snowShovelDict, !__instance.isInFactory);
         }
 
-        public static void AddFootprintTracker(MonoBehaviour obj, float particleSize, float lifetimeMultiplier, float footprintStrength)
+        public static void AddFootprintTracker(MonoBehaviour obj, float particleSize, float lifetimeMultiplier, float footprintStrength, Vector3 localOffset = default)
         {
             //Load different footprints for player and other objects
             VisualEffectAsset? footprintsTrackerVariant = obj switch
@@ -355,14 +355,7 @@ namespace VoxxWeatherPlugin.Patches
 
             GameObject trackerObj = new GameObject("FootprintsTracker");
             trackerObj.transform.SetParent(obj.transform);
-            if (obj is VehicleController)
-            {
-                trackerObj.transform.localPosition = new Vector3(0, 0, 1.5f); // Offset the tracker to the front of the vehicle
-            }
-            else
-            {
-                trackerObj.transform.localPosition = Vector3.zero;
-            }
+            trackerObj.transform.localPosition = localOffset; // Offset the tracker for some objects (mainly for player and vehicle)
             trackerObj.transform.localRotation = Quaternion.identity;
             trackerObj.transform.localScale = Vector3.one;
             trackerObj.layer = LayerMask.NameToLayer("Vehicle"); // Must match the culling mask of the FootprintsTrackerCamera in SnowfallWeather

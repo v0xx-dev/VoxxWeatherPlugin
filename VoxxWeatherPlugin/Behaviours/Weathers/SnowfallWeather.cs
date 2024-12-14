@@ -355,11 +355,13 @@ namespace VoxxWeatherPlugin.Weathers
             }
             foreach (GameObject waterSurface in waterSurfaceObjects)
             {
+                MeshFilter meshFilter = waterSurface.GetComponent<MeshFilter>();
+                Mesh meshCopy = meshFilter.sharedMesh.MakeReadableCopy();
+                meshFilter.sharedMesh = meshCopy;
                 //Check for collider and if it exists, consider it a false positive, otherwise add a mesh collider
                 if (!waterSurface.TryGetComponent<Collider>(out Collider collider))
                 {
                     MeshCollider meshCollider = waterSurface.AddComponent<MeshCollider>();
-                    Mesh meshCopy = waterSurface.GetComponent<MeshFilter>().sharedMesh.MakeReadableCopy();
                     meshCollider.sharedMesh = meshCopy;
                 }
                 else continue;
@@ -758,7 +760,7 @@ namespace VoxxWeatherPlugin.Weathers
                 // Slow down the player if they are in snow (only if snow thickness is above 0.4, caps at 2.5 height)
                 snowMovementHindranceMultiplier = 1 + 5*Mathf.Clamp01((snowThickness - 0.4f)/2.1f);
 
-                // Debug.LogDebug($"Hindrance multiplier: {snowMovementHindranceMultiplier}, localPlayerEyeY: {localPlayerEyeY}, isUnderSnow: {isUnderSnow}");
+                // Debug.LogDebug($"Hindrance multiplier: {snowMovementHindranceMultiplier}, isUnderSnow: {isUnderSnow}, snowThickness: {snowThickness}");
             }
             else
             {

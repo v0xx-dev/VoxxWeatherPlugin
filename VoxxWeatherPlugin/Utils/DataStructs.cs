@@ -33,7 +33,8 @@ namespace VoxxWeatherPlugin.Utils
         }
     }
 
-    internal struct EntitySnowData
+    [Serializable]
+    public struct EntitySnowData
     {
         public Vector3 w; // XZ position of the entity
         public Vector2 uv;
