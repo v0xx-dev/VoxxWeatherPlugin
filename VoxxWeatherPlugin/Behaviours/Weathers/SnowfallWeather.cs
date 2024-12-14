@@ -122,9 +122,6 @@ namespace VoxxWeatherPlugin.Weathers
         [SerializeField]
         internal float falloffSpeed = 2f;
 
-        [Header("Ground")]
-        internal bool swappedToSnow = false;
-
         [Header("General")]
         [SerializeField]
         internal Vector3 shipPosition;
@@ -154,8 +151,8 @@ namespace VoxxWeatherPlugin.Weathers
             Instance = this;
 
             // Restore shaders (otherwise there might be issues with incorrectly set flags)
-            snowOverlayMaterial?.RestoreShader();
-            snowVertexMaterial?.RestoreShader();
+            // snowOverlayMaterial?.RestoreShader();
+            // snowVertexMaterial?.RestoreShader();
 
             snowOverlayCustomPass = snowVolume!.customPasses[0] as SnowOverlayCustomPass;
             snowOverlayCustomPass!.snowOverlayMaterial = snowOverlayMaterial;
@@ -211,7 +208,6 @@ namespace VoxxWeatherPlugin.Weathers
             maxSnowHeight = seededRandom.NextDouble(1.7f, 3f);
             snowScale = seededRandom.NextDouble(0.7f, 1.3f);
             maxSnowNormalizedTime = seededRandom.NextDouble(0.5f, 1f);
-            swappedToSnow = false;
             ModifyRenderMasks();
             FindAndSetupGround();
             FreezeWater();
@@ -236,7 +232,7 @@ namespace VoxxWeatherPlugin.Weathers
             snowTracksMap?.Release();
         }
 
-        internal virtual void FixedUpdate()
+        internal virtual void Update()
         {
             // Update for moving ship and compat for different ship landing positions
             shipPosition = StartOfRound.Instance.shipBounds.bounds.center;
@@ -741,7 +737,7 @@ namespace VoxxWeatherPlugin.Weathers
             isUnderSnowPreviousFrame = false;
         }
 
-        internal void FixedUpdate()
+        internal void Update()
         {   
             
             if ((SnowThicknessManager.Instance?.isOnNaturalGround ?? false) && GameNetworkManager.Instance.localPlayerController.physicsParent == null)
@@ -836,6 +832,9 @@ namespace VoxxWeatherPlugin.Weathers
             {
                 depthBinder.depthTexture = SnowfallWeather.Instance!.levelDepthmap; // bind the baked depth texture
             }
+
+            SnowfallWeather.Instance.snowVolume!.enabled = true;
+            SnowfallWeather.Instance.snowTrackerCameraContainer?.SetActive(true);
         }
 
         internal void OnDestroy()

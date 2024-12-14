@@ -36,7 +36,20 @@ namespace VoxxWeatherPlugin.Utils
 
             heatwaveWeatherController.VFXManager = heatwaveVFXManager;
 
+            // Fix broken references (WHY, UNITY, WHY)
+
+            VisualEffectAsset? heatwaveVFXAsset = WeatherAssetLoader.LoadAsset<VisualEffectAsset>(bundleName, "HeatwaveVFX");
+
+            if (heatwaveVFXAsset == null)
+            {
+                Debug.LogError("Failed to load Heatwave Weather visual assets. Weather registration failed.");
+                return;
+            }
+
             VisualEffect heatwaveVFX = heatwaveVFXManager.heatwaveParticlePrefab!.GetComponent<VisualEffect>();
+            heatwaveVFX.visualEffectAsset = heatwaveVFXAsset;
+
+            // Configure VFX settings
             heatwaveVFX.SetFloat("particleSpawnRate", VoxxWeatherPlugin.HeatwaveParticlesSpawnRate.Value);
             // TODO add blurring strength configuration
 
@@ -89,7 +102,23 @@ namespace VoxxWeatherPlugin.Utils
 
             flareWeatherController.VFXManager = flareVFXManager;
 
+            // Fix broken references (WHY, UNITY, WHY)
+
+            VisualEffectAsset? flareVFXAsset = WeatherAssetLoader.LoadAsset<VisualEffectAsset>(bundleName, "CoronaVFX");
+            VisualEffectAsset? auroraVFXAsset = WeatherAssetLoader.LoadAsset<VisualEffectAsset>(bundleName, "AuroraVFX");
+            if (flareVFXAsset == null || auroraVFXAsset == null)
+            {
+                Debug.LogError("Failed to load Solar Flare Weather visual assets. Weather registration failed.");
+                return;
+            }
+
+            flareVFXManager.flareObject!.GetComponent<VisualEffect>().visualEffectAsset = flareVFXAsset;
+
             VisualEffect auroraVFX = flareVFXManager.auroraObject!.GetComponent<VisualEffect>();
+            auroraVFX.visualEffectAsset = auroraVFXAsset;
+
+            // Configure VFX settings
+
             auroraVFX.SetUInt("spawnHeight", VoxxWeatherPlugin.AuroraHeight.Value);
             auroraVFX.SetFloat("spawnBoxSize", VoxxWeatherPlugin.AuroraSpawnAreaBox.Value);
             auroraVFX.SetFloat("auroraSize", VoxxWeatherPlugin.AuroraSize.Value);
@@ -141,8 +170,26 @@ namespace VoxxWeatherPlugin.Utils
             effectObject.SetActive(false);
 
             blizzardWeatherController.VFXManager = blizzardVFXManager;
+
+            // Fix broken references (WHY, UNITY, WHY)
+
+            Shader? overlayShader = WeatherAssetLoader.LoadAsset<Shader>(bundleName, "SnowLitPass");
+            VisualEffectAsset? blizzardVFXAsset = WeatherAssetLoader.LoadAsset<VisualEffectAsset>(bundleName, "BlizzardVFX");
+            VisualEffectAsset? blizzardWaveVFXAsset = WeatherAssetLoader.LoadAsset<VisualEffectAsset>(bundleName, "BlizzardWaveVFX");
+
+            if (overlayShader == null || blizzardVFXAsset == null || blizzardWaveVFXAsset == null)
+            {
+                Debug.LogError("Failed to load Blizzard Weather visual assets. Weather registration failed.");
+                return;
+            }
+
+            blizzardWeatherController.snowOverlayMaterial!.shader = overlayShader;
+            blizzardVFXManager.snowVFXContainer!.GetComponent<VisualEffect>().visualEffectAsset = blizzardVFXAsset;
+            blizzardVFXManager.blizzardWaveContainer!.GetComponentInChildren<VisualEffect>(true).visualEffectAsset = blizzardWaveVFXAsset;
             
             // TODO add vfx configs
+
+            
 
             blizzardContainer.SetActive(true);
 
@@ -193,8 +240,23 @@ namespace VoxxWeatherPlugin.Utils
             string[] keys = new[] {"footprintsTrackerVFX", "lowcapFootprintsTrackerVFX", "itemTrackerVFX", "shovelVFX" };
             SnowfallVFXManager.snowTrackersDict = keys.Zip(snowfallVFXManager.footprintsTrackerVFX,
                                                             (k, v) => new { k, v })
-                                                            .ToDictionary(x => x.k, x => x.v);
-            
+                                                            .ToDictionary(x => x.k, x => x.v);         
+
+            // Fix broken references (WHY, UNITY, WHY)
+
+            Shader? overlayShader = WeatherAssetLoader.LoadAsset<Shader>(bundleName, "SnowLitPass");
+            VisualEffectAsset? snowVFXAsset = WeatherAssetLoader.LoadAsset<VisualEffectAsset>(bundleName, "SnowVFX");
+
+            if (overlayShader == null || snowVFXAsset == null)
+            {
+                Debug.LogError("Failed to load Snowfall Weather visual assets. Weather registration failed.");
+                return;
+            }
+
+            snowfallWeatherController.snowOverlayMaterial!.shader = overlayShader;
+            snowfallVFXManager.snowVFXContainer!.GetComponent<VisualEffect>().visualEffectAsset = snowVFXAsset;
+
+            // TODO add vfx configs
 
             snowfallContainer.SetActive(true);
 

@@ -55,9 +55,9 @@ namespace VoxxWeatherPlugin.Weathers
             
         }
 
-        internal override void FixedUpdate()
+        internal override void Update()
         {
-            base.FixedUpdate();
+            base.Update();
             if (chillWaveCoroutine == null)
             {
                 timeUntilWave += Time.fixedDeltaTime;
@@ -77,7 +77,10 @@ namespace VoxxWeatherPlugin.Weathers
                     timeUntilWindChange = 0f;
                 }
             }
+        }
         
+        internal void FixedUpdate()
+        {
             PlayerControllerB localPlayer = GameNetworkManager.Instance.localPlayerController;
             Vector3 playerHeadPos = localPlayer.gameplayCamera.transform.position;
             // Could be optimized since the camera position is constant relative to the player, TODO?
