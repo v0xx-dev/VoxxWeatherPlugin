@@ -4,10 +4,10 @@ using System.Linq;
 using System.Collections.Generic;
 using GameNetcodeStuff;
 using VoxxWeatherPlugin.Utils;
-using UnityEngine.Rendering.HighDefinition;
-using DunGen;
 using VoxxWeatherPlugin.Patches;
 using UnityEngine.VFX;
+using UnityEngine.Rendering;
+using Unity.Collections;
 
 namespace VoxxWeatherPlugin.Behaviours
 {
@@ -29,11 +29,18 @@ namespace VoxxWeatherPlugin.Behaviours
         internal Vector3 feetPosition; // player's feet position
 
         //Compute buffers
-        internal EntitySnowData[]? entitySnowDataArray;
+        [SerializeField]
+        private EntitySnowData[]? entitySnowDataInArray;
+        [SerializeField]
+        private EntitySnowData[]? entitySnowDataOutArray;
+        
         private ComputeBuffer? entityDataComputeBuffer;
+        private AsyncGPUReadbackRequest _readbackRequest;
+        [SerializeField]
+        private bool canDispatch = true;
 
         // Mappings
-        internal Dictionary<MonoBehaviour, int> entitySnowDataMap = new Dictionary<MonoBehaviour, int>();
+        public Dictionary<MonoBehaviour, int> entitySnowDataMap = new Dictionary<MonoBehaviour, int>();
         private Stack<int> freeIndices = new Stack<int>();
         internal Dictionary<GameObject, int> groundToIndex = new Dictionary<GameObject, int>();
         internal HashSet<GameObject> iceObjects = new HashSet<GameObject>();
@@ -49,7 +56,7 @@ namespace VoxxWeatherPlugin.Behaviours
 #if DEBUG
         [Header("Debug")]
         public List<string> groundsInfo = new List<string>();
-        public List<string> entityInfo = new List<string>();
+        public string[]? entityInfo;
         private Dictionary<MonoBehaviour, RaycastHit> entityHitData = new Dictionary<MonoBehaviour, RaycastHit>();
         public List<string> entityHitInfo = new List<string>();
         public SerializableDictionary<GameObject, SnowTrackerData> snowTrackerData = new SerializableDictionary<GameObject, SnowTrackerData>();
@@ -68,8 +75,9 @@ namespace VoxxWeatherPlugin.Behaviours
 
             // Create buffers
             entityDataComputeBuffer = new ComputeBuffer(maxEntityCount, System.Runtime.InteropServices.Marshal.SizeOf(typeof(EntitySnowData)));
-            entitySnowDataArray = new EntitySnowData[maxEntityCount];
-            freeIndices = new Stack<int>(Enumerable.Range(0, maxEntityCount));
+            entitySnowDataInArray = new EntitySnowData[maxEntityCount];
+            entitySnowDataOutArray = new EntitySnowData[maxEntityCount];
+            freeIndices = new Stack<int>(Enumerable.Range(0, maxEntityCount).Reverse());
             snowThicknessComputeShader.SetBuffer(kernelHandle, "_EntityData", entityDataComputeBuffer);
         }
 
@@ -77,11 +85,10 @@ namespace VoxxWeatherPlugin.Behaviours
         {
             inputNeedsUpdate = false;
             entitySnowDataMap.Clear();
-            freeIndices.Clear();
             groundToIndex.Clear();
             iceObjects.Clear();
             isOnIce = false;
-            freeIndices = new Stack<int>(Enumerable.Range(0, maxEntityCount));
+            freeIndices = new Stack<int>(Enumerable.Range(0, maxEntityCount).Reverse());
         }
 
         internal void CalculateThickness()
@@ -121,15 +128,15 @@ namespace VoxxWeatherPlugin.Behaviours
                     groundsInfo.Add($"{kvp.Key.name} : {kvp.Value}");
                 }
 
-                entityInfo = new List<string>();
+                entityInfo = new string[entitySnowDataOutArray!.Length];
                 foreach (KeyValuePair<MonoBehaviour, int> kvp in entitySnowDataMap)
                 {
                     if (kvp.Key == null)
                     {
                         continue;
                     }
-                    EntitySnowData snowData = entitySnowDataArray[kvp.Value];
-                    entityInfo.Add($"{kvp.Key.gameObject.name}: wPos {snowData.w}, texPos {snowData.uv}, texIndex {snowData.textureIndex}, snowThickness {GetSnowThickness(kvp.Key)}");
+                    EntitySnowData snowData = entitySnowDataOutArray[kvp.Value];
+                    entityInfo[kvp.Value] = $"{kvp.Key.gameObject.name}: wPos {snowData.w}, texPos {snowData.uv}, texIndex {snowData.textureIndex}, snowThickness {GetSnowThickness(kvp.Key)}";
                 }
 
                 entityHitInfo = new List<string>();
@@ -175,19 +182,50 @@ namespace VoxxWeatherPlugin.Behaviours
             snowThicknessComputeShader?.SetVector(SnowfallShaderIDs.ShipPosition, snowfallData.shipPosition);
             snowThicknessComputeShader?.SetFloat(SnowfallShaderIDs.SnowNoisePower, snowfallData.snowIntensity);
             snowThicknessComputeShader?.SetMatrix(SnowfallShaderIDs.FootprintsViewProjection, snowfallData.tracksWorldToClipMatrix ?? Matrix4x4.identity);
-                
-            // Update texture space positions
-            // UpdatePositionData();
-            entityDataComputeBuffer?.SetData(entitySnowDataArray);
-            
-            // Dispatch compute shader
-            int threadGroupSizeX = Mathf.CeilToInt(Mathf.Sqrt(maxEntityCount));
-            int threadGroupSizeY = Mathf.CeilToInt(Mathf.Sqrt(maxEntityCount));
-            snowThicknessComputeShader?.Dispatch(kernelHandle, threadGroupSizeX, threadGroupSizeY, 1);
 
-            // Read result
-            entityDataComputeBuffer?.GetData(entitySnowDataArray);
+            if (canDispatch)
+            {
+                // Send data to GPU
+                entityDataComputeBuffer?.SetData(entitySnowDataInArray);
+                // Dispatch compute shader
+                int threadGroupSizeX = Mathf.CeilToInt(Mathf.Sqrt(maxEntityCount));
+                int threadGroupSizeY = Mathf.CeilToInt(Mathf.Sqrt(maxEntityCount));
+                snowThicknessComputeShader?.Dispatch(kernelHandle, threadGroupSizeX, threadGroupSizeY, 1);
+
+                // Read result
+
+                // // Super slow and blocks main thread
+                // entityDataComputeBuffer?.GetData(entitySnowDataOutArray);
+
+                // Request data asynchronously
+                _readbackRequest = AsyncGPUReadback.Request(entityDataComputeBuffer, OnCompleteReadback);
+
+                canDispatch = false;
+            }
         }
+
+        private void OnCompleteReadback(AsyncGPUReadbackRequest request)
+        {
+            if (!request.done) // Not really necessary, but just in case
+            {
+                return;
+            }
+
+            if (request.hasError)
+            {
+                Debug.LogError("GPU readback request failed!");
+                canDispatch = true;
+                return;
+            }
+
+            // Copy data back to CPU
+            NativeArray<EntitySnowData> data = request.GetData<EntitySnowData>();
+            data.CopyTo(entitySnowDataOutArray);
+            data.Dispose();
+
+            canDispatch = true;
+        }
+
 
         internal bool isPlayerOnNaturalGround()
         {
@@ -223,14 +261,14 @@ namespace VoxxWeatherPlugin.Behaviours
         {
             if (entitySnowDataMap.TryGetValue(entity, out int index))
             {
-                return entitySnowDataArray?[index];
+                return entitySnowDataOutArray?[index];
             }
             return null;
         }
 
         internal void UpdateEntityData(MonoBehaviour entity, RaycastHit hit)
         {
-            if (entitySnowDataArray == null)
+            if (entitySnowDataInArray == null)
             {
                 Debug.LogError("Entity snow data array is null, cannot update entity data!");
                 return;
@@ -250,14 +288,14 @@ namespace VoxxWeatherPlugin.Behaviours
                 }
 
                 entitySnowDataMap[entity] = index;
-                entitySnowDataArray[index] = new EntitySnowData();
+                entitySnowDataInArray[index] = new EntitySnowData();
             }
             else
             {
                 index = entitySnowDataMap[entity];
             }
 
-            EntitySnowData data = entitySnowDataArray[index];
+            EntitySnowData data = entitySnowDataInArray[index];
 
             if (IsEntityValidForSnow(entity) && groundToIndex.ContainsKey(hit.collider.gameObject))
             {
@@ -271,7 +309,7 @@ namespace VoxxWeatherPlugin.Behaviours
                 data.Reset();
             }
 
-            entitySnowDataArray[index] = data;
+            entitySnowDataInArray[index] = data;
 
             //Update fields for a local player
             if (entity == GameNetworkManager.Instance.localPlayerController) 
@@ -293,7 +331,8 @@ namespace VoxxWeatherPlugin.Behaviours
             if (entitySnowDataMap.TryGetValue(entity, out int index))
             {
                 entitySnowDataMap.Remove(entity);
-                entitySnowDataArray?[index].Reset();
+                entitySnowDataInArray?[index].Reset();
+                entitySnowDataOutArray?[index].Reset();
                 freeIndices.Push(index);
             }
         }
