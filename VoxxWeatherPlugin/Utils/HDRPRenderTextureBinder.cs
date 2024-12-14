@@ -179,12 +179,12 @@ namespace VoxxWeatherPlugin.Utils
             
             if (useDepthTexture)
                 component.SetTexture(m_DepthBuffer, depthTexture);
-            else
+            else if (depth != null)
                 component.SetTexture(m_DepthBuffer, depth!.rt);
 
             if (useColorTexture)
                 component.SetTexture(m_ColorBuffer, colorTexture);
-            else
+            else if (color != null)
                 component.SetTexture(m_ColorBuffer, color!.rt);
 
         }

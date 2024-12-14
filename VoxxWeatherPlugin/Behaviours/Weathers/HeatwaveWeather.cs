@@ -40,7 +40,7 @@ namespace VoxxWeatherPlugin.Weathers
         private void OnEnable()
         {
             seededRandom = new System.Random(StartOfRound.Instance.randomMapSeed);
-            levelBounds = PlayableAreaCalculator.CalculateZoneSize(1.75f);
+            levelBounds = PlayableAreaCalculator.CalculateZoneSize(1.3f);
             Debug.LogDebug($"Heatwave zone size: {levelBounds.size}. Placed at {levelBounds.center}");
             VFXManager?.PopulateLevelWithVFX(levelBounds, seededRandom);
             SetupHeatwaveWeather();
@@ -58,6 +58,8 @@ namespace VoxxWeatherPlugin.Weathers
             heatwaveTrigger!.size = levelBounds.size;
             heatwaveTrigger.transform.position = levelBounds.center;
             heatwaveTrigger.transform.rotation = Quaternion.identity;
+            VFXManager!.heatwaveVFXContainer!.transform.parent = transform; // Parent the container to the weather instance to make it stationary
+
             Debug.LogDebug($"Heatwave zone placed!");
 
             // Set exhaustion time for the player
@@ -156,7 +158,6 @@ namespace VoxxWeatherPlugin.Weathers
 
             if (heatwaveVFXContainer == null)
                 heatwaveVFXContainer = new GameObject("HeatwaveVFXContainer");
-                heatwaveVFXContainer.transform.parent = HeatwaveWeather.Instance!.transform; // Parent the container to the weather instance
 
             int placedEmittersNum = 0;
 

@@ -456,7 +456,7 @@ namespace VoxxWeatherPlugin.Weathers
             if (SolarFlareWeather.Instance?.flareData != null)
             {
                 auroraObject.transform.parent = SolarFlareWeather.Instance.transform; // to stop it from moving with the player
-                auroraObject.transform.position = Vector3.zero;
+                auroraObject.transform.position = levelBounds.center;
                 auroraObject.transform.rotation = Quaternion.identity;
                 auroraVFX.SetVector4("auroraColor", SolarFlareWeather.Instance.flareData.AuroraColor1);
                 auroraVFX.SetVector4("auroraColor2", SolarFlareWeather.Instance.flareData.AuroraColor2);

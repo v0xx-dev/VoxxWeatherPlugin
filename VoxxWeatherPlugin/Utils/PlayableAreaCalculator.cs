@@ -33,8 +33,9 @@ namespace VoxxWeatherPlugin.Utils
                 }
             }
 
-            //Increase the zone extents by 20%
-            levelBounds.extents *= sizeMultiplier;
+            // Choose the largest dimension of the bounds and make it cube
+            float maxDimension = Mathf.Max(levelBounds.size.x, levelBounds.size.z) * sizeMultiplier;
+            levelBounds.size = new Vector3(maxDimension, maxDimension, maxDimension);
 
             Debug.LogDebug("Level bounds: " + levelBounds);
             
