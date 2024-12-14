@@ -517,7 +517,7 @@ namespace VoxxWeatherPlugin.Utils
         }
 
         //Credit to Matty for this method
-        private static Mesh MakeReadableCopy(this Mesh nonReadableMesh)
+        public static Mesh MakeReadableCopy(this Mesh nonReadableMesh)
         {
             if (nonReadableMesh.isReadable)
                 return nonReadableMesh;

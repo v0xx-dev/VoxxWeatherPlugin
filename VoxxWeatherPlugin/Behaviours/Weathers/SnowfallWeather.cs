@@ -11,7 +11,6 @@ using DunGen;
 using VoxxWeatherPlugin.Utils;
 using System;
 using System.Collections;
-using LethalLib.Modules;
 
 namespace VoxxWeatherPlugin.Weathers
 {
@@ -360,7 +359,8 @@ namespace VoxxWeatherPlugin.Weathers
                 if (!waterSurface.TryGetComponent<Collider>(out Collider collider))
                 {
                     MeshCollider meshCollider = waterSurface.AddComponent<MeshCollider>();
-                    meshCollider.sharedMesh = waterSurface.GetComponent<MeshFilter>().sharedMesh;
+                    Mesh meshCopy = waterSurface.GetComponent<MeshFilter>().sharedMesh.MakeReadableCopy();
+                    meshCollider.sharedMesh = meshCopy;
                 }
                 else continue;
 
