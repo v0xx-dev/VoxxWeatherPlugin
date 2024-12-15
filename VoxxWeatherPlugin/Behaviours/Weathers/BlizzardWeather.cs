@@ -3,6 +3,7 @@ using VoxxWeatherPlugin.Utils;
 using System.Collections;
 using GameNetcodeStuff;
 using UnityEngine.Rendering;
+using UnityEngine.Events;
 
 namespace VoxxWeatherPlugin.Weathers
 {
@@ -22,7 +23,7 @@ namespace VoxxWeatherPlugin.Weathers
         [SerializeField]
         internal Vector3 windDirection = new Vector3(0, 0, 1);
         [SerializeField]
-        internal float timeUntilWindChange = 0;
+        internal float timeSinceWindChange = 0;
         [SerializeField]
         internal float windChangeInterval = 20f;
         [SerializeField]
@@ -30,19 +31,26 @@ namespace VoxxWeatherPlugin.Weathers
         internal float minWindForce = 0.25f;
         internal float maxWindForce = 0.6f;
         internal Coroutine? windChangeCoroutine;
+        [SerializeField]
+        internal bool isWindChangeActive = false;
 
         [Header("Chill Waves")]
         [SerializeField]
         internal float numOfWaves;
         [SerializeField]
-        internal float timeUntilWave;
+        internal float timeSinceWave;
         [SerializeField]
         internal float waveSpeed;
         [SerializeField]
         internal float waveInterval = 90f;
         internal Coroutine? chillWaveCoroutine;
         [SerializeField]
+        internal bool isChillWaveActive = false;
+        [SerializeField]
         internal new BlizzardVFXManager VFXManager;
+
+        private float timeAtStart = -1f;
+
 
         internal override void OnEnable()
         {
@@ -52,30 +60,44 @@ namespace VoxxWeatherPlugin.Weathers
             maxSnowHeight = seededRandom.NextDouble(1.0f, 1.7f);
             maxSnowNormalizedTime = seededRandom.NextDouble(0.1f, 0.3f);
             timeUntilFrostbite = seededRandom.NextDouble(40f, 100f);
-            
+            TimeOfDay.Instance.onTimeSync.AddListener(new UnityAction(OnGlobalTimeSync));
         }
 
-        internal override void Update()
+        internal override void OnDisable()
         {
-            base.Update();
-            if (chillWaveCoroutine == null)
+            base.OnDisable();
+            timeAtStart = -1f;
+            TimeOfDay.Instance.onTimeSync.RemoveListener(new UnityAction(OnGlobalTimeSync));
+        }
+
+        internal void OnGlobalTimeSync()
+        {
+            if (timeAtStart == -1f)
             {
-                timeUntilWave += Time.fixedDeltaTime;
-                if (timeUntilWave > waveInterval && windChangeCoroutine == null)
-                {
-                    chillWaveCoroutine = StartCoroutine(GenerateChillWaveCoroutine());
-                    timeUntilWave = 0f;
-                }
+                timeAtStart = TimeOfDay.Instance.globalTime;
             }
 
-            if (windChangeCoroutine == null)
+            // Using synced global time to avoid making this a NetworkBehaviour
+            timeSinceWave += TimeOfDay.Instance.globalTime - timeAtStart; 
+            timeSinceWindChange += TimeOfDay.Instance.globalTime - timeAtStart;
+            
+            if (isWindChangeActive || isChillWaveActive)
             {
-                timeUntilWindChange += Time.fixedDeltaTime;
-                if (timeUntilWindChange > windChangeInterval && chillWaveCoroutine == null)
-                {
-                    windChangeCoroutine = StartCoroutine(ChangeWindDirectionCoroutine());
-                    timeUntilWindChange = 0f;
-                }
+                return;
+            }
+
+            if (timeSinceWave >= waveInterval)
+            {
+                isChillWaveActive = true;
+                chillWaveCoroutine = StartCoroutine(GenerateChillWaveCoroutine());
+                return;
+            }
+
+            if (timeSinceWindChange >= windChangeInterval)
+            {
+                isWindChangeActive = true;
+                windChangeCoroutine = StartCoroutine(ChangeWindDirectionCoroutine());
+                return;
             }
         }
         
@@ -191,6 +213,8 @@ namespace VoxxWeatherPlugin.Weathers
 
         internal IEnumerator ChangeWindDirectionCoroutine()
         {
+            Debug.LogDebug("Changing wind direction");
+
             GameObject windContainer = VFXManager.snowVFXContainer;
             GameObject chillWaveContainer = VFXManager.blizzardWaveContainer;
 
@@ -206,20 +230,13 @@ namespace VoxxWeatherPlugin.Weathers
             Quaternion interpolatedRotation;
             // Rotate over time.
             float elapsedTime = 0f;
-            float t;
+            float startTime = TimeOfDay.Instance.globalTime;
             while (elapsedTime < windChangeInterval)
             {
-                //Pause if chill wave is active
-                if (chillWaveCoroutine != null)
-                {
-                    yield return null;
-                }
-
-                t = elapsedTime / windChangeInterval;
-                interpolatedRotation = Quaternion.Slerp(startRotation, targetRotation, t);
+                interpolatedRotation = Quaternion.Slerp(startRotation, targetRotation, elapsedTime / windChangeInterval);
                 windContainer.transform.rotation = interpolatedRotation;
                 chillWaveContainer.transform.rotation = interpolatedRotation;
-                elapsedTime += Time.deltaTime;
+                elapsedTime += TimeOfDay.Instance.globalTime - startTime; // Using synced global time to avoid making this a NetworkBehaviour
                 yield return null;
             }
 
@@ -229,13 +246,15 @@ namespace VoxxWeatherPlugin.Weathers
 
             windDirection = Quaternion.Euler(0f, randomAngle, 0f) * windDirection;
             windForce = seededRandom.NextDouble(minWindForce, maxWindForce);
-            windChangeCoroutine = null; 
+            timeSinceWindChange = 0;
+            isWindChangeActive = false;
         }
 
         internal IEnumerator GenerateChillWaveCoroutine()
         {
             GameObject chillWaveContainer = VFXManager.blizzardWaveContainer;
             float levelRadius = levelBounds.size.magnitude; // Actually the diameter to make the wave go through the whole level
+            Debug.LogDebug($"Generating {numOfWaves} chill waves");
 
             for (int i = 0; i < numOfWaves; i++)
             {
@@ -264,10 +283,11 @@ namespace VoxxWeatherPlugin.Weathers
                 float duration = distance / waveSpeed;  // Calculate duration based on speed and distance
 
                 float elapsedTime = 0f;
+                float startTime = TimeOfDay.Instance.globalTime;
                 while (elapsedTime < duration)
                 {
                     chillWaveContainer.transform.position = Vector3.Lerp(initialPosition, targetPosition, elapsedTime / duration);
-                    elapsedTime += Time.deltaTime;
+                    elapsedTime = TimeOfDay.Instance.globalTime - startTime; // Using synced global time to avoid making this a NetworkBehaviour
                     yield return null;
                 }
 
@@ -276,17 +296,13 @@ namespace VoxxWeatherPlugin.Weathers
 
                 // Hide the chill wave
                 chillWaveContainer.SetActive(false);
-
-                // Wait for a bit
-                yield return new WaitForSeconds(5f);
-
-                // Reset the chill wave
-                chillWaveCoroutine = null;
+                
             }
 
             waveInterval = seededRandom.NextDouble(60f, 180f);
             numOfWaves = seededRandom.Next(1, 5);
-            chillWaveCoroutine = null;
+            timeSinceWave = 0;
+            isChillWaveActive = false;
         }
     }
 
