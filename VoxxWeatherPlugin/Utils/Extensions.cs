@@ -176,7 +176,7 @@ namespace VoxxWeatherPlugin.Utils
             // Refine triangles
             if (snowfallData.subdivideMesh)
             {
-                Debug.Log($"Refining {trianglesToRefine.Count} triangles...");
+                Debug.LogDebug($"Refining {trianglesToRefine.Count} triangles...");
                 sw.Restart();
                 Dictionary<Vector3, int> midpointVertices = new Dictionary<Vector3, int>();
                 while (trianglesToRefine.Count > 0)
@@ -262,7 +262,7 @@ namespace VoxxWeatherPlugin.Utils
                     }
                 }
                 sw.Stop();
-                Debug.Log("Refinement time: " + sw.ElapsedMilliseconds + "ms");
+                Debug.LogDebug("Refinement time: " + sw.ElapsedMilliseconds + "ms");
             }
 
             // Create Triangle.NET polygon input
@@ -296,14 +296,14 @@ namespace VoxxWeatherPlugin.Utils
             sw.Restart();
             var mesh2d = polygon.Triangulate(options, quality);
             sw.Stop();
-            Debug.Log("Triangulation time: " + sw.ElapsedMilliseconds + "ms");
+            Debug.LogDebug("Triangulation time: " + sw.ElapsedMilliseconds + "ms");
             if (snowfallData.smoothMesh)
             {
                 sw.Restart();
                 var smoother = new LaplacianSmoother(1f);
                 smoother.Smooth(mesh2d, snowfallData.smoothingIterations);
                 sw.Stop();
-                Debug.Log("Smoothing time: " + sw.ElapsedMilliseconds + "ms");
+                Debug.LogDebug("Smoothing time: " + sw.ElapsedMilliseconds + "ms");
             }
 
             // Create new triangles list combining kept triangles and new triangulation
@@ -361,7 +361,7 @@ namespace VoxxWeatherPlugin.Utils
 
             }
             Debug.Log("Original UVs: " + newMesh.uv.Length + " New UVs: " + newUVs.Count);
-            Debug.Log("Original vertices: " + vertices.Length + " New vertices: " + newVertices.Count);
+            Debug.LogDebug("Original vertices: " + vertices.Length + " New vertices: " + newVertices.Count);
 
             newMesh.vertices = newVertices.ToArray();
             newMesh.triangles = newTriangles.ToArray();
@@ -721,18 +721,18 @@ namespace VoxxWeatherPlugin.Utils
                 Bounds terrainBounds = terrain.terrainData.bounds;
                 terrainBounds.center += terrain.transform.position;
                 float terrainSize = Mathf.Max(terrainBounds.extents.x, terrainBounds.extents.z);
-                //Debug.Log("Terrain center: " + terrainBounds.center + " Terrain Size: " + terrainSize);
+                //Debug.LogDebug"Terrain center: " + terrainBounds.center + " Terrain Size: " + terrainSize);
 
                 Vector3 levelCenter = levelBounds.center;
                 float levelSize = Mathf.Max(levelBounds.extents.x, levelBounds.extents.z);
-                //Debug.Log("Level Center: " + levelCenter + " Level Size: " + levelSize);
+                //Debug.LogDebug"Level Center: " + levelCenter + " Level Size: " + levelSize);
 
                 if (snowfallData.targetVertexCount > 0)
                 {
                     snowfallData.minMeshStep = Mathf.CeilToInt(Mathf.Sqrt(levelSize * levelSize / (terrainStepX * terrainStepZ * snowfallData.targetVertexCount)));
                 }
 
-                //Debug.Log("Base Density Factor: " + minMeshStep);
+                //Debug.LogDebug"Base Density Factor: " + minMeshStep);
 
                 QuadTree rootNode = new QuadTree(terrainBounds);
                 rootNode.Subdivide(levelBounds, new Vector2(terrainStepX, terrainStepZ), snowfallData.minMeshStep,
@@ -781,7 +781,7 @@ namespace VoxxWeatherPlugin.Utils
                     }
                 }
 
-                Debug.Log("Sampled vertices: " + vertices.Count);
+                Debug.LogDebug("Sampled vertices: " + vertices.Count);
 
                 var polygon = new Polygon();
 
@@ -800,8 +800,8 @@ namespace VoxxWeatherPlugin.Utils
                 sw.Restart();
                 var mesh2d = polygon.Triangulate(options, quality);
                 sw.Stop();
-                Debug.Log("Triangulation time: " + sw.ElapsedMilliseconds + "ms");
-                Debug.Log("Final vertices: " + mesh2d.Vertices.Count);
+                Debug.LogDebug("Triangulation time: " + sw.ElapsedMilliseconds + "ms");
+                Debug.LogDebug("Final vertices: " + mesh2d.Vertices.Count);
 
                 // Convert the 2D mesh to Unity mesh
                 vertices = new List<Vector3>();
@@ -857,7 +857,7 @@ namespace VoxxWeatherPlugin.Utils
                 }
 
                 actualCellStep = (int)Mathf.Max(snowfallData.minMeshStep, 1);
-                //Debug.Log("Density Factor: " + actualCellStep);
+                //Debug.LogDebug"Density Factor: " + actualCellStep);
 
                 // Calculate grid dimensions after applying density factor
                 int gridWidth = Mathf.FloorToInt((terrain.terrainData.heightmapResolution) / actualCellStep);
@@ -897,7 +897,7 @@ namespace VoxxWeatherPlugin.Utils
                     }
                 }
 
-                Debug.Log("Sampled vertices: " + vertices.Count);
+                Debug.LogDebug("Sampled vertices: " + vertices.Count);
 
                 // Generate triangles using grid coordinates
                 for (int z = 0; z < gridHeight; z++)
