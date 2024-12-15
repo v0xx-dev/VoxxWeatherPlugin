@@ -22,8 +22,8 @@ namespace VoxxWeatherPlugin.Patches
         private static readonly int isTrackingID = Shader.PropertyToID("isTracking");
         public static float timeToWarm = 20f;   // Time to warm up from cold to room temperature
         internal static float frostbiteTimer = 0f;
-        internal static float frostbiteDamageInterval = 10f;
-        internal static int frostbiteDamage = 10;
+        internal static float frostbiteDamageInterval = 20f;
+        internal static float frostbiteDamage = 10;
         internal static float frostbiteThreshold = 0.5f; // Severity at which frostbite starts to occur, should be below 0.9
         internal static HashSet<Type> unaffectedEnemyTypes = new HashSet<Type> {typeof(ForestGiantAI), typeof(RadMechAI), typeof(DoublewingAI),
                                                                                 typeof(ButlerBeesEnemyAI), typeof(DocileLocustBeesAI), typeof(RedLocustBees),
@@ -124,9 +124,13 @@ namespace VoxxWeatherPlugin.Patches
                 frostbiteTimer += Time.deltaTime;
                 if (frostbiteTimer > frostbiteDamageInterval)
                 {
-                    __instance.DamagePlayer(Mathf.CeilToInt(frostbiteDamage*Mathf.Abs(severity)), causeOfDeath: CauseOfDeath.Unknown);
+                    __instance.DamagePlayer(Mathf.CeilToInt(frostbiteDamage*severity), causeOfDeath: CauseOfDeath.Unknown);
                     frostbiteTimer = 0f;
                 }
+            }
+            else if (frostbiteTimer > 0)
+            {
+                frostbiteTimer -= Time.deltaTime;
             }
         }
 
@@ -184,14 +188,14 @@ namespace VoxxWeatherPlugin.Patches
         }
 
         [HarmonyPatch(typeof(PlayerControllerB), "Start")]
-        [HarmonyPostfix]
+        [HarmonyPrefix]
         private static void PlayerSnowTracksPatch(PlayerControllerB __instance)
         {
-            AddFootprintTracker(__instance, 2.6f, 1f, 0.2f, new Vector3(0, 0, -1f));
+            AddFootprintTracker(__instance, 2.6f, 1f, 0.25f, new Vector3(0, 0, -1f));
         }
 
         [HarmonyPatch(typeof(EnemyAI), "Start")]
-        [HarmonyPostfix]
+        [HarmonyPrefix]
         private static void EnemySnowTracksPatch(EnemyAI __instance)
         {
             if (__instance is ForestGiantAI)
@@ -213,14 +217,14 @@ namespace VoxxWeatherPlugin.Patches
         }
 
         [HarmonyPatch(typeof(GrabbableObject), "Start")]
-        [HarmonyPostfix]
+        [HarmonyPrefix]
         private static void GrabbableSnowTracksPatch(GrabbableObject __instance)
         {
             AddFootprintTracker(__instance, 2f, 0.167f, 0.7f);
         }
         
         [HarmonyPatch(typeof(VehicleController), "Start")]
-        [HarmonyPostfix]
+        [HarmonyPrefix]
         private static void VehicleSnowTracksPatch(VehicleController __instance)
         {
             AddFootprintTracker(__instance, 6f, 0.75f, 1f, new Vector3(0, 0, 1.5f));
@@ -266,29 +270,28 @@ namespace VoxxWeatherPlugin.Patches
         }
         
         [HarmonyPatch(typeof(PlayerControllerB), "Update")]
-        [HarmonyPostfix]
+        [HarmonyPrefix]
         private static void PlayerSnowTracksUpdatePatch(PlayerControllerB __instance)
         {
             bool enableTracker = (SnowfallWeather.Instance?.IsActive ?? false) &&
                                     !__instance.isInsideFactory &&
-                                    __instance.thisController.isGrounded &&
                                     (SnowThicknessManager.Instance?.isEntityOnNaturalGround(__instance) ?? false);
             PauseFootprintTracker(__instance, enableTracker);
         }
 
         [HarmonyPatch(typeof(EnemyAI), "Update")]
-        [HarmonyPostfix]
+        [HarmonyPrefix]
         private static void EnemySnowTracksUpdatePatch(EnemyAI __instance)
         {
+            // __instance.isOutside is a simplified check for clients, may cause incorrect behaviour in some cases
             bool enableTracker = (SnowfallWeather.Instance?.IsActive ?? false) &&
-                                    (__instance.isOutside &&
-                                    __instance.agent.isOnNavMesh ||
+                                    (__instance.isOutside ||
                                     (SnowThicknessManager.Instance?.isEntityOnNaturalGround(__instance) ?? false));
             PauseFootprintTracker(__instance, enableTracker);
         }
 
         [HarmonyPatch(typeof(GrabbableObject), "Update")]
-        [HarmonyPostfix]
+        [HarmonyPrefix]
         private static void GrabbableSnowTracksUpdatePatch(GrabbableObject __instance)
         {
             bool enableTracker = (SnowfallWeather.Instance?.IsActive ?? false) && !__instance.isInFactory;
@@ -296,9 +299,10 @@ namespace VoxxWeatherPlugin.Patches
         }
 
         [HarmonyPatch(typeof(VehicleController), "Update")]
-        [HarmonyPostfix]
+        [HarmonyPrefix]
         private static void VehicleSnowTracksUpdatePatch(VehicleController __instance)
         {
+            // TODO wheels might not be grounded on client, need to check if this is an issue
             bool enableTracker = (SnowfallWeather.Instance?.IsActive ?? false) &&
                                     (__instance.FrontLeftWheel.isGrounded ||
                                     __instance.FrontRightWheel.isGrounded ||
@@ -307,7 +311,7 @@ namespace VoxxWeatherPlugin.Patches
             PauseFootprintTracker(__instance, enableTracker);
         }
 
-        [HarmonyPatch(typeof(GrabbableObject), "FallToGround")]
+        [HarmonyPatch(typeof(GrabbableObject), "PlayDropSFX")]
         [HarmonyPrefix]
         private static void GrabbableFallSnowPatch(GrabbableObject __instance)
         {
@@ -315,7 +319,7 @@ namespace VoxxWeatherPlugin.Patches
         }
 
         [HarmonyPatch(typeof(Shovel), "ReelUpSFXClientRpc")]
-        [HarmonyPostfix]
+        [HarmonyPrefix]
         private static void ShovelSnowPatch(Shovel __instance)
         {
             PlayFootprintTracker(__instance, snowShovelDict, !__instance.isInFactory);
