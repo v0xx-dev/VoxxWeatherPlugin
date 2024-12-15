@@ -11,6 +11,7 @@ using DunGen;
 using VoxxWeatherPlugin.Utils;
 using System;
 using System.Collections;
+using GameNetcodeStuff;
 
 namespace VoxxWeatherPlugin.Weathers
 {
@@ -270,7 +271,9 @@ namespace VoxxWeatherPlugin.Weathers
                 Debug.LogError("Camera container, camera or render texture is null!");
                 return;
             }
-            Vector3 playerPosition = GameNetworkManager.Instance.localPlayerController.transform.position;
+            PlayerControllerB localPlayer = GameNetworkManager.Instance.localPlayerController;
+            // Update the camera position to follow the player or the spectated player
+            Vector3 playerPosition = localPlayer.isPlayerDead ? localPlayer.spectatedPlayerScript?.transform.position ?? default : localPlayer.transform.position;
 
             if (Vector3.Distance(playerPosition, cameraContainer.transform.position) >= camera.orthographicSize / 2f)
             {
@@ -810,8 +813,7 @@ namespace VoxxWeatherPlugin.Weathers
             SnowThicknessManager.Instance?.Reset();
             SnowPatches.CleanupFootprintTrackers(SnowPatches.snowTrackersDict);
             SnowPatches.CleanupFootprintTrackers(SnowPatches.snowShovelDict);
-            SnowPatches.ToggleFootprintTrackers(SnowPatches.snowTrackersDict, false);
-            SnowPatches.ToggleFootprintTrackers(SnowPatches.snowShovelDict, false);
+            SnowPatches.ToggleFootprintTrackers(false);
         }
 
         internal override void PopulateLevelWithVFX(Bounds levelBounds = default, System.Random? seededRandom = null)
@@ -822,8 +824,7 @@ namespace VoxxWeatherPlugin.Weathers
                 depthBinder.depthTexture = SnowfallWeather.Instance!.levelDepthmap; // bind the baked depth texture
             }
 
-            SnowPatches.ToggleFootprintTrackers(SnowPatches.snowTrackersDict, true);
-            SnowPatches.ToggleFootprintTrackers(SnowPatches.snowShovelDict, true);
+            SnowPatches.ToggleFootprintTrackers(true);
 
             SnowfallWeather.Instance.snowVolume!.enabled = true;
             SnowfallWeather.Instance.snowTrackerCameraContainer?.SetActive(true);

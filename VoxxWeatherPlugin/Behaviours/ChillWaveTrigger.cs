@@ -9,7 +9,7 @@ namespace VoxxWeatherPlugin.Behaviours
     public class ChillWaveTrigger: MonoBehaviour
     {
         [SerializeField]
-        internal int waveDamage = 19;
+        internal int waveDamage = 20;
         [SerializeField]
         internal float waveForce = 40f;
         internal Coroutine? temperatureChangeCoroutine;

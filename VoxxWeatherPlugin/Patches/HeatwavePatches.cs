@@ -32,29 +32,21 @@ namespace VoxxWeatherPlugin.Patches
         [HarmonyPriority(Priority.Low)]
         private static void HeatStrokePatchLatePostfix(PlayerControllerB __instance)
         {
-            // if (!((NetworkBehaviour)__instance).IsOwner || !__instance.isPlayerControlled)
-            //     return;
-
-            if (!(HeatwaveWeather.Instance?.IsActive ?? false) && Mathf.Approximately(PlayerTemperatureManager.heatSeverity, 0))
-            {
+            if (!(HeatwaveWeather.Instance?.IsActive ?? false) || !__instance.IsOwner || !__instance.isPlayerControlled)
                 return;
-            }
 
-            if (PlayerTemperatureManager.isInHeatZone)
+            if (CheckConditionsForHeatingStop(__instance))
             {
-                if (CheckConditionsForHeatingStop(__instance))
-                {
-                    PlayerTemperatureManager.heatTransferRate = 1f;
-                    PlayerTemperatureManager.isInHeatZone = false;
-                }
-                else if (CheckConditionsForHeatingPause(__instance))
-                {
-                    PlayerTemperatureManager.heatTransferRate = .25f; //heat slower when in special interact animation and in a car
-                }
-                else
-                {
-                    PlayerTemperatureManager.heatTransferRate = 1f;
-                }
+                PlayerTemperatureManager.heatTransferRate = 1f;
+                PlayerTemperatureManager.isInHeatZone = false;
+            }
+            else if (CheckConditionsForHeatingPause(__instance))
+            {
+                PlayerTemperatureManager.heatTransferRate = .25f; //heat slower when in special interact animation or in a car
+            }
+            else
+            {
+                PlayerTemperatureManager.heatTransferRate = 1f;
             }
 
             // Gradually reduce heat severity when not in heat zone
@@ -73,11 +65,11 @@ namespace VoxxWeatherPlugin.Patches
 
             if (severity > 0)
             {
-                float delta = __instance.sprintMeter - HeatwavePatches.prevSprintMeter;
+                float delta = __instance.sprintMeter - prevSprintMeter;
                 if (delta < 0.0) //Stamina consumed
-                    __instance.sprintMeter = Mathf.Max(HeatwavePatches.prevSprintMeter + delta * (1 + severity * severityInfluenceMultiplier), 0.0f);
+                    __instance.sprintMeter = Mathf.Max(prevSprintMeter + delta * (1 + severity * severityInfluenceMultiplier), 0.0f);
                 else if (delta > 0.0) //Stamina regenerated
-                    __instance.sprintMeter = Mathf.Min(HeatwavePatches.prevSprintMeter + delta / (1 + severity * severityInfluenceMultiplier), 1f);
+                    __instance.sprintMeter = Mathf.Min(prevSprintMeter + delta / (1 + severity * severityInfluenceMultiplier), 1f);
             }
         }
 

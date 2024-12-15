@@ -16,6 +16,7 @@ namespace VoxxWeatherPlugin.Patches
     [HarmonyPatch]
     internal class SnowPatches
     {
+        internal static GameObject? snowTrackersContainer;
         public static Dictionary<MonoBehaviour, VisualEffect> snowTrackersDict = new Dictionary<MonoBehaviour, VisualEffect>();
         public static Dictionary<MonoBehaviour, VisualEffect> snowShovelDict = new Dictionary<MonoBehaviour, VisualEffect>();
         public static Dictionary<EnemyAI, (float, float)> agentSpeedCache = new Dictionary<EnemyAI, (float, float)>();
@@ -99,11 +100,8 @@ namespace VoxxWeatherPlugin.Patches
         [HarmonyPriority(Priority.Low)]
         private static void FrostbiteLatePostfix(PlayerControllerB __instance)
         {
-
-            if (!(SnowfallWeather.Instance?.IsActive ?? false) && Mathf.Approximately(PlayerTemperatureManager.coldSeverity, 0))
-            {
+            if (!(SnowfallWeather.Instance?.IsActive ?? false) || !__instance.IsOwner || !__instance.isPlayerControlled)
                 return;
-            }
 
             // Gradually reduce heat severity when not in heat zone
             if (!PlayerTemperatureManager.isInColdZone)
@@ -191,7 +189,7 @@ namespace VoxxWeatherPlugin.Patches
         [HarmonyPrefix]
         private static void PlayerSnowTracksPatch(PlayerControllerB __instance)
         {
-            AddFootprintTracker(__instance, 2.6f, 1f, 0.25f, new Vector3(0, 0, -1f));
+            AddFootprintTracker(__instance, 2.6f, 1f, 0.25f);
         }
 
         [HarmonyPatch(typeof(EnemyAI), "Start")]
@@ -227,46 +225,7 @@ namespace VoxxWeatherPlugin.Patches
         [HarmonyPrefix]
         private static void VehicleSnowTracksPatch(VehicleController __instance)
         {
-            AddFootprintTracker(__instance, 6f, 0.75f, 1f, new Vector3(0, 0, 1.5f));
-        }
-
-        // Not required since player scripts are never destroyed
-        // [HarmonyPatch(typeof(PlayerControllerB), "OnDestroy")]
-        // [HarmonyPostfix]
-        // private static void PlayerSnowTracksRemovePatch(PlayerControllerB __instance)
-        // {
-        //     snowTrackersDict.Remove(__instance);
-        // }
-
-        [HarmonyPatch(typeof(EnemyAI), "OnDestroy")]
-        [HarmonyPrefix]
-        private static void EnemySnowCleanupPatch(EnemyAI __instance)
-        {
-            snowTrackersDict.Remove(__instance);
-            if (GameNetworkManager.Instance.isHostingGame)
-            {
-                agentSpeedCache.Remove(__instance);
-                SnowThicknessManager.Instance?.RemoveEntityData(__instance);
-            }
-        }
-
-        // OnDestroy is not called for GrabbableObjects so we need to use a different method to remove them
-        // [HarmonyPatch(typeof(GrabbableObject), "OnDestroy")]
-        // [HarmonyPrefix]
-        // private static void GrabbableSnowTracksCleanupPatch(GrabbableObject __instance)
-        // {
-        //     snowTrackersDict.Remove(__instance);
-        //     if (__instance is Shovel shovel)
-        //     {
-        //         snowShovelDict.Remove(shovel);
-        //     }
-        // }
-        
-        [HarmonyPatch(typeof(VehicleController), "DestroyCar")]
-        [HarmonyPrefix]
-        private static void VehicleSnowTracksCleanupPatch(VehicleController __instance)
-        {
-            snowTrackersDict.Remove(__instance);
+            AddFootprintTracker(__instance, 6f, 0.75f, 1f);
         }
         
         [HarmonyPatch(typeof(PlayerControllerB), "Update")]
@@ -276,7 +235,7 @@ namespace VoxxWeatherPlugin.Patches
             bool enableTracker = (SnowfallWeather.Instance?.IsActive ?? false) &&
                                     !__instance.isInsideFactory &&
                                     (SnowThicknessManager.Instance?.isEntityOnNaturalGround(__instance) ?? false);
-            PauseFootprintTracker(__instance, enableTracker);
+            UpdateFootprintTracker(__instance, enableTracker, new Vector3(0, 0, -1f));
         }
 
         [HarmonyPatch(typeof(EnemyAI), "Update")]
@@ -287,7 +246,7 @@ namespace VoxxWeatherPlugin.Patches
             bool enableTracker = (SnowfallWeather.Instance?.IsActive ?? false) &&
                                     (__instance.isOutside ||
                                     (SnowThicknessManager.Instance?.isEntityOnNaturalGround(__instance) ?? false));
-            PauseFootprintTracker(__instance, enableTracker);
+            UpdateFootprintTracker(__instance, enableTracker);
         }
 
         [HarmonyPatch(typeof(GrabbableObject), "Update")]
@@ -295,20 +254,19 @@ namespace VoxxWeatherPlugin.Patches
         private static void GrabbableSnowTracksUpdatePatch(GrabbableObject __instance)
         {
             bool enableTracker = (SnowfallWeather.Instance?.IsActive ?? false) && !__instance.isInFactory;
-            PauseFootprintTracker(__instance, enableTracker);
+            UpdateFootprintTracker(__instance, enableTracker);
         }
 
         [HarmonyPatch(typeof(VehicleController), "Update")]
         [HarmonyPrefix]
         private static void VehicleSnowTracksUpdatePatch(VehicleController __instance)
         {
-            // TODO wheels might not be grounded on client, need to check if this is an issue
             bool enableTracker = (SnowfallWeather.Instance?.IsActive ?? false) &&
                                     (__instance.FrontLeftWheel.isGrounded ||
                                     __instance.FrontRightWheel.isGrounded ||
                                     __instance.BackLeftWheel.isGrounded ||
                                     __instance.BackRightWheel.isGrounded);
-            PauseFootprintTracker(__instance, enableTracker);
+            UpdateFootprintTracker(__instance, enableTracker, new Vector3(0, 0, 1.5f));
         }
 
         [HarmonyPatch(typeof(GrabbableObject), "PlayDropSFX")]
@@ -325,8 +283,13 @@ namespace VoxxWeatherPlugin.Patches
             PlayFootprintTracker(__instance, snowShovelDict, !__instance.isInFactory);
         }
 
-        public static void AddFootprintTracker(MonoBehaviour obj, float particleSize, float lifetimeMultiplier, float footprintStrength, Vector3 localOffset = default)
+        public static void AddFootprintTracker(MonoBehaviour obj, float particleSize, float lifetimeMultiplier, float footprintStrength)
         {
+            if (snowTrackersContainer == null)
+            {
+                // Must be in SampleSceneRelay otherwise VFX causes a crash for some reason
+                snowTrackersContainer = new GameObject("SnowTrackersContainer");
+            }
             //Load different footprints for player and other objects
             VisualEffectAsset? footprintsTrackerVariant = obj switch
             {
@@ -335,28 +298,25 @@ namespace VoxxWeatherPlugin.Patches
                 _ => SnowfallVFXManager.snowTrackersDict?["footprintsTrackerVFX"] //PlayerControllerB and VehicleController
             };
 
-            GameObject trackerObj = new GameObject("FootprintsTracker");
-            trackerObj.transform.SetParent(obj.transform);
-            trackerObj.transform.localPosition = localOffset; // Offset the tracker for some objects (mainly for player and vehicle)
+            GameObject trackerObj = new GameObject("FootprintsTracker_" + obj.name);
+            trackerObj.transform.SetParent(snowTrackersContainer.transform);
+            trackerObj.transform.localPosition = Vector3.zero; 
             trackerObj.transform.localRotation = Quaternion.identity;
             trackerObj.transform.localScale = Vector3.one;
             trackerObj.layer = LayerMask.NameToLayer("Vehicle"); // Must match the culling mask of the FootprintsTrackerCamera in SnowfallWeather
             VisualEffect footprintsTrackerVFX = trackerObj.AddComponent<VisualEffect>();
             footprintsTrackerVFX.visualEffectAsset = footprintsTrackerVariant;
 
-            footprintsTrackerVFX?.SetFloat("particleSize", particleSize);
-            footprintsTrackerVFX?.SetFloat("lifetimeMultiplier", lifetimeMultiplier);
-            footprintsTrackerVFX?.SetFloat("footprintStrength", footprintStrength);
+            footprintsTrackerVFX.SetFloat("particleSize", particleSize);
+            footprintsTrackerVFX.SetFloat("lifetimeMultiplier", lifetimeMultiplier);
+            footprintsTrackerVFX.SetFloat("footprintStrength", footprintStrength);
             
-            if (footprintsTrackerVFX != null)
-            {
-                snowTrackersDict.Add(obj, footprintsTrackerVFX);
-            }
+            snowTrackersDict.Add(obj, footprintsTrackerVFX);
 
             if (obj is Shovel shovel)
             {
                 trackerObj = new GameObject("ShovelCleanerVFX"); // Create another tracker for shovel cleaning, since having two VisualEffects on the same object is not supported
-                trackerObj.transform.SetParent(obj.transform);
+                trackerObj.transform.SetParent(snowTrackersContainer?.transform);
                 trackerObj.transform.localPosition = Vector3.zero;
                 //rotate around local Y axis by 90 degrees to align with the player's camera
                 trackerObj.transform.localRotation = Quaternion.Euler(0, 90, 0);
@@ -365,10 +325,8 @@ namespace VoxxWeatherPlugin.Patches
             
                 VisualEffect shovelVFX = trackerObj.AddComponent<VisualEffect>();
                 shovelVFX.visualEffectAsset = SnowfallVFXManager.snowTrackersDict?["shovelVFX"];
-                if (shovelVFX != null)
-                {
-                    snowShovelDict.Add(shovel, shovelVFX);
-                }
+
+                snowShovelDict.Add(shovel, shovelVFX);
             }
         }
 
@@ -383,7 +341,7 @@ namespace VoxxWeatherPlugin.Patches
                 return !isOnGround || isSameSurface;
             }
 
-            if (SnowThicknessManager.Instance != null)
+            if (SnowThicknessManager.Instance != null && isOnGround)
             {
                 SnowThicknessManager.Instance.UpdateEntityData(playerScript, playerScript.hit);
 
@@ -401,10 +359,11 @@ namespace VoxxWeatherPlugin.Patches
             return !isOnGround || isSameSurface || snowOverride;
         }
 
-        public static void PauseFootprintTracker(MonoBehaviour obj, bool enableTracker)
+        public static void UpdateFootprintTracker(MonoBehaviour obj, bool enableTracker, Vector3 offset = default)
         {
             if (snowTrackersDict.TryGetValue(obj, out VisualEffect footprintsTrackerVFX))
             {
+                footprintsTrackerVFX.transform.position = obj.transform.position + offset;
                 bool trackingNeedsUpdating = footprintsTrackerVFX.GetBool(isTrackingID) ^ enableTracker;
                 if (trackingNeedsUpdating)
                 {
@@ -417,22 +376,29 @@ namespace VoxxWeatherPlugin.Patches
         {
             if (dictForVFX.TryGetValue(obj, out VisualEffect footprintsTrackerVFX) && playCondition)
             {
+                footprintsTrackerVFX.transform.position = obj.transform.position;
                 footprintsTrackerVFX?.Play();
             }
         }
 
-        // Removes null entries from the dictionary
+        // Removes stale entries from the dictionary
         internal static void CleanupFootprintTrackers(Dictionary<MonoBehaviour, VisualEffect> trackersDict)
         {
+            Debug.LogDebug("Cleaning up snow footprint trackers");
+
             List<MonoBehaviour> keysToRemove = new List<MonoBehaviour>(); // Store keys to remove
 
-            foreach (var key in trackersDict.Keys) 
+            foreach (var keyValuePair in trackersDict) 
             {
-                if (key == null)
+                if (keyValuePair.Key == null) // Check if the object has been destroyed
                 {
-                    keysToRemove.Add(key);
+                    if (keyValuePair.Value != null)
+                        GameObject.Destroy(keyValuePair.Value.gameObject);
+                    keysToRemove.Add(keyValuePair.Key);
                 }
             }
+
+            Debug.LogDebug($"Removing {keysToRemove.Count} previously destroyed entries from snow footprint trackers");
 
             foreach (var key in keysToRemove)
             {
@@ -440,15 +406,9 @@ namespace VoxxWeatherPlugin.Patches
             }
         }
 
-        internal static void ToggleFootprintTrackers(Dictionary<MonoBehaviour, VisualEffect> trackersDict, bool enable)
+        internal static void ToggleFootprintTrackers(bool enable)
         {
-            foreach (var kvp in trackersDict)
-            {
-                if (kvp.Key != null)
-                {
-                    kvp.Value.gameObject.SetActive(enable);
-                }
-            }
+            snowTrackersContainer?.SetActive(enable);
         }
 
     }

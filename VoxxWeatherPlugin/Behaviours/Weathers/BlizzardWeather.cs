@@ -33,6 +33,7 @@ namespace VoxxWeatherPlugin.Weathers
         internal Coroutine? windChangeCoroutine;
         [SerializeField]
         internal bool isWindChangeActive = false;
+        internal bool isLocalPlayerInWind = false;
 
         [Header("Chill Waves")]
         [SerializeField]
@@ -103,8 +104,7 @@ namespace VoxxWeatherPlugin.Weathers
         
         internal void FixedUpdate()
         {
-            PlayerControllerB localPlayer = GameNetworkManager.Instance.localPlayerController;
-            Vector3 playerHeadPos = localPlayer.gameplayCamera.transform.position;
+            Vector3 playerHeadPos = GameNetworkManager.Instance.localPlayerController.gameplayCamera.transform.position;
             // Could be optimized since the camera position is constant relative to the player, TODO?
             // Vector3 nearestPointOnPlane = GetNearestPointOnPlane(playerHeadPos, blizzardCollisionCamera.transform.position, windDirection);
             
@@ -114,7 +114,7 @@ namespace VoxxWeatherPlugin.Weathers
             // Calculate the point 20 meters away in the direction of the blizzard source
             Vector3 targetPoint = playerHeadPos + directionToSource * 20f;
             
-            bool isInWind = !Physics.Linecast(playerHeadPos, targetPoint,
+            isLocalPlayerInWind = !Physics.Linecast(playerHeadPos, targetPoint,
                                         LayerMask.GetMask("Room", "Terrain", "Default", "NavigationSurface"),
                                             QueryTriggerInteraction.Ignore);
 
@@ -124,7 +124,7 @@ namespace VoxxWeatherPlugin.Weathers
             // Visualize the Wind Direction
             UnityEngine.Debug.DrawRay(blizzardCollisionCamera.transform.position, windDirection * 10, Color.blue, Time.fixedDeltaTime);
             // If linecast hits, visualize the hit point by doing a raycast and drawing a line
-            if (!isInWind)
+            if (!isLocalPlayerInWind)
             {
                 RaycastHit hit;
                 if (Physics.Raycast(playerHeadPos, targetPoint - playerHeadPos, out hit, 99f,
@@ -136,8 +136,15 @@ namespace VoxxWeatherPlugin.Weathers
                 }
             }       
 #endif
+        }
 
-            if (IsWindAllowed(localPlayer) && isInWind)
+        internal override void Update()
+        {
+            base.Update();
+
+            PlayerControllerB localPlayer = GameNetworkManager.Instance.localPlayerController;
+
+            if (IsWindAllowed(localPlayer) && isLocalPlayerInWind)
             {
                 if (localPlayer.physicsParent != null)
                 {
@@ -157,6 +164,7 @@ namespace VoxxWeatherPlugin.Weathers
             }
 
         }
+            
 
         internal override void SetColdZoneState()
         {
@@ -213,14 +221,14 @@ namespace VoxxWeatherPlugin.Weathers
 
         internal IEnumerator ChangeWindDirectionCoroutine()
         {
-            Debug.LogDebug("Changing wind direction");
-
             GameObject windContainer = VFXManager.snowVFXContainer;
             GameObject chillWaveContainer = VFXManager.blizzardWaveContainer;
 
             // Generate a random angle
             float randomAngle = seededRandom.NextDouble(-25f, 45f); // So it would tend to change direction clockwise
-
+            
+            Debug.LogDebug("Changing wind direction by " + randomAngle + " degrees");
+            
             // Get the initial rotation.
             Quaternion startRotation = windContainer.transform.rotation;
 
@@ -252,7 +260,7 @@ namespace VoxxWeatherPlugin.Weathers
 
         internal IEnumerator GenerateChillWaveCoroutine()
         {
-            GameObject chillWaveContainer = VFXManager.blizzardWaveContainer;
+            GameObject chillWaveContainer = VFXManager.blizzardWaveContainer!;
             float levelRadius = levelBounds.size.magnitude; // Actually the diameter to make the wave go through the whole level
             Debug.LogDebug($"Generating {numOfWaves} chill waves");
 
