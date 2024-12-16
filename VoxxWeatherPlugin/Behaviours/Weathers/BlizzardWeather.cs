@@ -87,7 +87,9 @@ namespace VoxxWeatherPlugin.Weathers
                 return;
             }
 
-            if (timeSinceWave >= waveInterval)
+            bool allowWave = seededRandom!.NextDouble() < 0.5f; // To keep the chill waves less frequent
+
+            if (timeSinceWave >= waveInterval && allowWave)
             {
                 isChillWaveActive = true;
                 chillWaveCoroutine = StartCoroutine(GenerateChillWaveCoroutine());

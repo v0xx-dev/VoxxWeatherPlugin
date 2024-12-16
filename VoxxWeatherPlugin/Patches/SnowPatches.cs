@@ -96,6 +96,7 @@ namespace VoxxWeatherPlugin.Patches
             return codeMatcher.InstructionEnumeration();
         }
 
+        //TODO: Maybe also slow down the player when they are freezing
         [HarmonyPatch(typeof(PlayerControllerB), "LateUpdate")]
         [HarmonyPostfix]
         [HarmonyPriority(Priority.Low)]
@@ -354,7 +355,7 @@ namespace VoxxWeatherPlugin.Patches
                 // Override footstep sound if snow is thick enough
                 if (SnowfallVFXManager.snowFootstepIndex != -1 &&
                     SnowThicknessManager.Instance.isEntityOnNaturalGround(playerScript) &&
-                    SnowfallVFXManager.snowThickness > 0.1f
+                     SnowThicknessManager.Instance.GetSnowThickness(playerScript) > 0.1f
                     )
                 {
                     snowOverride = true;

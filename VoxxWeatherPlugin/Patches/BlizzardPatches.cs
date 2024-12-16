@@ -30,13 +30,13 @@ namespace VoxxWeatherPlugin.Patches
             if (!__instance.IsHost || !(SnowfallWeather.Instance is BlizzardWeather blizzardWeather && blizzardWeather.IsActive))
                 return;
                 
-            for (int i = 0; i < __instance.currentLevel.OutsideEnemies.Count; i++)
+            for (int i = 0; i < __instance.currentLevel.DaytimeEnemies.Count; i++)
             {
-                if (__instance.currentLevel.OutsideEnemies[i].enemyType.name == "RedBees")
+                if (__instance.currentLevel.DaytimeEnemies[i].enemyType.name == "Red Locust Bees")
                 {
                     // Cache the bees enemy to restore it after the blizzard and remove it from the list
-                    cachedBees = __instance.currentLevel.OutsideEnemies[i];
-                    __instance.currentLevel.OutsideEnemies.RemoveAt(i);
+                    cachedBees = __instance.currentLevel.DaytimeEnemies[i];
+                    __instance.currentLevel.DaytimeEnemies.RemoveAt(i);
                     break;
                 }
             }
@@ -49,7 +49,7 @@ namespace VoxxWeatherPlugin.Patches
             if (!__instance.IsHost || !(SnowfallWeather.Instance is BlizzardWeather blizzardWeather && blizzardWeather.IsActive) || cachedBees == null)
                 return;
             
-            __instance.currentLevel.OutsideEnemies.Add(cachedBees);
+            __instance.currentLevel.DaytimeEnemies.Add(cachedBees);
             cachedBees = null;
         }
     }

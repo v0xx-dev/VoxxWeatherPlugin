@@ -681,7 +681,7 @@ namespace VoxxWeatherPlugin.Utils
         ///  The mesh density is determined by the SnowfallData parameters, with the levelBounds used to refine the mesh within the specified area.
         ///  </remarks>
         ///  <exception cref="System.ArgumentNullException">Thrown if `terrain` or `snowfallData` is null.</exception>
-        internal static GameObject Meshify(this Terrain terrain, SnowfallWeather snowfallData, Bounds levelBounds)
+        internal static GameObject Meshify(this Terrain terrain, SnowfallWeather snowfallData, Bounds? levelBounds)
         {
             GameObject meshTerrain = new GameObject("MeshTerrain_" + terrain.name);
             MeshFilter meshFilter = meshTerrain.AddComponent<MeshFilter>();
@@ -717,14 +717,14 @@ namespace VoxxWeatherPlugin.Utils
             HashSet<Vector3> holeVertices = new HashSet<Vector3>();
 
             if (levelBounds != null) // Use the level bounds to determine the mesh density
-            {
+            {   
                 Bounds terrainBounds = terrain.terrainData.bounds;
                 terrainBounds.center += terrain.transform.position;
                 float terrainSize = Mathf.Max(terrainBounds.extents.x, terrainBounds.extents.z);
                 //Debug.LogDebug"Terrain center: " + terrainBounds.center + " Terrain Size: " + terrainSize);
 
-                Vector3 levelCenter = levelBounds.center;
-                float levelSize = Mathf.Max(levelBounds.extents.x, levelBounds.extents.z);
+                Vector3 levelCenter = levelBounds.Value.center;
+                float levelSize = Mathf.Max(levelBounds.Value.extents.x, levelBounds.Value.extents.z);
                 //Debug.LogDebug"Level Center: " + levelCenter + " Level Size: " + levelSize);
 
                 if (snowfallData.targetVertexCount > 0)
@@ -735,7 +735,7 @@ namespace VoxxWeatherPlugin.Utils
                 //Debug.LogDebug"Base Density Factor: " + minMeshStep);
 
                 QuadTree rootNode = new QuadTree(terrainBounds);
-                rootNode.Subdivide(levelBounds, new Vector2(terrainStepX, terrainStepZ), snowfallData.minMeshStep,
+                rootNode.Subdivide(levelBounds.Value, new Vector2(terrainStepX, terrainStepZ), snowfallData.minMeshStep,
                                     snowfallData.maxMeshStep, snowfallData.falloffSpeed, terrainSize - levelSize);
 
                 // Generate vertices from 4 corners of leaf nodes of the quadtree
@@ -856,12 +856,12 @@ namespace VoxxWeatherPlugin.Utils
                     snowfallData.minMeshStep = Mathf.CeilToInt(Mathf.Sqrt(terrain.terrainData.heightmapResolution * terrain.terrainData.heightmapResolution / snowfallData.targetVertexCount));
                 }
 
-                actualCellStep = (int)Mathf.Max(snowfallData.minMeshStep, 1);
+                actualCellStep = Mathf.Max(snowfallData.minMeshStep, 1);
                 //Debug.LogDebug"Density Factor: " + actualCellStep);
 
                 // Calculate grid dimensions after applying density factor
-                int gridWidth = Mathf.FloorToInt((terrain.terrainData.heightmapResolution) / actualCellStep);
-                int gridHeight = Mathf.FloorToInt((terrain.terrainData.heightmapResolution) / actualCellStep);
+                int gridWidth = Mathf.FloorToInt(terrain.terrainData.heightmapResolution / actualCellStep);
+                int gridHeight = Mathf.FloorToInt(terrain.terrainData.heightmapResolution / actualCellStep);
 
                 // Generate vertices
                 for (int z = 0; z <= gridHeight; z++)
