@@ -551,13 +551,14 @@ namespace VoxxWeatherPlugin.Weathers
 
         private void FindObjectsAboveThresholdRecursive(Transform parent, List<GameObject> results, float heightThreshold, LayerMask mask)
         {
+            bool IsValidTerrain = parent.gameObject.activeInHierarchy && CheckIfObjectIsTerrain(parent.gameObject);
             //Try to find possible mesh terrain objects to render snow on
-            if (parent.gameObject.activeInHierarchy && CheckIfObjectIsTerrain(parent.gameObject))
+            if (IsValidTerrain)
             {
                 groundObjectCandidates.Add(parent.gameObject);
             }
 
-            if (parent.position.y > heightThreshold && mask == (mask | (1 << parent.gameObject.layer)))
+            if (parent.position.y > heightThreshold && mask == (mask | (1 << parent.gameObject.layer)) || IsValidTerrain)
             {
                 results.Add(parent.gameObject);
             }

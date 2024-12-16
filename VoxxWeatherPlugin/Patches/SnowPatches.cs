@@ -17,6 +17,7 @@ namespace VoxxWeatherPlugin.Patches
     internal class SnowPatches
     {
         internal static GameObject? snowTrackersContainer;
+        internal static bool allowClientCalculations = false;
         public static Dictionary<MonoBehaviour, VisualEffect> snowTrackersDict = new Dictionary<MonoBehaviour, VisualEffect>();
         public static Dictionary<MonoBehaviour, VisualEffect> snowShovelDict = new Dictionary<MonoBehaviour, VisualEffect>();
         public static Dictionary<EnemyAI, (float, float)> agentSpeedCache = new Dictionary<EnemyAI, (float, float)>();
@@ -136,7 +137,7 @@ namespace VoxxWeatherPlugin.Patches
         [HarmonyPrefix]
         private static void EnemyGroundSamplerPatch(EnemyAI __instance)
         {
-            if (GameNetworkManager.Instance.isHostingGame && (SnowfallWeather.Instance?.IsActive ?? false) && __instance.isOutside)
+            if ((GameNetworkManager.Instance.isHostingGame || allowClientCalculations) && (SnowfallWeather.Instance?.IsActive ?? false) && __instance.isOutside)
             {
                 // Check if enemy is affected by snow hindrance
                 if (!unaffectedEnemyTypes.Contains(__instance.GetType()))
@@ -235,7 +236,12 @@ namespace VoxxWeatherPlugin.Patches
             bool enableTracker = (SnowfallWeather.Instance?.IsActive ?? false) &&
                                     !__instance.isInsideFactory &&
                                     (SnowThicknessManager.Instance?.isEntityOnNaturalGround(__instance) ?? false);
-            UpdateFootprintTracker(__instance, enableTracker, new Vector3(0, 0, -1f));
+            // We need this check to prevent updating tracker's position after player death, as players get moved out of bounds on their death, causing VFX to be culled
+            if (!__instance.isPlayerDead) 
+            {
+                UpdateFootprintTracker(__instance, enableTracker, new Vector3(0, 0, -1f));
+            }
+            
         }
 
         [HarmonyPatch(typeof(EnemyAI), "Update")]
