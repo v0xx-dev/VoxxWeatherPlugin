@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Reflection.Emit;
 using UnityEngine.AI;
 using VoxxWeatherPlugin.Behaviours;
+using VoxxWeatherPlugin.Utils;
 using GameNetcodeStuff;
 
 namespace VoxxWeatherPlugin.Patches
@@ -15,9 +16,9 @@ namespace VoxxWeatherPlugin.Patches
         internal static System.Random random = new System.Random();
         internal static System.Random seededRandom = new System.Random(42);
         internal static Transform? originalTeleporterPosition;
-        internal static float batteryDrainMultiplier => Mathf.Clamp(VoxxWeatherPlugin.BatteryDrainMultiplier.Value, 0, 99);
-        internal static bool drainBatteryInFacility => VoxxWeatherPlugin.DrainBatteryInFacility.Value;
-        internal static bool doorMalfunctionEnabled => VoxxWeatherPlugin.DoorMalfunctionEnabled.Value;
+        internal static float batteryDrainMultiplier => Mathf.Clamp(Configuration.BatteryDrainMultiplier.Value, 0, 99);
+        internal static bool drainBatteryInFacility => Configuration.DrainBatteryInFacility.Value;
+        internal static bool doorMalfunctionEnabled => Configuration.DoorMalfunctionEnabled.Value;
 
 
         [HarmonyPatch(typeof(PlayerVoiceIngameSettings), "OnDisable")]

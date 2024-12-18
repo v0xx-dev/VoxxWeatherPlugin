@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEngine.VFX;
 using UnityEngine.Rendering.HighDefinition;
 using VoxxWeatherPlugin.Utils;
+using VoxxWeatherPlugin.Behaviours;
 using System.Linq;
 
 namespace VoxxWeatherPlugin.Weathers
@@ -55,8 +56,8 @@ namespace VoxxWeatherPlugin.Weathers
         
         // internal float radMechReactivationChance = 0.1f;
         // internal float radMechMalfunctionChance = 0.1f;
-        internal bool isDoorMalfunctionEnabled => VoxxWeatherPlugin.DoorMalfunctionEnabled.Value;
-        internal float doorMalfunctionChance => Mathf.Clamp01(VoxxWeatherPlugin.DoorMalfunctionChance.Value);
+        internal bool isDoorMalfunctionEnabled => Configuration.DoorMalfunctionEnabled.Value;
+        internal float doorMalfunctionChance => Mathf.Clamp01(Configuration.DoorMalfunctionChance.Value);
 
         private void Awake()
         {
@@ -215,7 +216,7 @@ namespace VoxxWeatherPlugin.Weathers
                     glitchVolume.customPasses.Add(glitchPass);
                     glitchPass.enabled = false;
 
-                    Debug.Log("Glitch Pass added to the Radar camera.");
+                    Debug.LogDebug("Glitch Pass added to the Radar camera.");
                 }
                 else
                 {
@@ -423,7 +424,7 @@ namespace VoxxWeatherPlugin.Weathers
         internal HDAdditionalLightData? sunLightData;
         
         // Threshold for sun luminosity in lux to enable aurora
-        internal float auroraSunThreshold => VoxxWeatherPlugin.AuroraVisibilityThreshold.Value; 
+        internal float auroraSunThreshold => Configuration.AuroraVisibilityThreshold.Value; 
 
         // Variables for emitter placement
 

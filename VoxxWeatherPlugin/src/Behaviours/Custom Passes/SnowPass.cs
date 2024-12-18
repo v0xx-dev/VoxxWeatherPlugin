@@ -1,11 +1,11 @@
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering.HighDefinition;
 using UnityEngine.Rendering;
 using System;
 using VoxxWeatherPlugin.Weathers;
+using VoxxWeatherPlugin.Utils;
 
-namespace VoxxWeatherPlugin.Utils
+namespace VoxxWeatherPlugin.Behaviours
 {
     public class SnowOverlayCustomPass : CustomPass
     {

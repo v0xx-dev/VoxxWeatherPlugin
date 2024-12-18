@@ -87,9 +87,8 @@ namespace VoxxWeatherPlugin.Weathers
                 return;
             }
 
-            bool allowWave = seededRandom!.NextDouble() < 0.5f; // To keep the chill waves less frequent
-
-            if (timeSinceWave >= waveInterval && allowWave)
+            // To keep the chill waves less frequent than the wind changes
+            if (timeSinceWave >= waveInterval && seededRandom!.NextDouble() < 0.5f)
             {
                 isChillWaveActive = true;
                 chillWaveCoroutine = StartCoroutine(GenerateChillWaveCoroutine());
@@ -318,6 +317,7 @@ namespace VoxxWeatherPlugin.Weathers
 
     public class BlizzardVFXManager: SnowfallVFXManager
     {
+        [Header("Blizzard Effects")]
         [SerializeField]
         internal GameObject? blizzardWaveContainer;
         [SerializeField]

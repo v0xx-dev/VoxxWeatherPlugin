@@ -8,6 +8,8 @@ using TriangleNet.Smoothing;
 using TriangleNet.Unity;
 using VoxxWeatherPlugin.Weathers;
 using UnityEngine.Rendering;
+using UnityEngine.InputSystem.EnhancedTouch;
+using Unity.Netcode;
 
 namespace VoxxWeatherPlugin.Utils
 {
@@ -309,7 +311,7 @@ namespace VoxxWeatherPlugin.Utils
             // Create new triangles list combining kept triangles and new triangulation
             List<int> newTriangles = new List<int>(trianglesToKeep);
 
-            Debug.Log("Modified triangles: " + mesh2d.Triangles.Count);
+            Debug.LogDebug("Modified triangles: " + mesh2d.Triangles.Count);
 
             // Convert Triangle.NET triangles back to Unity mesh triangles
             foreach (ITriangle triangle in mesh2d.Triangles)
@@ -360,7 +362,7 @@ namespace VoxxWeatherPlugin.Utils
                 }
 
             }
-            Debug.Log("Original UVs: " + newMesh.uv.Length + " New UVs: " + newUVs.Count);
+            Debug.LogDebug("Original UVs: " + newMesh.uv.Length + " New UVs: " + newUVs.Count);
             Debug.LogDebug("Original vertices: " + vertices.Length + " New vertices: " + newVertices.Count);
 
             newMesh.vertices = newVertices.ToArray();
@@ -1001,7 +1003,7 @@ namespace VoxxWeatherPlugin.Utils
                 var terrainData = terrain.terrainData;
                 var scaleX = terrainData.size.x / terrainData.detailWidth;
                 var scaleZ = terrainData.size.z / terrainData.detailHeight;
-                Debug.Log("Detail Prototypes: " + terrainData.detailPrototypes.Length);
+                Debug.LogDebug("Detail Prototypes: " + terrainData.detailPrototypes.Length);
                 
                 
                 for (int d = 0; d < terrainData.detailPrototypes.Length; d++)
@@ -1009,7 +1011,7 @@ namespace VoxxWeatherPlugin.Utils
                     var detailPrototype = terrainData.detailPrototypes[d];
                     var detailLayer = terrainData.GetDetailLayer(0, 0, terrainData.detailWidth, terrainData.detailHeight, d);
                     float targetDensity = detailPrototype.density;
-                    Debug.Log("Target Coverage: " + detailPrototype.targetCoverage);
+                    Debug.LogDebug("Target Coverage: " + detailPrototype.targetCoverage);
                     for (int x = 0; x < terrainData.detailWidth; x++)
                     {
                         for (int y = 0; y < terrainData.detailHeight; y++)
@@ -1199,6 +1201,31 @@ namespace VoxxWeatherPlugin.Utils
         {
             Shader m_Shader = Shader.Find(material.shader.name); 
             material.shader = m_Shader;
+        }
+
+        
+        public static void SpawnAtPosition(this Item itemToSpawn, Vector3 spawnPosition, int scrapValue = 7)
+        {
+            if (itemToSpawn == null)
+            {
+                Debug.LogError("Error: Item to spawn is null.");
+                return;
+            }
+
+            // Instantiate the item prefab
+            GameObject spawnedItemObject = GameObject.Instantiate(itemToSpawn.spawnPrefab, spawnPosition, Quaternion.identity);
+
+            // Get the GrabbableObject component and set its properties
+            GrabbableObject grabbableObject = spawnedItemObject.GetComponent<GrabbableObject>();
+            grabbableObject.transform.rotation = Quaternion.Euler(grabbableObject.itemProperties.restingRotation);
+            grabbableObject.fallTime = 0f;
+
+            // Set a specific scrap value
+            grabbableObject.scrapValue = scrapValue;
+
+            // Spawn the object on the network
+            NetworkObject networkObject = spawnedItemObject.GetComponent<NetworkObject>();
+            networkObject.Spawn();
         }
     
     }

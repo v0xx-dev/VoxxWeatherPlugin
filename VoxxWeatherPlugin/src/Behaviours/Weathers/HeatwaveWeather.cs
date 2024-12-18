@@ -20,8 +20,8 @@ namespace VoxxWeatherPlugin.Weathers
 
         private System.Random? seededRandom;
 
-        private float timeUntilStrokeMin => VoxxWeatherPlugin.TimeUntilStrokeMin.Value; // Minimum time until a heatstroke occurs
-        private float timeUntilStrokeMax => VoxxWeatherPlugin.TimeUntilStrokeMax.Value; // Maximum time until a heatstroke occurs
+        private float timeUntilStrokeMin => Configuration.TimeUntilStrokeMin.Value; // Minimum time until a heatstroke occurs
+        private float timeUntilStrokeMax => Configuration.TimeUntilStrokeMax.Value; // Maximum time until a heatstroke occurs
         [SerializeField]
         internal float timeInHeatZoneMax = 50f; // Time before maximum effects are applied
         [SerializeField]
@@ -205,7 +205,7 @@ namespace VoxxWeatherPlugin.Weathers
             levelBounds.size = new Vector3(levelBounds.size.x, newHeight, levelBounds.size.z);
             levelBounds.center = new Vector3(levelBounds.center.x, newYPos, levelBounds.center.z);
 
-            Debug.Log($"Placed {placedEmittersNum} emitters.");
+            Debug.LogDebug($"Placed {placedEmittersNum} emitters.");
         }
 
         private (Vector3, Vector3) CastRayAndSampleNavMesh(Vector3 rayOrigin)
@@ -266,7 +266,7 @@ namespace VoxxWeatherPlugin.Weathers
                 {
                     if (child.TryGetComponent(out VisualEffect vfx))
                     {
-                        vfx.SetFloat(spawnRatePropertyID, VoxxWeatherPlugin.HeatwaveParticlesSpawnRate.Value * reductionFactor); 
+                        vfx.SetFloat(spawnRatePropertyID, Configuration.HeatwaveParticlesSpawnRate.Value * reductionFactor); 
                     }
                 }
             }

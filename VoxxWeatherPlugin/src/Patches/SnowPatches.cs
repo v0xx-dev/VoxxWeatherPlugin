@@ -296,6 +296,7 @@ namespace VoxxWeatherPlugin.Patches
             {
                 // Must be in SampleSceneRelay otherwise VFX causes a crash for some reason
                 snowTrackersContainer = new GameObject("SnowTrackersContainer");
+                GameObject.DontDestroyOnLoad(snowTrackersContainer);
             }
             //Load different footprints for player and other objects
             VisualEffectAsset? footprintsTrackerVariant = obj switch

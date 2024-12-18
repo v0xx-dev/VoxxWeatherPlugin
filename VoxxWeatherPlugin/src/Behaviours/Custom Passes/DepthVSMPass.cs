@@ -3,7 +3,7 @@ using UnityEngine;
 using UnityEngine.Rendering.HighDefinition;
 using UnityEngine.Rendering;
 
-namespace VoxxWeatherPlugin.Utils
+namespace VoxxWeatherPlugin.Behaviours
 {
     // Must be used with a camera that has a target texture
     public class DepthVSMPass : CustomPass

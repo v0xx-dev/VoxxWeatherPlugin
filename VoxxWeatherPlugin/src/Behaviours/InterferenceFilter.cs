@@ -26,7 +26,7 @@ namespace VoxxWeatherPlugin.Behaviours
         {
             sampleRate = AudioSettings.outputSampleRate;
             random = new System.Random(42);
-            noiseLevel = VoxxWeatherPlugin.NoiseStaticLevel.Value;
+            noiseLevel = Configuration.NoiseStaticLevel.Value;
         }
 
         private void OnAudioFilterRead(float[] data, int channels)

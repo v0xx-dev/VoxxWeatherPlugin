@@ -50,7 +50,7 @@ namespace VoxxWeatherPlugin.Utils
             heatwaveVFX.visualEffectAsset = heatwaveVFXAsset;
 
             // Configure VFX settings
-            heatwaveVFX.SetFloat("particleSpawnRate", VoxxWeatherPlugin.HeatwaveParticlesSpawnRate.Value);
+            heatwaveVFX.SetFloat("particleSpawnRate", Configuration.HeatwaveParticlesSpawnRate.Value);
             // TODO add blurring strength configuration
 
             heatwaveContainer.SetActive(true);
@@ -119,10 +119,10 @@ namespace VoxxWeatherPlugin.Utils
 
             // Configure VFX settings
 
-            auroraVFX.SetUInt("spawnHeight", VoxxWeatherPlugin.AuroraHeight.Value);
-            auroraVFX.SetFloat("spawnBoxSize", VoxxWeatherPlugin.AuroraSpawnAreaBox.Value);
-            auroraVFX.SetFloat("auroraSize", VoxxWeatherPlugin.AuroraSize.Value);
-            auroraVFX.SetFloat("particleSpawnRate", VoxxWeatherPlugin.AuroraSpawnRate.Value);
+            auroraVFX.SetUInt("spawnHeight", Configuration.AuroraHeight.Value);
+            auroraVFX.SetFloat("spawnBoxSize", Configuration.AuroraSpawnAreaBox.Value);
+            auroraVFX.SetFloat("auroraSize", Configuration.AuroraSize.Value);
+            auroraVFX.SetFloat("particleSpawnRate", Configuration.AuroraSpawnRate.Value);
 
             flareContainer.SetActive(true);
 
@@ -175,10 +175,11 @@ namespace VoxxWeatherPlugin.Utils
 
             Shader? overlayShader = WeatherAssetLoader.LoadAsset<Shader>(bundleName, "SnowLitPass");
             Shader? vertexSnowShader = WeatherAssetLoader.LoadAsset<Shader>(bundleName, "SnowLitVertBakedPass");
+            Shader? terrainLitShader = WeatherAssetLoader.LoadAsset<Shader>(bundleName, "MeshTerrainLit");
             VisualEffectAsset? blizzardVFXAsset = WeatherAssetLoader.LoadAsset<VisualEffectAsset>(bundleName, "BlizzardVFX");
             VisualEffectAsset? blizzardWaveVFXAsset = WeatherAssetLoader.LoadAsset<VisualEffectAsset>(bundleName, "BlizzardWaveVFX");
 
-            if (overlayShader == null || blizzardVFXAsset == null || blizzardWaveVFXAsset == null || vertexSnowShader == null)
+            if (overlayShader == null || blizzardVFXAsset == null || blizzardWaveVFXAsset == null || vertexSnowShader == null || terrainLitShader == null)
             {
                 Debug.LogError("Failed to load Blizzard Weather visual assets. Weather registration failed.");
                 return;
@@ -186,6 +187,7 @@ namespace VoxxWeatherPlugin.Utils
 
             blizzardWeatherController.snowOverlayMaterial!.shader = overlayShader;
             blizzardWeatherController.snowVertexMaterial!.shader = vertexSnowShader;
+            blizzardWeatherController.terraMeshShader = terrainLitShader;
             blizzardVFXManager.snowVFXContainer!.GetComponent<VisualEffect>().visualEffectAsset = blizzardVFXAsset;
             blizzardVFXManager.blizzardWaveContainer!.GetComponentInChildren<VisualEffect>(true).visualEffectAsset = blizzardWaveVFXAsset;
             
@@ -248,9 +250,10 @@ namespace VoxxWeatherPlugin.Utils
 
             Shader? overlayShader = WeatherAssetLoader.LoadAsset<Shader>(bundleName, "SnowLitPass");
             Shader? vertexSnowShader = WeatherAssetLoader.LoadAsset<Shader>(bundleName, "SnowLitVertBakedPass");
+            Shader? terrainLitShader = WeatherAssetLoader.LoadAsset<Shader>(bundleName, "MeshTerrainLit");
             VisualEffectAsset? snowVFXAsset = WeatherAssetLoader.LoadAsset<VisualEffectAsset>(bundleName, "SnowVFX");
 
-            if (overlayShader == null || snowVFXAsset == null || vertexSnowShader == null)
+            if (overlayShader == null || snowVFXAsset == null || vertexSnowShader == null || terrainLitShader == null)
             {
                 Debug.LogError("Failed to load Snowfall Weather visual assets. Weather registration failed.");
                 return;
@@ -258,6 +261,7 @@ namespace VoxxWeatherPlugin.Utils
 
             snowfallWeatherController.snowOverlayMaterial!.shader = overlayShader;
             snowfallWeatherController.snowVertexMaterial!.shader = vertexSnowShader;
+            snowfallWeatherController.terraMeshShader = terrainLitShader;
             snowfallVFXManager.snowVFXContainer!.GetComponent<VisualEffect>().visualEffectAsset = snowVFXAsset;
 
             // TODO add vfx configs

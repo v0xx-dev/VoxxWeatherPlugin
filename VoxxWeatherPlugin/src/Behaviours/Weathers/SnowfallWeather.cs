@@ -12,6 +12,7 @@ using VoxxWeatherPlugin.Utils;
 using System;
 using System.Collections;
 using GameNetcodeStuff;
+using UnityEngine.AI;
 
 namespace VoxxWeatherPlugin.Weathers
 {
@@ -94,7 +95,7 @@ namespace VoxxWeatherPlugin.Weathers
         [SerializeField]
         internal bool useBounds = true; // Use the level bounds to filter out-of-bounds vertices
         [SerializeField]
-        internal bool subdivideMesh = true;
+        internal bool subdivideMesh = true; // Will also force the algorithm to refine mesh to remove thin triangles
         [SerializeField]
         internal bool smoothMesh = true;
         [SerializeField]
@@ -144,6 +145,7 @@ namespace VoxxWeatherPlugin.Weathers
         internal Bounds levelBounds;
         internal System.Random? seededRandom;
         private HDAdditionalLightData? sunLightData;
+
 
 #if DEBUG
 
@@ -327,7 +329,6 @@ namespace VoxxWeatherPlugin.Weathers
             }
 
             SnowThicknessManager.Instance!.inputNeedsUpdate = true;
-
         }
 
         internal void FreezeWater()
@@ -420,8 +421,11 @@ namespace VoxxWeatherPlugin.Weathers
                 }
                 // Turn the terrain into a mesh
                 GameObject meshTerrain = terrain.Meshify(this, useBounds ? levelBounds : null);
+                // Modify render mask to support overlay snow rendering
+                MeshRenderer meshRenderer = meshTerrain.GetComponent<MeshRenderer>();
+                meshRenderer.renderingLayerMask |= (uint)snowOverlayCustomPass!.renderingLayers;
                 // Setup the Lit terrain material
-                Material terrainMaterial = meshTerrain.GetComponent<MeshRenderer>().sharedMaterial;
+                Material terrainMaterial = meshRenderer.sharedMaterial;
                 terrainMaterial.SetupMaterialFromTerrain(terrain);
                 // Setup the index in the material property block for the snow masks
                 PrepareMeshForSnow(meshTerrain, textureIndex);
@@ -577,9 +581,9 @@ namespace VoxxWeatherPlugin.Weathers
                     isOutOfBoundsInMaterial = nameString.Contains("outofbounds");
                     isDecalLayerMatched = (meshRenderer.renderingLayerMask & decalLayerMask) != 0;
 
-                    // Collect water surface objects
-                    if (nameString.Contains("water"))
-                    {
+                    // Collect water surface objects. Must have "water" in the name and no collider
+                    if (nameString.Contains("water") && !obj.TryGetComponent<Collider>(out Collider _))
+                    {   
                         waterSurfaceObjects.Add(obj);
                     }
                 }
@@ -690,9 +694,16 @@ namespace VoxxWeatherPlugin.Weathers
         internal VisualEffectAsset[]? footprintsTrackerVFX;
         internal static Dictionary <string, VisualEffectAsset>? snowTrackersDict;
 
-        internal void Start()
+        [Header("Christmas Event")]
+        [SerializeField]
+        private GameObject? christmasTreePrefab;
+        private Item? giftBoxItem;
+
+        internal void Awake()
         {
             snowFootstepIndex = Array.FindIndex(StartOfRound.Instance.footstepSurfaces, surface => surface.surfaceTag == "Snow");
+            // Find the gift box item in the item database
+            giftBoxItem = StartOfRound.Instance.allItemsList.itemsList.FirstOrDefault(item => item.name == "GiftBox");
         }
 
         internal virtual void OnEnable()
@@ -730,13 +741,14 @@ namespace VoxxWeatherPlugin.Weathers
 
         internal void Update()
         {   
+            PlayerControllerB localPlayer = GameNetworkManager.Instance.localPlayerController;
             
-            if ((SnowThicknessManager.Instance?.isOnNaturalGround ?? false) && GameNetworkManager.Instance.localPlayerController.physicsParent == null)
+            if ((SnowThicknessManager.Instance?.isOnNaturalGround ?? false) && localPlayer.physicsParent == null)
             {
-                float snowThickness = SnowThicknessManager.Instance.GetSnowThickness(GameNetworkManager.Instance.localPlayerController);
+                float snowThickness = SnowThicknessManager.Instance.GetSnowThickness(localPlayer);
                 // White out the screen if the player is under snow
-                float localPlayerEyeY = GameNetworkManager.Instance.localPlayerController.playerEye.position.y;
-                bool isUnderSnow = SnowThicknessManager.Instance.feetPosition.y + snowThickness >= localPlayerEyeY - eyeBias;
+                float localPlayerEyeY = localPlayer.playerEye.position.y;
+                bool isUnderSnow = SnowThicknessManager.Instance.feetPosition.y + snowThickness >= localPlayerEyeY - eyeBias; //TODO instead of feet position use collision point of character controller
 
                 if (isUnderSnow != isUnderSnowPreviousFrame)
                 {
@@ -746,8 +758,11 @@ namespace VoxxWeatherPlugin.Weathers
                 isUnderSnowPreviousFrame = isUnderSnow;
                 UpdateFade();
 
+                // If the user decreases frostbite damage from the default value (10), add additional slowdown
+                float metaSnowThickness = Mathf.Clamp01(1 - SnowPatches.frostbiteDamage/10f) * PlayerTemperatureManager.coldSeverity;
+
                 // Slow down the player if they are in snow (only if snow thickness is above 0.4, caps at 2.5 height)
-                snowMovementHindranceMultiplier = 1 + 5*Mathf.Clamp01((snowThickness - 0.4f)/2.1f);
+                snowMovementHindranceMultiplier = 1 + 5*Mathf.Clamp01((snowThickness + metaSnowThickness - 0.4f)/2.1f);
 
                 // Debug.LogDebug($"Hindrance multiplier: {snowMovementHindranceMultiplier}, isUnderSnow: {isUnderSnow}, snowThickness: {snowThickness}");
             }
@@ -804,14 +819,111 @@ namespace VoxxWeatherPlugin.Weathers
         {
             if (!(SnowfallWeather.Instance is BlizzardWeather)) // to avoid setting the depth texture for blizzard
             {
-                HDRPCameraOrTextureBinder depthBinder = snowVFXContainer!.GetComponent<HDRPCameraOrTextureBinder>();
-                depthBinder.depthTexture = SnowfallWeather.Instance!.levelDepthmap; // bind the baked depth texture
+                HDRPCameraOrTextureBinder? depthBinder = snowVFXContainer!.GetComponent<HDRPCameraOrTextureBinder>();
+                if (depthBinder != null)
+                {
+                    Debug.LogDebug("Binding depth texture to snow VFX");
+                    depthBinder.depthTexture = SnowfallWeather.Instance!.levelDepthmap; // bind the baked depth texture
+                }
             }
 
             SnowPatches.ToggleFootprintTrackers(true);
 
             SnowfallWeather.Instance.snowVolume!.enabled = true;
             SnowfallWeather.Instance.snowTrackerCameraContainer?.SetActive(true);
+
+            // For blizzard weather prefab won't be set
+            if (christmasTreePrefab == null)
+            {
+                return;
+            }
+            // If the current date is +- 2 days from 25th December, 31st December or 6th January, spawn a Christmas tree
+            DateTime currentDate = DateTime.Now;
+            HashSet<DateTime> christmasDates = GetChristmasDates(currentDate);
+            if (christmasDates.Contains(currentDate))
+            {
+                JingleBells();
+            }
+
+#if DEBUG
+            Debug.LogDebug("Merry Christmas!");
+            JingleBells();
+#endif
+
+        }
+
+        private HashSet<DateTime> GetChristmasDates(DateTime currentDate)
+        {
+            // Get dates that are -2 days away from 25th December, 31st December or 6th January
+            HashSet<DateTime> christmasDates =
+            [
+                new DateTime(currentDate.Year, 12, 23),
+                new DateTime(currentDate.Year, 12, 24),
+                new DateTime(currentDate.Year, 12, 25),
+                new DateTime(currentDate.Year, 12, 29),
+                new DateTime(currentDate.Year, 12, 30),
+                new DateTime(currentDate.Year, 12, 31),
+                new DateTime(currentDate.Year, 1, 4),
+                new DateTime(currentDate.Year, 1, 5),
+                new DateTime(currentDate.Year, 1, 6),
+            ];
+
+            return christmasDates;
+        }
+
+        private void JingleBells()
+        {
+            if (giftBoxItem == null)
+            {
+                Debug.LogError("Gift box item not found in the item database!");
+                return;
+            }
+
+            // Select a random position in the level from RoundManager.Instance.outsideAINodes
+            System.Random randomizer = SnowfallWeather.Instance!.seededRandom!;
+            int randomIndex = randomizer.Next(0, RoundManager.Instance.outsideAINodes.Length);
+            Vector3 anchor = RoundManager.Instance.outsideAINodes[randomIndex].transform.position;
+
+            int attempts = 24;
+            bool treePlaced = false;
+            while (attempts-- > 0)
+            {
+                // Sample another random position using navmesh around the anchor where there is at least 10x10m of space
+                Vector3 randomPosition = RoundManager.Instance.GetRandomNavMeshPositionInBoxPredictable(anchor, 25f, randomSeed: randomizer);
+                randomPosition = RoundManager.Instance.PositionEdgeCheck(randomPosition, 7f);
+                if (randomPosition != Vector3.zero)
+                {
+                    anchor = randomPosition;
+                    treePlaced = true;
+                    break;
+                }
+            }
+            
+            if (!treePlaced)
+            {
+                Debug.LogDebug("Failed to place a Christmas tree in the level, too many attempts!");
+                return;
+            }
+
+            Quaternion randomRotation = Quaternion.Euler(0, randomizer.Next(0, 360), 0);
+            // Spawn a Christmas tree
+            GameObject tree = Instantiate(christmasTreePrefab!, anchor, randomRotation);
+
+            // Spawn a gift box for each player in the game. Cap at 4 gifts so users with more than 4 players don't get too many gifts
+            int numGifts = Mathf.Min(GameNetworkManager.Instance.connectedPlayers, 4); 
+
+            NavMeshHit hit;
+            for (int i = 0; i < numGifts; i++)
+            {
+                int giftValue = randomizer.Next(1, 24);
+
+                //Spawn gifts in a ring around the tree by sampling the NavMesh around it
+                Vector3 giftPosition = anchor + 2f * new Vector3(Mathf.Cos(i * 2 * Mathf.PI / numGifts), 0, Mathf.Sin(i * 2 * Mathf.PI / numGifts));
+                if (NavMesh.SamplePosition(giftPosition, out hit, 2f, NavMesh.AllAreas))
+                {
+                    giftBoxItem.SpawnAtPosition(hit.position, giftValue);
+                }
+            }
         }
 
         internal void OnDestroy()

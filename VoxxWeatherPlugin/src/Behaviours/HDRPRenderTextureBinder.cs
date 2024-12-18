@@ -4,7 +4,7 @@ using UnityEngine.Rendering.HighDefinition;
 using UnityEngine.VFX;
 using UnityEngine.VFX.Utility;
 
-namespace VoxxWeatherPlugin.Utils
+namespace VoxxWeatherPlugin.Behaviours
 {
     /// <summary>
     /// Camera parameter binding helper class with render texture support.

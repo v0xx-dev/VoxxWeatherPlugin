@@ -5,7 +5,6 @@ using VoxxWeatherPlugin.Patches;
 using VoxxWeatherPlugin.Utils;
 using BepInEx.Logging;
 using System.Reflection;
-using BepInEx.Configuration;
 using System;
 using System.Collections.Generic;
 
@@ -19,26 +18,6 @@ namespace VoxxWeatherPlugin
         public static VoxxWeatherPlugin instance;
         internal static ManualLogSource StaticLogger;
 
-        // Config entries
-        public static ConfigEntry<bool> EnableHeatwaveWeather;
-        public static ConfigEntry<bool> EnableSolarFlareWeather;
-        public static ConfigEntry<bool> EnableSnowfallWeather;
-        public static ConfigEntry<bool> EnableBlizzardWeather;
-        public static ConfigEntry<uint> AuroraHeight;
-        public static ConfigEntry<float> AuroraSpawnAreaBox;
-        public static ConfigEntry<float> AuroraVisibilityThreshold;
-        public static ConfigEntry<float> AuroraSpawnRate;
-        public static ConfigEntry<float> AuroraSize;
-        public static ConfigEntry<float> HeatwaveParticlesSpawnRate;
-        public static ConfigEntry<float> TimeUntilStrokeMin;
-        public static ConfigEntry<float> TimeUntilStrokeMax;
-        public static ConfigEntry<bool> DistortOnlyVoiceDuringSolarFlare;
-        public static ConfigEntry<float> BatteryDrainMultiplier;
-        public static ConfigEntry<bool> DrainBatteryInFacility;
-        public static ConfigEntry<bool> DoorMalfunctionEnabled;
-        public static ConfigEntry<float> DoorMalfunctionChance;
-        public static ConfigEntry<float> NoiseStaticLevel;
-
         private void Awake()
         {
             instance = this;
@@ -46,15 +25,16 @@ namespace VoxxWeatherPlugin
             
             NetcodePatcher();
 
-            InitializeConfig();
+            // Pass plugin metadata to the configuration class
+            Configuration.Initialize(Info.Metadata);
             
             harmony = new Harmony(PluginInfo.PLUGIN_GUID);
 
-            if (EnableSolarFlareWeather.Value)    
+            if (Configuration.EnableSolarFlareWeather.Value)    
             {
                 WeatherTypeLoader.RegisterFlareWeather();
                 harmony.PatchAll(typeof(FlarePatches));
-                if (!VoxxWeatherPlugin.DistortOnlyVoiceDuringSolarFlare.Value)
+                if (!Configuration.DistortOnlyVoiceDuringSolarFlare.Value)
                 {
                     harmony.PatchAll(typeof(FlareOptionalWalkiePatches));
                     Logger.LogInfo($"{PluginInfo.PLUGIN_GUID} optional solar flare patches successfully applied!");
@@ -62,7 +42,7 @@ namespace VoxxWeatherPlugin
                 Logger.LogInfo($"{PluginInfo.PLUGIN_GUID} solar flare patches successfully applied!");
             }
 
-            if (EnableHeatwaveWeather.Value)
+            if (Configuration.EnableHeatwaveWeather.Value)
             {
                 WeatherTypeLoader.RegisterHeatwaveWeather();
                 harmony.PatchAll(typeof(HeatwavePatches));
@@ -71,7 +51,7 @@ namespace VoxxWeatherPlugin
 
             
 
-            if (EnableBlizzardWeather.Value || EnableSnowfallWeather.Value)
+            if (Configuration.EnableBlizzardWeather.Value || Configuration.EnableSnowfallWeather.Value)
             {
                 bool snowManagerLoaded = WeatherTypeLoader.LoadSnowManager();
                 if (snowManagerLoaded)
@@ -83,12 +63,12 @@ namespace VoxxWeatherPlugin
                     DynamicHarmonyPatcher.PatchAllTypes(typeof(EnemyAI), "Update", patchMethod, PatchType.Postfix, harmony, SnowPatches.unaffectedEnemyTypes); 
                     Logger.LogInfo($"{PluginInfo.PLUGIN_GUID} enemy snow hindrance patches successfully applied!");
 
-                    if (EnableSnowfallWeather.Value)
+                    if (Configuration.EnableSnowfallWeather.Value)
                     {
                         WeatherTypeLoader.RegisterSnowfallWeather();
                     }
 
-                    if (EnableBlizzardWeather.Value)
+                    if (Configuration.EnableBlizzardWeather.Value)
                     {
                         harmony.PatchAll(typeof(BlizzardPatches));
                         Logger.LogInfo($"{PluginInfo.PLUGIN_GUID} blizzard patches successfully applied!");
@@ -123,32 +103,7 @@ namespace VoxxWeatherPlugin
                     }
                 }
             }
-        }
-
-        private void InitializeConfig()
-        {
-            // Weather
-            EnableHeatwaveWeather = Config.Bind("Weather", "EnableHeatwaveWeather", true, "Enable or disable Heatwave weather");
-            EnableSolarFlareWeather = Config.Bind("Weather", "EnableSolarFlareWeather", true, "Enable or disable Solar Flare weather");
-            EnableSnowfallWeather = Config.Bind("Weather", "EnableSnowfallWeather", true, "Enable or disable Snowfall weather");
-            EnableBlizzardWeather = Config.Bind("Weather", "EnableBlizzardWeather", true, "Enable or disable Blizzard weather");
-            // Heatwave
-            HeatwaveParticlesSpawnRate = Config.Bind("Heatwave", "ParticlesSpawnRate", 20f, new ConfigDescription("Spawn rate of Heatwave particles. Particles per second", new AcceptableValueRange<float>(0, 42)));
-            TimeUntilStrokeMin = Config.Bind("Heatwave", "TimeUntilStrokeMin", 40f, new ConfigDescription("Minimal time in seconds until heatstroke (min)", new AcceptableValueRange<float>(1, 9999f)));
-            TimeUntilStrokeMax = Config.Bind("Heatwave", "TimeUntilStrokeMax", 80f, new ConfigDescription("Maximal time in seconds until heatstroke (max). Must be higher than min! Actual time is random between min and max", new AcceptableValueRange<float>(1, 9999f)));
-            // Solar Flare
-            AuroraHeight = Config.Bind("SolarFlare", "AuroraHeight", (uint)120, "Height of the Aurora effect above the ground");
-            AuroraSpawnAreaBox = Config.Bind("SolarFlare", "AuroraSpawnArea", 500f, "Size of the Aurora spawn area. The Aurora effect will spawn randomly within this square area. VFX may disappear at certain angles if the area is too small or too large.");
-            AuroraVisibilityThreshold = Config.Bind("SolarFlare", "AuroraVisibilityThreshold", 9f, "Light threshold when Aurora becomes visible (in Lux). Increase to make it more visible.");
-            AuroraSpawnRate = Config.Bind("SolarFlare", "AuroraSpawnRate", 0.1f, new ConfigDescription("Spawn rate of Aurora effects. Auroras per second", new AcceptableValueRange<float>(0, 32f)));
-            AuroraSize = Config.Bind("SolarFlare", "AuroraSize", 100f, "Size of the Aurora 'strips' in the sky");
-            DistortOnlyVoiceDuringSolarFlare = Config.Bind("SolarFlare", "DistortOnlyVoice", true, "Distort only player voice during Solar Flare (true) or all sounds (false) on a walkie-talkie");
-            BatteryDrainMultiplier = Config.Bind("SolarFlare", "BatteryDrainMultiplier", 1.0f, new ConfigDescription("Multiplier for additional battery drain during Solar Flare. 1.0 is normal drain, 0.5 is half drain, 2.0 is double drain, 0 no additional drain, etc. Default value is equal to 60 - 200 % faster drain depending on the type of flare.", new AcceptableValueRange<float>(0, 100f)));
-            DrainBatteryInFacility = Config.Bind("SolarFlare", "DrainBatteryInFacility", false, "Drain item battery even when inside a facility during Solar Flare");
-            DoorMalfunctionEnabled = Config.Bind("SolarFlare", "DoorMalfunctionEnabled", true, "Enable or disable door malfunction during Average and Strong Solar Flare");
-            DoorMalfunctionChance = Config.Bind("SolarFlare", "DoorMalfunctionChance", 0.5f, new ConfigDescription("Chance of metal doors opening/closing by themselves during Solar Flare. 0.1 is 10% chance, 0.5 is 50% chance, 1.0 is 100% chance. Low chance might cause you to get soft locked behind a door in the facility!", new AcceptableValueRange<float>(0, 1f)));
-            NoiseStaticLevel = Config.Bind("SolarFlare", "NoiseStaticLevel", 0.001f, new ConfigDescription("Level of static noise from the walkie talkie during Solar Flare. This is signal amplitude, the actual volume in dB will follow a logarithmic scale. For example the volume for value 0.1 relative to 0.2 is not reduced by 100%, it's actually by ~log10(0.2/0.1) %", new AcceptableValueRange<float>(0, 1f)));
-        }
+        }    
     }
 
     public static class Debug

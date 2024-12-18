@@ -4,7 +4,7 @@ using UnityEngine.Rendering.HighDefinition;
 using System;
 using UnityEngine.Experimental.Rendering;
 
-namespace VoxxWeatherPlugin.Utils
+namespace VoxxWeatherPlugin.Behaviours
 {
     [Serializable, VolumeComponentMenu("Post-processing/Custom/Glitch Effect")]
     public sealed class GlitchEffect : CustomPass
@@ -168,7 +168,7 @@ namespace VoxxWeatherPlugin.Utils
         {
             if (tempColorBuffer != null)
             {
-                Debug.Log("GlitchPass: Releasing temp color buffer!");
+                Debug.LogDebug("GlitchPass: Releasing temp color buffer!");
                 tempColorBuffer.Release();
             }
 
@@ -182,7 +182,7 @@ namespace VoxxWeatherPlugin.Utils
                 name: "Glitch Buffer"
             );
 
-            Debug.Log("GlitchPass: Allocated temp color buffer!");
+            Debug.LogDebug("GlitchPass: Allocated temp color buffer!");
         }
     }
 }
