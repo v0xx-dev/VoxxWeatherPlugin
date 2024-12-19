@@ -9,7 +9,7 @@ namespace VoxxWeatherPlugin.Behaviours
     public class ChillWaveTrigger: MonoBehaviour
     {
         [SerializeField]
-        internal int waveDamage = 20;
+        internal int WaveDamage => Configuration.chillingWaveDamage.Value;
         [SerializeField]
         internal float waveForce = 40f;
         internal Coroutine? temperatureChangeCoroutine;
@@ -29,7 +29,10 @@ namespace VoxxWeatherPlugin.Behaviours
                     {
                         temperatureChangeCoroutine = StartCoroutine(TemperatureChangeCoroutine());
                     }
-                    playerController.DamagePlayer(waveDamage, causeOfDeath: CauseOfDeath.Unknown);
+                    if (WaveDamage > 0)
+                    {
+                        playerController.DamagePlayer(WaveDamage, causeOfDeath: CauseOfDeath.Unknown);
+                    }
                     playerController.externalForceAutoFade += transform.forward * waveForce;
                     BlizzardVFXManager? blizzardVFX = SnowfallWeather.Instance?.VFXManager as BlizzardVFXManager; // TODO: super cursed, but ok for now
                     blizzardVFX?.PlayWavePassSFX();

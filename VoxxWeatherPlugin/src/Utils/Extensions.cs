@@ -56,7 +56,7 @@ namespace VoxxWeatherPlugin.Utils
             Debug.LogDebug("Extracted submesh with " + newMesh.vertexCount + " vertices and " + newMesh.triangles.Length / 3 + " triangles" + " from submesh " + submeshIndex + " of " + meshTerrainObject.name);
 
             Bounds objectSpaceBounds;
-            if (snowfallData.useBounds)
+            if (snowfallData.UseBounds)
             {
                 // Transform bounds to object space
                 objectSpaceBounds = new Bounds(
@@ -150,7 +150,7 @@ namespace VoxxWeatherPlugin.Utils
                     vertexIndicesInBounds.Add(p3);
 
                     // Store triangles within bounds
-                    if (snowfallData.subdivideMesh)
+                    if (snowfallData.SubdivideMesh)
                     {
                         trianglesToRefine.Enqueue((p1, p2, p3));
                     }
@@ -176,7 +176,7 @@ namespace VoxxWeatherPlugin.Utils
             List<Vector2> newUVs = new List<Vector2>(newMesh.uv);
 
             // Refine triangles
-            if (snowfallData.subdivideMesh)
+            if (snowfallData.SubdivideMesh)
             {
                 Debug.LogDebug($"Refining {trianglesToRefine.Count} triangles...");
                 sw.Restart();
@@ -292,14 +292,14 @@ namespace VoxxWeatherPlugin.Utils
 
             // Configure triangulation options
             ConstraintOptions options = new ConstraintOptions() { ConformingDelaunay = true, SegmentSplitting = 2};
-            QualityOptions quality = new QualityOptions() { MinimumAngle = 30.0f, SteinerPoints = snowfallData.subdivideMesh ? -1 : 0};
+            QualityOptions quality = new QualityOptions() { MinimumAngle = 30.0f, SteinerPoints = snowfallData.SubdivideMesh ? -1 : 0};
 
             // Perform triangulation
             sw.Restart();
             var mesh2d = polygon.Triangulate(options, quality);
             sw.Stop();
             Debug.LogDebug("Triangulation time: " + sw.ElapsedMilliseconds + "ms");
-            if (snowfallData.smoothMesh)
+            if (snowfallData.SmoothMesh)
             {
                 sw.Restart();
                 var smoother = new LaplacianSmoother(1f);
@@ -590,7 +590,7 @@ namespace VoxxWeatherPlugin.Utils
 
             snowfallData.RefreshBakeMaterial();
 
-            RenderTexture tempRT = RenderTexture.GetTemporary(snowfallData.bakeResolution, snowfallData.bakeResolution, 0, RenderTextureFormat.ARGBFloat);
+            RenderTexture tempRT = RenderTexture.GetTemporary(snowfallData.BakeResolution, snowfallData.BakeResolution, 0, RenderTextureFormat.ARGBFloat);
             tempRT.wrapMode = TextureWrapMode.Clamp;
             tempRT.filterMode = FilterMode.Trilinear;
 
@@ -602,11 +602,11 @@ namespace VoxxWeatherPlugin.Utils
             if (snowfallData.bakeMaterial?.SetPass(0) ?? false)
                 Graphics.DrawMeshNow(mesh, matrix, submeshIndex);
 
-            RenderTexture blurRT1 = RenderTexture.GetTemporary(snowfallData.bakeResolution, snowfallData.bakeResolution, 0, RenderTextureFormat.ARGBFloat);
+            RenderTexture blurRT1 = RenderTexture.GetTemporary(snowfallData.BakeResolution, snowfallData.BakeResolution, 0, RenderTextureFormat.ARGBFloat);
             blurRT1.wrapMode = TextureWrapMode.Clamp;
             blurRT1.filterMode = FilterMode.Trilinear;
 
-            RenderTexture blurRT2 = RenderTexture.GetTemporary(snowfallData.bakeResolution, snowfallData.bakeResolution, 0, RenderTextureFormat.ARGBFloat);
+            RenderTexture blurRT2 = RenderTexture.GetTemporary(snowfallData.BakeResolution, snowfallData.BakeResolution, 0, RenderTextureFormat.ARGBFloat);
             blurRT2.wrapMode = TextureWrapMode.Clamp;
             blurRT2.filterMode = FilterMode.Trilinear;
 
@@ -616,10 +616,10 @@ namespace VoxxWeatherPlugin.Utils
             Graphics.Blit(blurRT1, blurRT2, snowfallData.bakeMaterial, 2);
 
             RenderTexture.active = blurRT2;
-            Texture2D maskTexture = new Texture2D(snowfallData.bakeResolution, snowfallData.bakeResolution, TextureFormat.RGBAFloat, false);
+            Texture2D maskTexture = new Texture2D(snowfallData.BakeResolution, snowfallData.BakeResolution, TextureFormat.RGBAFloat, false);
             maskTexture.wrapMode = TextureWrapMode.Clamp;
             maskTexture.filterMode = FilterMode.Trilinear;
-            maskTexture.ReadPixels(new Rect(0, 0, snowfallData.bakeResolution, snowfallData.bakeResolution), 0, 0);
+            maskTexture.ReadPixels(new Rect(0, 0, snowfallData.BakeResolution, snowfallData.BakeResolution), 0, 0);
 
  #if DEBUG
 
@@ -729,16 +729,16 @@ namespace VoxxWeatherPlugin.Utils
                 float levelSize = Mathf.Max(levelBounds.Value.extents.x, levelBounds.Value.extents.z);
                 //Debug.LogDebug"Level Center: " + levelCenter + " Level Size: " + levelSize);
 
-                if (snowfallData.targetVertexCount > 0)
+                if (snowfallData.TargetVertexCount > 0)
                 {
-                    snowfallData.minMeshStep = Mathf.CeilToInt(Mathf.Sqrt(levelSize * levelSize / (terrainStepX * terrainStepZ * snowfallData.targetVertexCount)));
+                    snowfallData.minMeshStep = Mathf.CeilToInt(Mathf.Sqrt(levelSize * levelSize / (terrainStepX * terrainStepZ * snowfallData.TargetVertexCount)));
                 }
 
                 //Debug.LogDebug"Base Density Factor: " + minMeshStep);
 
                 QuadTree rootNode = new QuadTree(terrainBounds);
-                rootNode.Subdivide(levelBounds.Value, new Vector2(terrainStepX, terrainStepZ), snowfallData.minMeshStep,
-                                    snowfallData.maxMeshStep, snowfallData.falloffSpeed, terrainSize - levelSize);
+                rootNode.Subdivide(levelBounds.Value, new Vector2(terrainStepX, terrainStepZ), snowfallData.MinMeshStep,
+                                    snowfallData.MaxMeshStep, snowfallData.FalloffSpeed, terrainSize - levelSize);
 
                 // Generate vertices from 4 corners of leaf nodes of the quadtree
                 HashSet<Vector3> uniqueVertices = new HashSet<Vector3>();
@@ -766,7 +766,7 @@ namespace VoxxWeatherPlugin.Utils
                             Vector2 uv = new Vector2(vertex.x / terrainWidth, vertex.z / terrainLength);
                             uvs.Add(uv);
 
-                            if (snowfallData.carveHoles)
+                            if (snowfallData.CarveHoles)
                             {
                                 int heightmapX = (int)((vertex.x) / terrainStepX );
                                 int heightmapZ = (int)((vertex.z) / terrainStepZ);
@@ -795,7 +795,7 @@ namespace VoxxWeatherPlugin.Utils
 
                 // Configure triangulation options
                 ConstraintOptions options = new ConstraintOptions() { ConformingDelaunay = false, SegmentSplitting = 2};
-                QualityOptions quality = new QualityOptions() { MinimumAngle = 20.0f, SteinerPoints = snowfallData.refineMesh ? -1 : 0};
+                QualityOptions quality = new QualityOptions() { MinimumAngle = 20.0f, SteinerPoints = snowfallData.RefineMesh ? -1 : 0};
 
                 System.Diagnostics.Stopwatch sw = new System.Diagnostics.Stopwatch();
                 // Perform triangulation
@@ -835,7 +835,7 @@ namespace VoxxWeatherPlugin.Utils
                         uvs.Add(triangle.GetVertex(2).UV);
                     }
 
-                    if (snowfallData.carveHoles)
+                    if (snowfallData.CarveHoles)
                     {
                         if (holeVertices.Contains(vertices[vertexIDs[v0]]) ||
                             holeVertices.Contains(vertices[vertexIDs[v1]]) ||
@@ -853,12 +853,12 @@ namespace VoxxWeatherPlugin.Utils
             else // Uniform meshing if no level bounds are set
             {
                 // Calculate density factor to achieve target vertex count
-                if (snowfallData.targetVertexCount > 0)
+                if (snowfallData.TargetVertexCount > 0)
                 {
-                    snowfallData.minMeshStep = Mathf.CeilToInt(Mathf.Sqrt(terrain.terrainData.heightmapResolution * terrain.terrainData.heightmapResolution / snowfallData.targetVertexCount));
+                    snowfallData.minMeshStep = Mathf.CeilToInt(Mathf.Sqrt(terrain.terrainData.heightmapResolution * terrain.terrainData.heightmapResolution / snowfallData.TargetVertexCount));
                 }
 
-                actualCellStep = Mathf.Max(snowfallData.minMeshStep, 1);
+                actualCellStep = Mathf.Max(snowfallData.MinMeshStep, 1);
                 //Debug.LogDebug"Density Factor: " + actualCellStep);
 
                 // Calculate grid dimensions after applying density factor
@@ -885,7 +885,7 @@ namespace VoxxWeatherPlugin.Utils
                         Vector2 uv = new Vector2(heightmapX * uvStepX, heightmapZ * uvStepZ);
                         uvs.Add(uv);
 
-                        if (snowfallData.carveHoles)
+                        if (snowfallData.CarveHoles)
                         {
                             heightmapX = Mathf.Clamp(heightmapX, 0, terrain.terrainData.holesResolution - 1);
                             heightmapZ = Mathf.Clamp(heightmapZ, 0, terrain.terrainData.holesResolution - 1);
@@ -909,7 +909,7 @@ namespace VoxxWeatherPlugin.Utils
                         // Calculate vertex indices in the grid
                         int vertexIndex = z * (gridWidth + 1) + x;
 
-                        if (snowfallData.carveHoles)
+                        if (snowfallData.CarveHoles)
                         {
                             if (holeVertices.Contains(vertices[vertexIndex]) ||
                                 holeVertices.Contains(vertices[vertexIndex + 1]) ||
@@ -942,7 +942,7 @@ namespace VoxxWeatherPlugin.Utils
             mesh.RecalculateNormals();
             mesh.RecalculateTangents();
 
-            if (snowfallData.useMeshCollider)
+            if (snowfallData.UseMeshCollider)
             {
                 MeshCollider meshCollider = meshTerrain.AddComponent<MeshCollider>();
                 meshCollider.sharedMesh = mesh;
@@ -957,7 +957,7 @@ namespace VoxxWeatherPlugin.Utils
             // terrain.drawInstanced = false; // TODO: Check if this is necessary
 
             //We have to copy the trees if we want to use the mesh collider, no way to disable only the tree colliders at runtime
-            if (snowfallData.copyTrees || snowfallData.useMeshCollider) 
+            if (snowfallData.copyTrees || snowfallData.UseMeshCollider) 
             {
                 //Disable rendering of trees on terrain
                 terrain.treeDistance = 0;

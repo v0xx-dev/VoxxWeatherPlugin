@@ -59,7 +59,7 @@ namespace VoxxWeatherPlugin.Patches
                 PlayerTemperatureManager.SetPlayerTemperature(Time.deltaTime / HeatwaveWeather.Instance!.timeInHeatZoneMax * HeatwaveWeather.Instance!.timeOfDayFactor);
             }
 
-            float severity = PlayerTemperatureManager.heatSeverity;
+            float severity = PlayerTemperatureManager.HeatSeverity;
 
             //Debug.Log($"Severity: {severity}, inHeatZone: {PlayerTemperatureManager.isInHeatZone}, heatMultiplier {PlayerTemperatureManager.heatSeverityMultiplier}, isInside {__instance.isInsideFactory}");
 

@@ -115,7 +115,7 @@ namespace VoxxWeatherPlugin.Behaviours
                 }
 
                 // Update static input parameters
-                snowThicknessComputeShader!.SetFloat(SnowfallShaderIDs.MaxSnowHeight, snowfallData.maxSnowHeight);
+                snowThicknessComputeShader!.SetFloat(SnowfallShaderIDs.MaxSnowHeight, snowfallData.finalSnowHeight);
                 // Set static texture buffers
                 snowThicknessComputeShader.SetTexture(kernelHandle, SnowfallShaderIDs.SnowMasks, snowfallData.snowMasks);
                 snowThicknessComputeShader.SetTexture(kernelHandle, SnowfallShaderIDs.FootprintsTex, snowfallData.snowTracksMap);

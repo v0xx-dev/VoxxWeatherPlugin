@@ -204,9 +204,9 @@ namespace VoxxWeatherPlugin.Behaviours
         internal void SetupMaterial(Material material)
         {
             material.SetFloat(SnowfallShaderIDs.PCFKernelSize, SnowfallWeather.Instance!.PCFKernelSize);
-            material.SetFloat(SnowfallShaderIDs.BaseTessellationFactor, SnowfallWeather.Instance!.baseTessellationFactor);
-            material.SetFloat(SnowfallShaderIDs.MaxTessellationFactor, SnowfallWeather.Instance!.maxTessellationFactor);
-            material.SetInt(SnowfallShaderIDs.isAdaptiveTessellation, SnowfallWeather.Instance!.isAdaptiveTessellation);
+            material.SetFloat(SnowfallShaderIDs.BaseTessellationFactor, SnowfallWeather.Instance!.BaseTessellationFactor);
+            material.SetFloat(SnowfallShaderIDs.MaxTessellationFactor, SnowfallWeather.Instance!.MaxTessellationFactor);
+            material.SetInt(SnowfallShaderIDs.isAdaptiveTessellation, SnowfallWeather.Instance!.IsAdaptiveTessellation);
             // material.SetFloat(SnowfallShaderIDs.ShadowBias, SnowfallWeather.Instance!.shadowBias);
             // material.SetFloat(SnowfallShaderIDs.SnowOcclusionBias, SnowfallWeather.Instance!.snowOcclusionBias);
 
@@ -222,7 +222,7 @@ namespace VoxxWeatherPlugin.Behaviours
             material.SetMatrix(SnowfallShaderIDs.LightViewProjection, SnowfallWeather.Instance.depthWorldToClipMatrix ?? Matrix4x4.identity);
             material.SetFloat(SnowfallShaderIDs.SnowNoisePower, SnowfallWeather.Instance.snowIntensity);
             material.SetFloat(SnowfallShaderIDs.SnowNoiseScale, SnowfallWeather.Instance.snowScale);
-            material.SetFloat(SnowfallShaderIDs.MaxSnowHeight, SnowfallWeather.Instance.maxSnowHeight);
+            material.SetFloat(SnowfallShaderIDs.MaxSnowHeight, SnowfallWeather.Instance.finalSnowHeight);
             material.SetVector(SnowfallShaderIDs.ShipPosition, SnowfallWeather.Instance.shipPosition);
             material.SetFloat(SnowfallShaderIDs.Emission, SnowfallWeather.Instance.emissionMultiplier);
         }

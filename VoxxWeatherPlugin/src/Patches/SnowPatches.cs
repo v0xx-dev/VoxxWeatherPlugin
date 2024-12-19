@@ -22,11 +22,11 @@ namespace VoxxWeatherPlugin.Patches
         public static Dictionary<MonoBehaviour, VisualEffect> snowShovelDict = new Dictionary<MonoBehaviour, VisualEffect>();
         public static Dictionary<EnemyAI, (float, float)> agentSpeedCache = new Dictionary<EnemyAI, (float, float)>();
         private static readonly int isTrackingID = Shader.PropertyToID("isTracking");
-        public static float timeToWarm = 20f;   // Time to warm up from cold to room temperature
-        internal static float frostbiteTimer = 0f;
-        internal static float frostbiteDamageInterval = 20f;
-        internal static float frostbiteDamage = 10;
+        public static float TimeToWarmUp => Configuration.timeToWarmUp.Value;   // Time to warm up from cold to room temperature
+        internal static float FrostbiteDamageInterval => Configuration.frostbiteDamageInterval.Value;
+        internal static float FrostbiteDamage => Configuration.frostbiteDamage.Value;
         internal static float frostbiteThreshold = 0.5f; // Severity at which frostbite starts to occur, should be below 0.9
+        internal static float frostbiteTimer = 0f;
         internal static HashSet<Type> unaffectedEnemyTypes = new HashSet<Type> {typeof(ForestGiantAI), typeof(RadMechAI), typeof(DoublewingAI),
                                                                                 typeof(ButlerBeesEnemyAI), typeof(DocileLocustBeesAI), typeof(RedLocustBees),
                                                                                 typeof(DressGirlAI)};//, typeof(SandWormAI)}; TODO: Add SandWormAI if it's affected by snow hindrance
@@ -108,23 +108,24 @@ namespace VoxxWeatherPlugin.Patches
             // Gradually reduce heat severity when not in heat zone
             if (!PlayerTemperatureManager.isInColdZone)
             {
-                PlayerTemperatureManager.ResetPlayerTemperature(Time.deltaTime / timeToWarm);
+                PlayerTemperatureManager.ResetPlayerTemperature(Time.deltaTime / TimeToWarmUp);
             }
             else
             {
                 PlayerTemperatureManager.SetPlayerTemperature(-Time.deltaTime / SnowfallWeather.Instance!.timeUntilFrostbite);
             }
 
-            float severity = PlayerTemperatureManager.coldSeverity;
+            float severity = PlayerTemperatureManager.ColdSeverity;
 
             // Debug.LogDebug($"Severity: {severity}, inColdZone: {PlayerTemperatureManager.isInColdZone}, frostbiteTimer: {frostbiteTimer}, heatTransferRate: {PlayerTemperatureManager.heatTransferRate}");
             
             if (severity >= frostbiteThreshold)
             {
                 frostbiteTimer += Time.deltaTime;
-                if (frostbiteTimer > frostbiteDamageInterval)
+                int damage = Mathf.CeilToInt(FrostbiteDamage*severity);
+                if (frostbiteTimer > FrostbiteDamageInterval && damage > 0)
                 {
-                    __instance.DamagePlayer(Mathf.CeilToInt(frostbiteDamage*severity), causeOfDeath: CauseOfDeath.Unknown);
+                    __instance.DamagePlayer(damage, causeOfDeath: CauseOfDeath.Unknown);
                     frostbiteTimer = 0f;
                 }
             }

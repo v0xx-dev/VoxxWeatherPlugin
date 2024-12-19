@@ -9,39 +9,48 @@ namespace VoxxWeatherPlugin.Weathers
 {
     internal class BlizzardWeather: SnowfallWeather
     {
+        // Overrides   
+        internal new float MinSnowHeight => 0.6f*Configuration.minSnowHeight.Value;
+        internal new float MaxSnowHeight => 0.6f*Configuration.maxSnowHeight.Value;
+        internal new float MinSnowNormalizedTime => 0.2f*Configuration.minTimeToFullSnow.Value;
+        internal new float MaxSnowNormalizedTime => 0.2f*Configuration.maxTimeToFullSnow.Value;
+
         [Header("Visuals")]
         [SerializeField]
-        internal Camera blizzardCollisionCamera;
-        // [SerializeField]
-        // internal Camera blizzardWaveCamera;
-        // [SerializeField]
-        // internal Volume frostbiteVolume;
+        internal Camera? blizzardCollisionCamera;
 
         [Header("Wind")]
-        [SerializeField]
-        internal bool isPlayerInBlizzard = false;
         [SerializeField]
         internal Vector3 windDirection = new Vector3(0, 0, 1);
         [SerializeField]
         internal float timeSinceWindChange = 0;
         [SerializeField]
-        internal float windChangeInterval = 20f;
+        internal float windChangeInterval = 30f;
         [SerializeField]
         internal float windForce = 0.25f;
-        internal float minWindForce = 0.25f;
-        internal float maxWindForce = 0.6f;
+        internal float MinWindForce => Configuration.minWindForce.Value;
+        internal float MaxWindForce => Configuration.maxWindForce.Value;
+        internal float MinTimeUntilFrostbite => Configuration.minTimeUntilFrostbite.Value;
+        internal float MaxTimeUntilFrostbite => Configuration.maxTimeUntilFrostbite.Value;
         internal Coroutine? windChangeCoroutine;
         [SerializeField]
         internal bool isWindChangeActive = false;
+        [SerializeField]
         internal bool isLocalPlayerInWind = false;
+        [SerializeField]
+        internal bool isPlayerInBlizzard = false;
 
         [Header("Chill Waves")]
         [SerializeField]
-        internal float numOfWaves;
+        internal int numOfWaves;
+        internal int MinWaveCount => Configuration.minWaveCount.Value;
+        internal int MaxWaveCount => Configuration.maxWaveCount.Value;
         [SerializeField]
         internal float timeSinceWave;
         [SerializeField]
         internal float waveSpeed;
+        internal float MinWaveInterval => Configuration.minWaveInterval.Value;
+        internal float MaxWaveInterval => Configuration.maxWaveInterval.Value;
         [SerializeField]
         internal float waveInterval = 90f;
         internal Coroutine? chillWaveCoroutine;
@@ -49,18 +58,17 @@ namespace VoxxWeatherPlugin.Weathers
         internal bool isChillWaveActive = false;
         [SerializeField]
         internal new BlizzardVFXManager VFXManager;
-
+        // Used to implicitly sync the time between the server and the client via TimeOfDay
         private float timeAtStart = -1f;
 
 
         internal override void OnEnable()
         {
             base.OnEnable();
-            waveInterval = seededRandom.NextDouble(60f, 180f);
-            windForce = seededRandom.NextDouble(minWindForce, maxWindForce);
-            maxSnowHeight = seededRandom.NextDouble(1.0f, 1.7f);
-            maxSnowNormalizedTime = seededRandom.NextDouble(0.1f, 0.3f);
-            timeUntilFrostbite = seededRandom.NextDouble(40f, 100f);
+            waveInterval = seededRandom.NextDouble(MinWaveInterval, MaxWaveInterval);
+            numOfWaves = seededRandom.Next(MinWaveCount, MaxWaveCount);
+            windForce = seededRandom.NextDouble(MinWindForce, MaxWindForce);
+            timeUntilFrostbite = seededRandom.NextDouble(MinTimeUntilFrostbite, MaxTimeUntilFrostbite);
             TimeOfDay.Instance.onTimeSync.AddListener(new UnityAction(OnGlobalTimeSync));
         }
 
@@ -254,7 +262,7 @@ namespace VoxxWeatherPlugin.Weathers
             chillWaveContainer.transform.rotation = targetRotation;
 
             windDirection = Quaternion.Euler(0f, randomAngle, 0f) * windDirection;
-            windForce = seededRandom.NextDouble(minWindForce, maxWindForce);
+            windForce = seededRandom.NextDouble(MinWindForce, MaxWindForce);
             timeSinceWindChange = 0;
             isWindChangeActive = false;
         }
@@ -308,8 +316,8 @@ namespace VoxxWeatherPlugin.Weathers
                 
             }
 
-            waveInterval = seededRandom.NextDouble(60f, 180f);
-            numOfWaves = seededRandom.Next(1, 5);
+            waveInterval = seededRandom.NextDouble(MinWaveInterval, MaxWaveInterval);
+            numOfWaves = seededRandom.Next(MinWaveCount, MaxWaveCount);
             timeSinceWave = 0;
             isChillWaveActive = false;
         }
@@ -361,6 +369,13 @@ namespace VoxxWeatherPlugin.Weathers
         {
             HUDManager.Instance.ShakeCamera(ScreenShakeType.Big);
             blizzardSFXPlayer?.PlayOneShot(sonicBoomSFX);
+        }
+
+        internal override void PopulateLevelWithVFX(Bounds levelBounds = default, System.Random? seededRandom = null)
+        {
+            blizzardWaveContainer?.SetActive(false);
+            
+            base.PopulateLevelWithVFX(levelBounds, seededRandom);
         }
 
     }

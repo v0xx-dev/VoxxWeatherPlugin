@@ -1,6 +1,7 @@
 using BepInEx;
 using BepInEx.Bootstrap;
 using BepInEx.Configuration;
+using Newtonsoft.Json;
 
 namespace VoxxWeatherPlugin.Utils
 {
@@ -10,87 +11,87 @@ namespace VoxxWeatherPlugin.Utils
         
         // Config entries
         #region Weather
-        public static ConfigEntry<bool> EnableHeatwaveWeather;
-        public static ConfigEntry<bool> EnableSolarFlareWeather;
-        public static ConfigEntry<bool> EnableSnowfallWeather;
-        public static ConfigEntry<bool> EnableBlizzardWeather;
+        public static ConfigEntry<bool> EnableHeatwaveWeather; //
+        public static ConfigEntry<bool> EnableSolarFlareWeather; //
+        public static ConfigEntry<bool> EnableSnowfallWeather; //
+        public static ConfigEntry<bool> EnableBlizzardWeather; //
         #endregion
         
         #region Heatwave
-        public static ConfigEntry<float> HeatwaveParticlesSpawnRate;
-        public static ConfigEntry<float> TimeUntilStrokeMin;
-        public static ConfigEntry<float> TimeUntilStrokeMax;
-        public static ConfigEntry<float> HeathazeDistortionStrength;
+        public static ConfigEntry<float> HeatwaveParticlesSpawnRate; //
+        public static ConfigEntry<float> TimeUntilStrokeMin; //
+        public static ConfigEntry<float> TimeUntilStrokeMax; //
+        public static ConfigEntry<float> HeathazeDistortionStrength; //
         public static ConfigEntry<float> HeathazeFilterMultiplier;
         #endregion
 
         #region Solar Flare
-        public static ConfigEntry<uint> AuroraHeight;
-        public static ConfigEntry<float> AuroraSpawnAreaBox;
-        public static ConfigEntry<float> AuroraVisibilityThreshold;
-        public static ConfigEntry<float> AuroraSpawnRate;
-        public static ConfigEntry<float> AuroraSize;
-        public static ConfigEntry<bool> DistortOnlyVoiceDuringSolarFlare;
-        public static ConfigEntry<float> BatteryDrainMultiplier;
-        public static ConfigEntry<bool> DrainBatteryInFacility;
-        public static ConfigEntry<bool> DoorMalfunctionEnabled;
-        public static ConfigEntry<float> DoorMalfunctionChance;
-        public static ConfigEntry<float> NoiseStaticLevel;
+        public static ConfigEntry<uint> AuroraHeight; //
+        public static ConfigEntry<float> AuroraSpawnAreaBox; //
+        public static ConfigEntry<float> AuroraVisibilityThreshold; //
+        public static ConfigEntry<float> AuroraSpawnRate; //
+        public static ConfigEntry<float> AuroraSize; //
+        public static ConfigEntry<bool> DistortOnlyVoiceDuringSolarFlare; //
+        public static ConfigEntry<float> BatteryDrainMultiplier; //
+        public static ConfigEntry<bool> DrainBatteryInFacility; //
+        public static ConfigEntry<bool> DoorMalfunctionEnabled; //
+        public static ConfigEntry<float> DoorMalfunctionChance; //
+        public static ConfigEntry<float> NoiseStaticLevel; //
         #endregion
 
         #region Snowfall
-        public static ConfigEntry<float>  minSnowHeight;
-        public static ConfigEntry<float>  maxSnowHeight;
-        public static ConfigEntry<float>  minTimeToFullSnow;
-        public static ConfigEntry<float>  maxTimeToFullSnow;
-        public static ConfigEntry<bool>   freezeWater;
-        public static ConfigEntry<float>  underSnowFilterMultiplier;
-        public static ConfigEntry<float>  frostbiteFilterMultiplier;
-        public static ConfigEntry<int>  frostbiteDamage;
-        public static ConfigEntry<float>  frostbiteDamageInterval;
-        public static ConfigEntry<float>  timeToWarmUp;
-        public static ConfigEntry<bool>  enableEasterEgg;
+        public static ConfigEntry<float>  minSnowHeight; //
+        public static ConfigEntry<float>  maxSnowHeight; //
+        public static ConfigEntry<float>  minTimeToFullSnow; //
+        public static ConfigEntry<float>  maxTimeToFullSnow; //
+        public static ConfigEntry<bool>   freezeWater; //
+        public static ConfigEntry<float>  underSnowFilterMultiplier; //
+        public static ConfigEntry<float>  frostbiteFilterMultiplier; //
+        public static ConfigEntry<int>  frostbiteDamage; //
+        public static ConfigEntry<float>  frostbiteDamageInterval; //
+        public static ConfigEntry<float>  timeToWarmUp; //
+        public static ConfigEntry<bool>  enableEasterEgg; //
         #endregion
 
         #region Blizzard
-        public static ConfigEntry<float>  minTimeUntilFrostbite;
-        public static ConfigEntry<float>  maxTimeUntilFrostbite;
-        public static ConfigEntry<float>  minWindForce;
-        public static ConfigEntry<float>  maxWindForce;
-        public static ConfigEntry<float>  minWaveInterval;
-        public static ConfigEntry<float>  maxWaveInterval;
-        public static ConfigEntry<int>    minWaveCount;
-        public static ConfigEntry<int>    maxWaveCount;
-        public static ConfigEntry<int>  chillingWaveDamage;
+        public static ConfigEntry<float>  minTimeUntilFrostbite; //
+        public static ConfigEntry<float>  maxTimeUntilFrostbite; //
+        public static ConfigEntry<float>  minWindForce; //
+        public static ConfigEntry<float>  maxWindForce; //
+        public static ConfigEntry<float>  minWaveInterval; //
+        public static ConfigEntry<float>  maxWaveInterval; //
+        public static ConfigEntry<int>    minWaveCount; //
+        public static ConfigEntry<int>    maxWaveCount; //
+        public static ConfigEntry<int>  chillingWaveDamage; //
         #endregion
 
         #region Snow & Blizzard Graphics
-        public static ConfigEntry<int>  depthBufferResolution;
-        public static ConfigEntry<int>  trackerMapResolution;
-        public static ConfigEntry<int>  snowDepthMapResolution;
-        public static ConfigEntry<bool>  bakeSnowDepthMipmaps;
-        public static ConfigEntry<int>  PCFKernelSize;
-        public static ConfigEntry<int>  BlurKernelSize;
-        public static ConfigEntry<int>  minTesselationFactor;
-        public static ConfigEntry<int>  maxTesselationFactor;
-        public static ConfigEntry<bool>  adaptiveTesselation;
+        public static ConfigEntry<int>  depthBufferResolution; //
+        public static ConfigEntry<int>  trackerMapResolution; //
+        public static ConfigEntry<int>  snowDepthMapResolution; //
+        public static ConfigEntry<bool>  bakeSnowDepthMipmaps; //
+        public static ConfigEntry<int>  PCFKernelSize; //
+        public static ConfigEntry<int>  BlurKernelSize; //
+        public static ConfigEntry<int>  minTesselationFactor; //
+        public static ConfigEntry<int>  maxTesselationFactor; //
+        public static ConfigEntry<bool>  adaptiveTesselation; //
         public static ConfigEntry<bool>  softSnowEdges;
         public static ConfigEntry<bool>  enableSnowTracks;
         public static ConfigEntry<bool>  enableVFXCollisions;
         #endregion
 
         #region Snow & Blizzard Mesh and Terrain Processing
-        public static ConfigEntry<bool> subdivideMesh;
-        public static ConfigEntry<bool> smoothMesh;
-        public static ConfigEntry<bool> useLevelBounds;
+        public static ConfigEntry<bool> subdivideMesh; //
+        public static ConfigEntry<bool> smoothMesh; //
+        public static ConfigEntry<bool> useLevelBounds; //
         // TerraMesh related
-        public static ConfigEntry<bool> refineMesh;
-        public static ConfigEntry<bool> carveHoles;
-        public static ConfigEntry<bool> useMeshCollider;
-        public static ConfigEntry<int> targetVertexCount;
-        public static ConfigEntry<int> minMeshStep;
-        public static ConfigEntry<int> maxMeshStep;
-        public static ConfigEntry<float> falloffRatio;
+        public static ConfigEntry<bool> refineMesh; //
+        public static ConfigEntry<bool> carveHoles; //
+        public static ConfigEntry<bool> useMeshCollider; //
+        public static ConfigEntry<int> targetVertexCount; //
+        public static ConfigEntry<int> minMeshStep; //
+        public static ConfigEntry<int> maxMeshStep; //
+        public static ConfigEntry<float> falloffRatio; //
         #endregion
         
         internal static void Initialize(BepInPlugin metadata)
@@ -200,12 +201,12 @@ namespace VoxxWeatherPlugin.Utils
             minTimeToFullSnow = Config.Bind("Snowfall",
                                             "minTimeToFullSnow",
                                             0.5f,
-                                            new ConfigDescription("Minimum fraction of the day until snow reaches max height. Actual time is random between min and max.",
+                                            new ConfigDescription("Minimum fraction of the day until snow reaches max height. Actual time is random between min and max. Blizzard weather will only use 20% of this value.",
                                                                 new AcceptableValueRange<float>(0, 1f)));
             maxTimeToFullSnow = Config.Bind("Snowfall",
                                             "maxTimeToFullSnow",
                                             0.8f,
-                                            new ConfigDescription("Maximum fraction of the day until snow reaches max height. Actual time is random between min and max.",
+                                            new ConfigDescription("Maximum fraction of the day until snow reaches max height. Actual time is random between min and max. Blizzard weather will only use 20% of this value.",
                                                                 new AcceptableValueRange<float>(0, 1f)));
             freezeWater = Config.Bind("Snowfall",
                                     "freezeWater",
