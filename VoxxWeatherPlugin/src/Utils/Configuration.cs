@@ -68,6 +68,7 @@ namespace VoxxWeatherPlugin.Utils
         #region Snow & Blizzard Graphics
         public static ConfigEntry<bool> useOpaqueSnowMaterial; //
         // public static ConfigEntry<bool> fixPosterizationForSnowOverlay; //
+        public static ConfigEntry<bool> addFootprints; //
         public static ConfigEntry<int> trackedEntityNumber; //
         public static ConfigEntry<int>  depthBufferResolution; //
         public static ConfigEntry<int>  trackerMapResolution; //
@@ -306,6 +307,11 @@ namespace VoxxWeatherPlugin.Utils
             //                                             "fixPosterizationForSnowOverlay",
             //                                             false,
             //                                             "Allows Zeekerss' posterization effect to work with the snow overlay shader (on non-terrain objects). Enabling this will change the rendering path and might cause incompatibilities with other mods that use custom passes.");
+            
+            addFootprints = Config.Bind("Snow Graphics",
+                                        "addFootprints",
+                                        false,
+                                        "Override level settings and enable vanilla footprints during the weather. Disabling this will use the level settings for footprints.");
             
             trackedEntityNumber = Config.Bind("Snow Graphics",
                                             "trackedEntityNumber",

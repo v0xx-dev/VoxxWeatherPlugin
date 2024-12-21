@@ -270,7 +270,7 @@ namespace VoxxWeatherPlugin.Weathers
             {
                 SnowThicknessManager.Instance!.CalculateThickness(); // Could be moved to FixedUpdate to save performance?
             }
-
+            
 #if DEBUG
             if (rebakeMaps)
             {
@@ -681,6 +681,10 @@ namespace VoxxWeatherPlugin.Weathers
     public class SnowfallVFXManager: BaseVFXManager
     {
         [SerializeField]
+        internal bool addedVanillaFootprints = false;
+
+        [Header("Snow VFX")]
+        [SerializeField]
         internal GameObject? snowVFXContainer;
 
         [SerializeField]
@@ -754,16 +758,29 @@ namespace VoxxWeatherPlugin.Weathers
             isUnderSnowPreviousFrame = false;
         }
 
+        internal override void Reset()
+        {
+            addedVanillaFootprints = false;
+            PlayerTemperatureManager.isInColdZone = false;
+            SnowThicknessManager.Instance?.Reset();
+            SnowPatches.CleanupFootprintTrackers(SnowPatches.snowTrackersDict);
+            SnowPatches.CleanupFootprintTrackers(SnowPatches.snowShovelDict);
+            SnowPatches.ToggleFootprintTrackers(false);
+        }
+
         internal void Update()
         {   
             PlayerControllerB localPlayer = GameNetworkManager.Instance.localPlayerController;
             
-            if ((SnowThicknessManager.Instance?.isOnNaturalGround ?? false) && localPlayer.physicsParent == null)
+            if ((SnowThicknessManager.Instance?.isOnNaturalGround ?? false) &&
+                    localPlayer.physicsParent == null &&
+                    !localPlayer.isPlayerDead &&
+                    localPlayer.thisController.isGrounded)
             {
                 float snowThickness = SnowThicknessManager.Instance.GetSnowThickness(localPlayer);
                 // White out the screen if the player is under snow
                 float localPlayerEyeY = localPlayer.playerEye.position.y;
-                bool isUnderSnow = SnowThicknessManager.Instance.feetPosition.y + snowThickness >= localPlayerEyeY - eyeBias; //TODO instead of feet position use collision point of character controller
+                bool isUnderSnow = SnowThicknessManager.Instance.feetPositionY + snowThickness >= localPlayerEyeY - eyeBias; //TODO instead of feet position use collision point of character controller
 
                 if (isUnderSnow != isUnderSnowPreviousFrame)
                 {
@@ -792,6 +809,16 @@ namespace VoxxWeatherPlugin.Weathers
                 snowMovementHindranceMultiplier = 1f;
                 // Debug.LogDebug("Not on natural ground");
             }
+
+            // If normalized snow timer is at 30% of fullSnowNormalizedTime, turn on vanilla footprints
+            if (Configuration.addFootprints.Value &&
+                !addedVanillaFootprints &&
+                !StartOfRound.Instance.currentLevel.levelIncludesSnowFootprints
+                && (SnowfallWeather.Instance?.snowIntensity ?? 10f) < 7)
+            {
+                StartOfRound.Instance.InstantiateFootprintsPooledObjects();
+                addedVanillaFootprints = true;
+            }
         }
 
         private void StartFade(float target)
@@ -819,15 +846,6 @@ namespace VoxxWeatherPlugin.Weathers
 
                 underSnowFilter!.weight = currentWeight * UnderSnowVisualMultiplier;
             }
-        }
-
-        internal override void Reset()
-        {
-            PlayerTemperatureManager.isInColdZone = false;
-            SnowThicknessManager.Instance?.Reset();
-            SnowPatches.CleanupFootprintTrackers(SnowPatches.snowTrackersDict);
-            SnowPatches.CleanupFootprintTrackers(SnowPatches.snowShovelDict);
-            SnowPatches.ToggleFootprintTrackers(false);
         }
 
         internal override void PopulateLevelWithVFX(Bounds levelBounds = default, System.Random? seededRandom = null)
