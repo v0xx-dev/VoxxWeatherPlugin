@@ -26,7 +26,7 @@ namespace VoxxWeatherPlugin.Behaviours
         [SerializeField]
         internal bool inputNeedsUpdate = false;
         [SerializeField]
-        internal Vector3 feetPosition; // player's feet position
+        internal float feetPositionY; // player's feet position
 
         //Compute buffers
         [SerializeField]
@@ -314,7 +314,6 @@ namespace VoxxWeatherPlugin.Behaviours
             //Update fields for a local player
             if (entity == GameNetworkManager.Instance.localPlayerController) 
             {
-                feetPosition = hit.point;
                 isOnIce = iceObjects.Contains(hit.collider.gameObject);
             }
 

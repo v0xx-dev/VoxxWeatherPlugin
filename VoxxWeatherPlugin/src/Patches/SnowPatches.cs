@@ -135,6 +135,16 @@ namespace VoxxWeatherPlugin.Patches
             }
         }
 
+        [HarmonyPatch(typeof(PlayerControllerB), "OnControllerColliderHit")]
+        [HarmonyPostfix]
+        private static void PlayerFeetPositionPatch(ControllerColliderHit hit)
+        {
+            if (SnowfallWeather.Instance?.IsActive ?? false && SnowThicknessManager.Instance != null)
+            {
+                SnowThicknessManager.Instance!.feetPositionY = hit.point.y;
+            }
+        }
+
         [HarmonyPatch(typeof(EnemyAI), "DoAIInterval")]
         [HarmonyPrefix]
         private static void EnemyGroundSamplerPatch(EnemyAI __instance)
