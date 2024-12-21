@@ -18,6 +18,7 @@ namespace VoxxWeatherPlugin.Behaviours
         public HDAdditionalCameraData AdditionalData;
         public RenderTexture? depthTexture;
         public RenderTexture? colorTexture;
+        bool useCameraBuffer = false;
         internal Camera m_Camera;
 
         [VFXPropertyBinding("UnityEditor.VFX.CameraType"), SerializeField]
@@ -136,15 +137,21 @@ namespace VoxxWeatherPlugin.Behaviours
             bool useDepthTexture = depthTexture != null;
             bool useColorTexture = colorTexture != null;
 
+            if (!useDepthTexture && !useColorTexture && !useCameraBuffer)
+            {
+                Debug.LogWarning("No texture or camera buffer selected for HDRP Camera or Texture Binder.");
+                return;
+            }
+
             RTHandle? depth = null;
             RTHandle? color = null;
 
-            if (!useDepthTexture)
+            if (!useDepthTexture && useCameraBuffer)
             {
                 depth = AdditionalData.GetGraphicsBuffer(HDAdditionalCameraData.BufferAccessType.Depth);
             }
             
-            if (!useColorTexture)
+            if (!useColorTexture && useCameraBuffer)
             {
                 color = AdditionalData.GetGraphicsBuffer(HDAdditionalCameraData.BufferAccessType.Color);
             }
