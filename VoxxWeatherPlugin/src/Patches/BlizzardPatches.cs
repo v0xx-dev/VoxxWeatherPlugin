@@ -2,13 +2,14 @@
 using VoxxWeatherPlugin.Weathers;
 using UnityEngine;
 using System.Runtime.CompilerServices;
+using System.Collections.Generic;
 
 namespace VoxxWeatherPlugin.Patches
 {
     [HarmonyPatch]
     internal class BlizzardPatches
     {
-        private static SpawnableEnemyWithRarity? cachedBees;
+        private static List<SpawnableEnemyWithRarity> cachedBees = [];
         
         [HarmonyPatch(typeof(MouthDogAI), "DetectNoise")]
         [HarmonyPrefix]
@@ -18,8 +19,8 @@ namespace VoxxWeatherPlugin.Patches
                  blizzardWeather.IsActive &&
                  __instance.isOutside)
             {
-                // Muffle dogs hearing during blizzard, depending on wind force. Muffled by 50% at wind force > 0.5, not muffled at wind force = 0
-                noiseLoudness *= Mathf.Clamp(1 - blizzardWeather.windForce, 0.5f, 1f);
+                // Muffle dogs hearing during blizzard, depending on wind force. Muffled by 35% at wind force > 0.5, not muffled at wind force = 0
+                noiseLoudness *= Mathf.Clamp(1 - blizzardWeather.windForce, 0.65f, 1f);
             }
         }
 
@@ -27,17 +28,19 @@ namespace VoxxWeatherPlugin.Patches
         [HarmonyPrefix]
         private static void RemoveBeesSnowPatch(StartOfRound __instance)
         {
-            if (!__instance.IsHost || !(SnowfallWeather.Instance is BlizzardWeather blizzardWeather && blizzardWeather.IsActive))
+            if (!__instance.IsHost || WeatherRegistry.WeatherManager.GetCurrentLevelWeather().Name == "Blizzard")
                 return;
+
+            cachedBees.Clear();
                 
-            for (int i = 0; i < __instance.currentLevel.DaytimeEnemies.Count; i++)
+            for (int i = __instance.currentLevel.DaytimeEnemies.Count - 1; i >= 0; i--)
             {
-                if (__instance.currentLevel.DaytimeEnemies[i].enemyType.name == "Red Locust Bees")
+                if (__instance.currentLevel.DaytimeEnemies[i].enemyType.name.ToLower().Contains("bees"))
                 {
                     // Cache the bees enemy to restore it after the blizzard and remove it from the list
-                    cachedBees = __instance.currentLevel.DaytimeEnemies[i];
+                    cachedBees.Add(__instance.currentLevel.DaytimeEnemies[i]);
                     __instance.currentLevel.DaytimeEnemies.RemoveAt(i);
-                    break;
+                    Debug.LogDebug("Removing bees due to blizzard.");
                 }
             }
         }
@@ -46,11 +49,11 @@ namespace VoxxWeatherPlugin.Patches
         [HarmonyPrefix]
         private static void RestoreBeesSnowPatch(StartOfRound __instance)
         {
-            if (!__instance.IsHost || !(SnowfallWeather.Instance is BlizzardWeather blizzardWeather && blizzardWeather.IsActive) || cachedBees == null)
+            if (!__instance.IsHost || !(SnowfallWeather.Instance is BlizzardWeather && cachedBees.Count > 0))
                 return;
             
-            __instance.currentLevel.DaytimeEnemies.Add(cachedBees);
-            cachedBees = null;
+            __instance.currentLevel.DaytimeEnemies.AddRange(cachedBees);
+            cachedBees.Clear();
         }
     }
 
