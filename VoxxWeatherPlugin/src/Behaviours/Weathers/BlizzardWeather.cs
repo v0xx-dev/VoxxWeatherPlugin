@@ -13,7 +13,7 @@ namespace VoxxWeatherPlugin.Weathers
         internal new float MinSnowHeight => 0.6f*Configuration.minSnowHeight.Value;
         internal new float MaxSnowHeight => 0.6f*Configuration.maxSnowHeight.Value;
         internal new float MinSnowNormalizedTime => 0.2f*Configuration.minTimeToFullSnow.Value;
-        internal new float MaxSnowNormalizedTime => 0.2f*Configuration.maxTimeToFullSnow.Value;
+        internal new float MaxSnowNormalizedTime => 0.3f*Configuration.maxTimeToFullSnow.Value;
 
         [Header("Visuals")]
         [SerializeField]
@@ -65,6 +65,8 @@ namespace VoxxWeatherPlugin.Weathers
         internal override void OnEnable()
         {
             base.OnEnable();
+            finalSnowHeight = seededRandom.NextDouble(MinSnowHeight, MaxSnowHeight);
+            fullSnowNormalizedTime = seededRandom.NextDouble(MinSnowNormalizedTime, MaxSnowNormalizedTime);
             waveInterval = seededRandom.NextDouble(MinWaveInterval, MaxWaveInterval);
             numOfWaves = seededRandom.Next(MinWaveCount, MaxWaveCount);
             windForce = seededRandom.NextDouble(MinWindForce, MaxWindForce);

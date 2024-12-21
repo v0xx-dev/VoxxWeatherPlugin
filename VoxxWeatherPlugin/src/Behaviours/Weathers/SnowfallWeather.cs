@@ -30,6 +30,9 @@ namespace VoxxWeatherPlugin.Weathers
         [SerializeField]
         internal Material? snowVertexMaterial;
         [SerializeField]
+        internal Material? snowVertexOpaqueMaterial;
+        internal Material? CurrentSnowVertexMaterial => Configuration.useOpaqueSnowMaterial.Value ? snowVertexOpaqueMaterial : snowVertexMaterial;
+        [SerializeField]
         internal Material? iceMaterial;
         [SerializeField]
         internal float emissionMultiplier;
@@ -138,7 +141,7 @@ namespace VoxxWeatherPlugin.Weathers
         [SerializeField]
         internal Vector3 shipPosition;
         [SerializeField]
-        internal float timeUntilFrostbite = 0.6f * Configuration.minTimeUntilFrostbite.Value;
+        internal float timeUntilFrostbite = 0.6f * (Configuration.minTimeUntilFrostbite?.Value ?? 30f);
         [SerializeField]
         internal SnowfallVFXManager? VFXManager;
         [SerializeField]
@@ -163,13 +166,16 @@ namespace VoxxWeatherPlugin.Weathers
         {   
             Instance = this;
 
-            // Restore shaders (otherwise there might be issues with incorrectly set flags)
-            // snowOverlayMaterial?.RestoreShader();
-            // snowVertexMaterial?.RestoreShader();
-
             snowOverlayCustomPass = snowVolume!.customPasses[0] as SnowOverlayCustomPass;
             snowOverlayCustomPass!.snowOverlayMaterial = snowOverlayMaterial;
-            snowOverlayCustomPass.snowVertexMaterial = snowVertexMaterial;
+            snowOverlayCustomPass.snowVertexMaterial = CurrentSnowVertexMaterial;
+            // if (Configuration.fixPosterizationForSnowOverlay.Value)
+            // {
+            //     // Increase normal strength and change color for snow overlay material
+            //     snowOverlayMaterial!.SetFloat(SnowfallShaderIDs.NormalStrength, 10f);
+            //     snowOverlayMaterial.SetColor(SnowfallShaderIDs.SnowColor, new Color(0.1657f, 0.1670f, 0.2075f, 1f));
+            //     snowOverlayMaterial.SetFloat(SnowfallShaderIDs.Metallic, 1f);
+            // }
 
             levelDepthmap = new RenderTexture(DepthmapResolution, 
                                             DepthmapResolution,
@@ -217,9 +223,8 @@ namespace VoxxWeatherPlugin.Weathers
             seededRandom = new System.Random(StartOfRound.Instance.randomMapSeed);
             sunLightData = TimeOfDay.Instance.sunDirect?.GetComponent<HDAdditionalLightData>();
             levelBounds = PlayableAreaCalculator.CalculateZoneSize(1.5f);
-            
-            finalSnowHeight = seededRandom.NextDouble(MinSnowHeight, MaxSnowHeight);
             snowScale = seededRandom.NextDouble(0.7f, 1.3f); // Snow patchy-ness
+            finalSnowHeight = seededRandom.NextDouble(MinSnowHeight, MaxSnowHeight);
             fullSnowNormalizedTime = seededRandom.NextDouble(MinSnowNormalizedTime, MaxSnowNormalizedTime);
             ModifyRenderMasks();
             FindAndSetupGround();
@@ -253,7 +258,7 @@ namespace VoxxWeatherPlugin.Weathers
             // Update for moving ship and compat for different ship landing positions
             shipPosition = StartOfRound.Instance.shipBounds.bounds.center;
             // Accumulate snow on the ground
-            float normalizedSnowTimer =  Mathf.Clamp01(MaxSnowNormalizedTime - TimeOfDay.Instance.normalizedTimeOfDay);
+            float normalizedSnowTimer =  Mathf.Clamp01(fullSnowNormalizedTime - TimeOfDay.Instance.normalizedTimeOfDay);
             snowIntensity = 10f * normalizedSnowTimer;
             // Update the snow glow based on the sun intensity
             float sunIntensity = sunLightData?.intensity ?? 0f;
@@ -464,7 +469,7 @@ namespace VoxxWeatherPlugin.Weathers
             // Duplicate the mesh and set the snow vertex material
             GameObject snowGround = meshTerrain.Duplicate(disableShadows: true, removeCollider: true);
             MeshRenderer meshRenderer = snowGround.GetComponent<MeshRenderer>();
-            meshRenderer.sharedMaterial = snowVertexMaterial;
+            meshRenderer.sharedMaterial = CurrentSnowVertexMaterial;
             // Deselect snow OVERLAY rendering layers from vertex snow objects
             meshRenderer.renderingLayerMask &= ~(uint)snowOverlayCustomPass!.renderingLayers;
             // Upload the mesh to the GPU to save RAM. TODO: Prevents NavMesh baking
@@ -477,7 +482,7 @@ namespace VoxxWeatherPlugin.Weathers
 
         internal void BakeSnowMasks()
         {
-            //TODO PARALLELIZE THIS
+            //TODO Make async
 
             if (groundObjectCandidates.Count == 0)
             {
@@ -503,7 +508,7 @@ namespace VoxxWeatherPlugin.Weathers
 
             snowMasks.Apply(updateMipmaps: BakeMipmaps, makeNoLongerReadable: true); // Move to the GPU
 
-            snowVertexMaterial?.SetTexture(SnowfallShaderIDs.SnowMasks, snowMasks);
+            CurrentSnowVertexMaterial?.SetTexture(SnowfallShaderIDs.SnowMasks, snowMasks);
         }
 
         internal void ModifyRenderMasks()

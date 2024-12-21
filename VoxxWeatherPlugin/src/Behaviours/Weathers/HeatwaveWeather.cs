@@ -131,12 +131,7 @@ namespace VoxxWeatherPlugin.Weathers
         private float raycastHeight = 500f; // Height from which to cast rays
         private float maxSunLuminosity = 20f; // Sun luminosity in lux when the heatwave is at its peak
         private HDAdditionalLightData? sunLightData; // Light data for the sun
-        private int spawnRatePropertyID; // Property ID for the spawn rate of the particles
-
-        internal void Awake()
-        {
-            spawnRatePropertyID = Shader.PropertyToID("particleSpawnRate");
-        }
+        private readonly int spawnRatePropertyID = Shader.PropertyToID("particleSpawnRate"); // Property ID for the spawn rate of the particles
 
         internal void CalculateEmitterRadius()
         {
@@ -270,7 +265,7 @@ namespace VoxxWeatherPlugin.Weathers
                     }
                 }
             }
-            // Clamp the reduction factor to a non-zero value to avoid division errors
+            
             return reductionFactor;
         }
     }

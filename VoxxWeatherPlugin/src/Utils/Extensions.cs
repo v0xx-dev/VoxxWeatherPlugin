@@ -729,15 +729,16 @@ namespace VoxxWeatherPlugin.Utils
                 float levelSize = Mathf.Max(levelBounds.Value.extents.x, levelBounds.Value.extents.z);
                 //Debug.LogDebug"Level Center: " + levelCenter + " Level Size: " + levelSize);
 
+                int minMeshStep = snowfallData.MinMeshStep;
                 if (snowfallData.TargetVertexCount > 0)
                 {
-                    snowfallData.minMeshStep = Mathf.CeilToInt(Mathf.Sqrt(levelSize * levelSize / (terrainStepX * terrainStepZ * snowfallData.TargetVertexCount)));
+                    minMeshStep = Mathf.CeilToInt(Mathf.Sqrt(levelSize * levelSize / (terrainStepX * terrainStepZ * snowfallData.TargetVertexCount)));
                 }
 
                 //Debug.LogDebug"Base Density Factor: " + minMeshStep);
 
                 QuadTree rootNode = new QuadTree(terrainBounds);
-                rootNode.Subdivide(levelBounds.Value, new Vector2(terrainStepX, terrainStepZ), snowfallData.MinMeshStep,
+                rootNode.Subdivide(levelBounds.Value, new Vector2(terrainStepX, terrainStepZ), minMeshStep,
                                     snowfallData.MaxMeshStep, snowfallData.FalloffSpeed, terrainSize - levelSize);
 
                 // Generate vertices from 4 corners of leaf nodes of the quadtree
@@ -852,13 +853,14 @@ namespace VoxxWeatherPlugin.Utils
             }
             else // Uniform meshing if no level bounds are set
             {
+                int minMeshStep = snowfallData.MinMeshStep;
                 // Calculate density factor to achieve target vertex count
                 if (snowfallData.TargetVertexCount > 0)
                 {
-                    snowfallData.minMeshStep = Mathf.CeilToInt(Mathf.Sqrt(terrain.terrainData.heightmapResolution * terrain.terrainData.heightmapResolution / snowfallData.TargetVertexCount));
+                    minMeshStep = Mathf.CeilToInt(Mathf.Sqrt(terrain.terrainData.heightmapResolution * terrain.terrainData.heightmapResolution / snowfallData.TargetVertexCount));
                 }
 
-                actualCellStep = Mathf.Max(snowfallData.MinMeshStep, 1);
+                actualCellStep = Mathf.Max(minMeshStep, 1);
                 //Debug.LogDebug"Density Factor: " + actualCellStep);
 
                 // Calculate grid dimensions after applying density factor

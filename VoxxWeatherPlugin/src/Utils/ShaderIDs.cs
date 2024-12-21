@@ -24,6 +24,9 @@ namespace VoxxWeatherPlugin.Utils
         internal static readonly int SnowMasks = Shader.PropertyToID("_SnowMaskTex");
         internal static readonly int BlurKernelSize = Shader.PropertyToID("_BlurKernelSize");
         internal static readonly int TexIndex = Shader.PropertyToID("_TexIndex");
+        internal static readonly int NormalStrength = Shader.PropertyToID("_NormalStrength");
+        internal static readonly int SnowColor = Shader.PropertyToID("_SnowColor");
+        internal static readonly int Metallic = Shader.PropertyToID("_Metallic");
 
     }
 }

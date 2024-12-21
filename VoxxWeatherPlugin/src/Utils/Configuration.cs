@@ -66,6 +66,9 @@ namespace VoxxWeatherPlugin.Utils
         #endregion
 
         #region Snow & Blizzard Graphics
+        public static ConfigEntry<bool> useOpaqueSnowMaterial; //
+        // public static ConfigEntry<bool> fixPosterizationForSnowOverlay; //
+        public static ConfigEntry<int> trackedEntityNumber; //
         public static ConfigEntry<int>  depthBufferResolution; //
         public static ConfigEntry<int>  trackerMapResolution; //
         public static ConfigEntry<int>  snowDepthMapResolution; //
@@ -294,6 +297,21 @@ namespace VoxxWeatherPlugin.Utils
             #endregion
 
             #region Snow & Blizzard Graphics
+            
+            useOpaqueSnowMaterial = Config.Bind("Snow Graphics",
+                                                "useOpaqueSnowMaterial",
+                                                false,
+                                                "Use opaque snow material. Disabling this will use a transparent snow material, which will allow for more realistic snow overlay rendering, but will not work with the posterization effect.");
+            // fixPosterizationForSnowOverlay = Config.Bind("Snow Graphics",
+            //                                             "fixPosterizationForSnowOverlay",
+            //                                             false,
+            //                                             "Allows Zeekerss' posterization effect to work with the snow overlay shader (on non-terrain objects). Enabling this will change the rendering path and might cause incompatibilities with other mods that use custom passes.");
+            
+            trackedEntityNumber = Config.Bind("Snow Graphics",
+                                            "trackedEntityNumber",
+                                            64,
+                                            new ConfigDescription("Number of entities that will be tracked for snow depth, INCLUDING all players. If there are more entities than this number their speed won't be affected by snow. For a better efficiency should be an even number.",
+                                                                new AcceptableValueRange<int>(1, 256)));
             depthBufferResolution = Config.Bind("Snow Graphics",
                                                 "depthBufferResolution",
                                                 2048,
@@ -311,8 +329,8 @@ namespace VoxxWeatherPlugin.Utils
                                                                     new AcceptableValueRange<int>(256, 8192)));
             bakeSnowDepthMipmaps = Config.Bind("Snow Graphics",
                                                 "bakeSnowDepthMipmaps",
-                                                true,
-                                                "Generate mipmaps for the snow depth map. Disabling this will reduce memory usage but may cause visual artifacts.");
+                                                false,
+                                                "Generate mipmaps for the snow depth map. Disabling this will reduce memory usage at the cost of quality.");
             PCFKernelSize = Config.Bind("Snow Graphics",
                                         "PCFKernelSize",
                                         12,

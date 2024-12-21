@@ -186,6 +186,7 @@ namespace VoxxWeatherPlugin.Weathers
             {
                 HDAdditionalCameraData radarCameraData = radarCameraObject.GetComponent<HDAdditionalCameraData>();
                 FrameSettingsOverrideMask radarCameraSettingsMask = radarCameraData.renderingPathCustomFrameSettingsOverrideMask;
+                // Allow custom passes for the radar camera
                 radarCameraSettingsMask.mask[(uint)FrameSettingsField.CustomPass] = false;
                 radarCameraData.renderingPathCustomFrameSettingsOverrideMask = radarCameraSettingsMask;
 

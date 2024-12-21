@@ -19,7 +19,7 @@ namespace VoxxWeatherPlugin.Behaviours
         [SerializeField]
         internal ComputeShader? snowThicknessComputeShader;
         [SerializeField]
-        internal int maxEntityCount = 64;
+        internal int MaxEntityCount => Configuration.trackedEntityNumber.Value;
         [SerializeField]
         internal SnowfallWeather? snowfallData => SnowfallWeather.Instance;
         private int kernelHandle;
@@ -74,10 +74,10 @@ namespace VoxxWeatherPlugin.Behaviours
             kernelHandle = snowThicknessComputeShader!.FindKernel("CSMain");
 
             // Create buffers
-            entityDataComputeBuffer = new ComputeBuffer(maxEntityCount, System.Runtime.InteropServices.Marshal.SizeOf(typeof(EntitySnowData)));
-            entitySnowDataInArray = new EntitySnowData[maxEntityCount];
-            entitySnowDataOutArray = new EntitySnowData[maxEntityCount];
-            freeIndices = new Stack<int>(Enumerable.Range(0, maxEntityCount).Reverse());
+            entityDataComputeBuffer = new ComputeBuffer(MaxEntityCount, System.Runtime.InteropServices.Marshal.SizeOf(typeof(EntitySnowData)));
+            entitySnowDataInArray = new EntitySnowData[MaxEntityCount];
+            entitySnowDataOutArray = new EntitySnowData[MaxEntityCount];
+            freeIndices = new Stack<int>(Enumerable.Range(0, MaxEntityCount).Reverse());
             snowThicknessComputeShader.SetBuffer(kernelHandle, "_EntityData", entityDataComputeBuffer);
         }
 
@@ -88,7 +88,7 @@ namespace VoxxWeatherPlugin.Behaviours
             groundToIndex.Clear();
             iceObjects.Clear();
             isOnIce = false;
-            freeIndices = new Stack<int>(Enumerable.Range(0, maxEntityCount).Reverse());
+            freeIndices = new Stack<int>(Enumerable.Range(0, MaxEntityCount).Reverse());
         }
 
         internal void CalculateThickness()
@@ -188,8 +188,8 @@ namespace VoxxWeatherPlugin.Behaviours
                 // Send data to GPU
                 entityDataComputeBuffer?.SetData(entitySnowDataInArray);
                 // Dispatch compute shader
-                int threadGroupSizeX = Mathf.CeilToInt(Mathf.Sqrt(maxEntityCount));
-                int threadGroupSizeY = Mathf.CeilToInt(Mathf.Sqrt(maxEntityCount));
+                int threadGroupSizeX = Mathf.CeilToInt(Mathf.Sqrt(MaxEntityCount));
+                int threadGroupSizeY = Mathf.CeilToInt(Mathf.Sqrt(MaxEntityCount));
                 snowThicknessComputeShader?.Dispatch(kernelHandle, threadGroupSizeX, threadGroupSizeY, 1);
 
                 // Read result
@@ -283,7 +283,7 @@ namespace VoxxWeatherPlugin.Behaviours
                 }
                 else
                 {
-                    Debug.LogDebug("Entity count for snow tracking exceeds the maximum limit, won't add more entities!");
+                    Debug.LogWarning("Entity count for snow tracking exceeds the maximum limit, won't add more entities!");
                     return;
                 }
 

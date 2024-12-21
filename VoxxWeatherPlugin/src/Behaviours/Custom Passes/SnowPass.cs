@@ -67,14 +67,15 @@ namespace VoxxWeatherPlugin.Behaviours
         // Override material
         public Material? snowOverlayMaterial = null;
         public Material? snowVertexMaterial = null;
-        [SerializeField] int overrideMaterialPassIndex = 0;
+        [SerializeField]
+        internal int overrideMaterialPassIndex = 0;
         public string overrideMaterialPassName = "Forward";
 
         // Override the depth state of the objects.
         public bool overrideDepthState = false;
         public CompareFunction depthCompareFunction = CompareFunction.LessEqual;
         public bool depthWrite = true;
-        public bool forceClusteredLighting = true;
+        public bool forceClusteredLighting = false;
 
         /// Override the stencil state of the objects.
         internal bool overrideStencil = false;
@@ -203,6 +204,10 @@ namespace VoxxWeatherPlugin.Behaviours
 
         internal void SetupMaterial(Material material)
         {
+            if (material == null)
+            {
+                return;
+            }
             material.SetFloat(SnowfallShaderIDs.PCFKernelSize, SnowfallWeather.Instance!.PCFKernelSize);
             material.SetFloat(SnowfallShaderIDs.BaseTessellationFactor, SnowfallWeather.Instance!.BaseTessellationFactor);
             material.SetFloat(SnowfallShaderIDs.MaxTessellationFactor, SnowfallWeather.Instance!.MaxTessellationFactor);
@@ -215,6 +220,10 @@ namespace VoxxWeatherPlugin.Behaviours
         
         internal void RefreshSnowMaterial(Material material)
         {
+            if (material == null)
+            {
+                return;
+            }
             // material.SetFloat(SnowfallShaderIDs.FadeValue, fadeValue);
             material.SetTexture(SnowfallShaderIDs.DepthTex, SnowfallWeather.Instance!.levelDepthmap);
             material.SetTexture(SnowfallShaderIDs.FootprintsTex, SnowfallWeather.Instance.snowTracksMap);

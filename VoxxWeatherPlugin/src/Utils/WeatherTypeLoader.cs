@@ -175,11 +175,13 @@ namespace VoxxWeatherPlugin.Utils
 
             Shader? overlayShader = WeatherAssetLoader.LoadAsset<Shader>(bundleName, "SnowLitPass");
             Shader? vertexSnowShader = WeatherAssetLoader.LoadAsset<Shader>(bundleName, "SnowLitVertBakedPass");
+            Shader? opaqueVertexSnowShader = WeatherAssetLoader.LoadAsset<Shader>(bundleName, "SnowLitVertBakedOpaquePass");
             Shader? terrainLitShader = WeatherAssetLoader.LoadAsset<Shader>(bundleName, "MeshTerrainLit");
             VisualEffectAsset? blizzardVFXAsset = WeatherAssetLoader.LoadAsset<VisualEffectAsset>(bundleName, "BlizzardVFX");
             VisualEffectAsset? blizzardWaveVFXAsset = WeatherAssetLoader.LoadAsset<VisualEffectAsset>(bundleName, "BlizzardWaveVFX");
 
-            if (overlayShader == null || blizzardVFXAsset == null || blizzardWaveVFXAsset == null || vertexSnowShader == null || terrainLitShader == null)
+            if (overlayShader == null || blizzardVFXAsset == null || blizzardWaveVFXAsset == null ||
+                    vertexSnowShader == null || terrainLitShader == null || opaqueVertexSnowShader == null)
             {
                 Debug.LogError("Failed to load Blizzard Weather visual assets. Weather registration failed.");
                 return;
@@ -187,6 +189,7 @@ namespace VoxxWeatherPlugin.Utils
 
             blizzardWeatherController.snowOverlayMaterial!.shader = overlayShader;
             blizzardWeatherController.snowVertexMaterial!.shader = vertexSnowShader;
+            blizzardWeatherController.snowVertexOpaqueMaterial!.shader = opaqueVertexSnowShader;
             blizzardWeatherController.terraMeshShader = terrainLitShader;
             blizzardVFXManager.snowVFXContainer!.GetComponent<VisualEffect>().visualEffectAsset = blizzardVFXAsset;
             blizzardVFXManager.blizzardWaveContainer!.GetComponentInChildren<VisualEffect>(true).visualEffectAsset = blizzardWaveVFXAsset;
@@ -250,10 +253,12 @@ namespace VoxxWeatherPlugin.Utils
 
             Shader? overlayShader = WeatherAssetLoader.LoadAsset<Shader>(bundleName, "SnowLitPass");
             Shader? vertexSnowShader = WeatherAssetLoader.LoadAsset<Shader>(bundleName, "SnowLitVertBakedPass");
+            Shader? opaqueVertexSnowShader = WeatherAssetLoader.LoadAsset<Shader>(bundleName, "SnowLitVertBakedOpaquePass");
+            
             Shader? terrainLitShader = WeatherAssetLoader.LoadAsset<Shader>(bundleName, "MeshTerrainLit");
             VisualEffectAsset? snowVFXAsset = WeatherAssetLoader.LoadAsset<VisualEffectAsset>(bundleName, "SnowVFX");
 
-            if (overlayShader == null || snowVFXAsset == null || vertexSnowShader == null || terrainLitShader == null)
+            if (overlayShader == null || snowVFXAsset == null || vertexSnowShader == null || terrainLitShader == null || opaqueVertexSnowShader == null)
             {
                 Debug.LogError("Failed to load Snowfall Weather visual assets. Weather registration failed.");
                 return;
@@ -261,6 +266,7 @@ namespace VoxxWeatherPlugin.Utils
 
             snowfallWeatherController.snowOverlayMaterial!.shader = overlayShader;
             snowfallWeatherController.snowVertexMaterial!.shader = vertexSnowShader;
+            snowfallWeatherController.snowVertexOpaqueMaterial!.shader = opaqueVertexSnowShader;
             snowfallWeatherController.terraMeshShader = terrainLitShader;
             snowfallVFXManager.snowVFXContainer!.GetComponent<VisualEffect>().visualEffectAsset = snowVFXAsset;
 
