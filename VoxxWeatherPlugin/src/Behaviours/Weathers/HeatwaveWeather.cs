@@ -141,7 +141,7 @@ namespace VoxxWeatherPlugin.Weathers
 
         internal override void PopulateLevelWithVFX(Bounds levelBounds, System.Random? seededRandom)
         {
-            sunLightData = TimeOfDay.Instance.sunDirect.GetComponent<HDAdditionalLightData>();
+            sunLightData = TimeOfDay.Instance.sunDirect?.GetComponent<HDAdditionalLightData>();
 
             if (levelBounds == null || seededRandom == null || heatwaveParticlePrefab == null)
             {
