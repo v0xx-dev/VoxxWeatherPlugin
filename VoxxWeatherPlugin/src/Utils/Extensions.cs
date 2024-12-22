@@ -689,9 +689,10 @@ namespace VoxxWeatherPlugin.Utils
             GameObject meshTerrain = new GameObject("MeshTerrain_" + terrain.name);
             MeshFilter meshFilter = meshTerrain.AddComponent<MeshFilter>();
             MeshRenderer meshRenderer = meshTerrain.AddComponent<MeshRenderer>();
-            // Set same rendering layer, rendering layer mask and tag as the terrain (and set the snow overlay custom pass layer)
+            // Set same parent, rendering layer, rendering layer mask and tag as the terrain (and set the snow overlay custom pass layer)
             meshRenderer.gameObject.layer = terrain.gameObject.layer;
             meshRenderer.gameObject.tag = terrain.gameObject.tag;
+            meshTerrain.transform.SetParent(terrain.transform.parent);
             terrain.renderingLayerMask |= (uint)(snowfallData.snowOverlayCustomPass?.renderingLayers ?? 0);
             meshRenderer.renderingLayerMask = terrain.renderingLayerMask;
             meshTerrain.isStatic = true;
