@@ -264,6 +264,10 @@ namespace VoxxWeatherPlugin.Patches
             bool enableTracker = (SnowfallWeather.Instance?.IsActive ?? false) &&
                                     (__instance.isOutside ||
                                     (SnowThicknessManager.Instance?.isEntityOnNaturalGround(__instance) ?? false));
+            if (__instance is SandWormAI worm)
+            {
+                enableTracker &= worm.emerged || worm.inEmergingState
+            }
             UpdateFootprintTracker(__instance, enableTracker);
         }
 
