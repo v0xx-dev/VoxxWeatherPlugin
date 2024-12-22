@@ -266,7 +266,7 @@ namespace VoxxWeatherPlugin.Patches
                                     (SnowThicknessManager.Instance?.isEntityOnNaturalGround(__instance) ?? false));
             if (__instance is SandWormAI worm)
             {
-                enableTracker &= worm.emerged || worm.inEmergingState
+                enableTracker &= worm.emerged || worm.inEmergingState;
             }
             UpdateFootprintTracker(__instance, enableTracker);
         }
