@@ -146,13 +146,13 @@ namespace VoxxWeatherPlugin.Weathers
         internal float timeUntilFrostbite = 0.6f * (Configuration.minTimeUntilFrostbite?.Value ?? 30f);
         [SerializeField]
         internal SnowfallVFXManager? VFXManager;
-        HashSet<string> moonProcessingBlacklist = new HashSet<string>();
+        string[] moonProcessingBlacklist = [];
         [SerializeField]
         internal QuicksandTrigger[]? waterTriggerObjects;
         [SerializeField]
-        internal List<GameObject> waterSurfaceObjects = new List<GameObject>();
+        internal List<GameObject> waterSurfaceObjects = [];
         [SerializeField]
-        internal List<GameObject> groundObjectCandidates = new List<GameObject>();
+        internal List<GameObject> groundObjectCandidates = [];
         internal string currentLevelName => StartOfRound.Instance?.currentLevel.sceneName ?? "";
         internal Bounds levelBounds;
         internal System.Random? seededRandom;
@@ -218,7 +218,7 @@ namespace VoxxWeatherPlugin.Weathers
             snowTracksCamera!.targetTexture = snowTracksMap;
             snowTracksCamera.aspect = 1.0f;
 
-            moonProcessingBlacklist = Configuration.meshProcessingBlacklist.Value.CleanMoonName().Split(';').ToHashSet();
+            moonProcessingBlacklist = Configuration.meshProcessingBlacklist.Value.CleanMoonName().Split(';');
         }
 
         internal void OnStart()
@@ -427,7 +427,15 @@ namespace VoxxWeatherPlugin.Weathers
             // Stores mesh terrains and actual Unity terrains to keep track of of walkable ground objects and their texture index in the baked masks
             Dictionary <GameObject, int> groundToIndex = new Dictionary<GameObject, int>();
             // Some moons used TerraMesh package and already have good mesh terrains, skip them
-            bool isMoonBlacklisted = moonProcessingBlacklist.Contains(StartOfRound.Instance.currentLevel.name.CleanMoonName());
+            bool isMoonBlacklisted = false;
+            foreach (string moon in moonProcessingBlacklist)
+            {
+                if (currentLevelName.Contains(moon))
+                {
+                    isMoonBlacklisted = true;
+                    break;
+                }
+            }
             // For Experimentation moon, UVs are broken and need to be replaced
             replaceUvs = StartOfRound.Instance.currentLevel.name.CleanMoonName().Contains("experimentation");
             if (isMoonBlacklisted)

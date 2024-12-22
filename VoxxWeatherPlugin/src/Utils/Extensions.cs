@@ -1204,10 +1204,9 @@ namespace VoxxWeatherPlugin.Utils
                     child.SetParent(null);
                 }
             }
-            
             // Instantiate but without children of original
             GameObject duplicate = GameObject.Instantiate(original);
-
+            
             // Reparent children to the original
             if (noChildren)
             {
