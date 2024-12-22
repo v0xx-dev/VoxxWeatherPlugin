@@ -141,9 +141,12 @@ namespace VoxxWeatherPlugin.Weathers
         [SerializeField]
         internal Vector3 shipPosition;
         [SerializeField]
+        internal float heightThreshold = -100f; // Under this y coordinate, objects will not be considered for snow rendering
+        [SerializeField]
         internal float timeUntilFrostbite = 0.6f * (Configuration.minTimeUntilFrostbite?.Value ?? 30f);
         [SerializeField]
         internal SnowfallVFXManager? VFXManager;
+        HashSet<string> moonProcessingBlacklist = new HashSet<string>();
         [SerializeField]
         internal QuicksandTrigger[]? waterTriggerObjects;
         [SerializeField]
@@ -214,9 +217,11 @@ namespace VoxxWeatherPlugin.Weathers
             // Set the camera target texture
             snowTracksCamera!.targetTexture = snowTracksMap;
             snowTracksCamera.aspect = 1.0f;
+
+            moonProcessingBlacklist = Configuration.meshProcessingBlacklist.Value.CleanMoonName().Split(';').ToHashSet();
         }
 
-        internal virtual void OnEnable()
+        internal void OnStart()
         {
             Instance = this; // Change the global reference to this instance (for patches)
 
@@ -234,15 +239,25 @@ namespace VoxxWeatherPlugin.Weathers
             }
             ModifyScrollingFog();
             UpdateLevelDepthmap();
-            VFXManager?.PopulateLevelWithVFX();
             StartCoroutine(RefreshDepthmapCoroutine(levelDepthmapCamera!, levelDepthmap!, bakeSnowMaps: false, waitForLanding: true));
         }
 
-        internal virtual void OnDisable()
+        internal void OnFinish()
         {
             Destroy(snowMasks);
             groundObjectCandidates.Clear();
             waterSurfaceObjects.Clear();
+        }
+
+        internal virtual void OnEnable()
+        {
+            OnStart();
+            VFXManager?.PopulateLevelWithVFX();
+        }
+
+        internal virtual void OnDisable()
+        {
+            OnFinish();
             VFXManager?.Reset();
         }
 
@@ -361,7 +376,9 @@ namespace VoxxWeatherPlugin.Weathers
                 Mesh meshCopy = meshFilter.sharedMesh.MakeReadableCopy();
                 meshFilter.sharedMesh = meshCopy;
                 //Check for collider and if it exists, consider it a false positive, otherwise add a mesh collider
-                if (!waterSurface.TryGetComponent<Collider>(out Collider collider))
+                // Only freeze water surfaces above the height threshold
+                if (waterSurface.transform.position.y > heightThreshold &&
+                    !waterSurface.TryGetComponent<Collider>(out Collider collider))
                 {
                     MeshCollider meshCollider = waterSurface.AddComponent<MeshCollider>();
                     meshCollider.sharedMesh = meshCopy;
@@ -373,7 +390,7 @@ namespace VoxxWeatherPlugin.Weathers
                 renderer.sharedMaterial = iceMaterial;
 
                 // Rise slightly
-                waterSurface.transform.position += 0.75f*Vector3.up;
+                waterSurface.transform.position += 0.6f*Vector3.up;
                 
                 // Change footstep sounds
                 waterSurface.tag = "Rock";
@@ -385,12 +402,13 @@ namespace VoxxWeatherPlugin.Weathers
 
         internal void ModifyScrollingFog()
         {
-            LocalVolumetricFog[] fogArray = GameObject.FindObjectsOfType<LocalVolumetricFog>();
+            LocalVolumetricFog[] fogArray = FindObjectsOfType<LocalVolumetricFog>();
             fogArray = fogArray.Where(x => x.gameObject.activeSelf && x.gameObject.scene.name == currentLevelName).ToArray();
+            float additionalMeanFreePath = seededRandom!.NextDouble(7f, 14f);
             foreach (LocalVolumetricFog fog in fogArray)
             {
                 fog.parameters.textureScrollingSpeed = Vector3.zero;
-                fog.parameters.meanFreePath += 12f; 
+                fog.parameters.meanFreePath += additionalMeanFreePath; 
             }
         }
 
@@ -407,15 +425,26 @@ namespace VoxxWeatherPlugin.Weathers
             // TODO: Make this async
 
             // Stores mesh terrains and actual Unity terrains to keep track of of walkable ground objects and their texture index in the baked masks
-            Dictionary <GameObject, int> groundToIndex = new Dictionary<GameObject, int>(); 
-            
+            Dictionary <GameObject, int> groundToIndex = new Dictionary<GameObject, int>();
+            // Some moons used TerraMesh package and already have good mesh terrains, skip them
+            bool isMoonBlacklisted = moonProcessingBlacklist.Contains(StartOfRound.Instance.currentLevel.name.CleanMoonName());
+            // For Experimentation moon, UVs are broken and need to be replaced
+            replaceUvs = StartOfRound.Instance.currentLevel.name.CleanMoonName().Contains("experimentation");
+            if (isMoonBlacklisted)
+            {
+                Debug.LogDebug($"Moon {StartOfRound.Instance.currentLevel.name} is blacklisted for mesh postprocessing! Skipping...");
+            }
+            if (replaceUvs)
+            {
+                Debug.LogDebug($"Moon {StartOfRound.Instance.currentLevel.name} needs UV replacement for mesh postprocessing! Overriding...");
+            }
+
             int textureIndex = 0;
             // Process possible mesh terrains to render snow on
             foreach (GameObject meshTerrain in groundObjectCandidates)
             {
                 // Process the mesh to remove thin triangles and smooth the mesh
-                // TODO ADD OPTION TO FILTER BY LEVEL NAME
-                meshTerrain.PostprocessMeshTerrain(levelBounds, this);
+                meshTerrain.PostprocessMeshTerrain(levelBounds, this, onlyUVs: isMoonBlacklisted);
                 // Setup the index in the material property block for the snow masks
                 PrepareMeshForSnow(meshTerrain, textureIndex);
                 // Add the terrain to the dictionary
@@ -527,8 +556,8 @@ namespace VoxxWeatherPlugin.Weathers
         public List<GameObject> GetObjectsAboveThreshold()
         {
             GameObject dungeonAnchor = FindAnyObjectByType<RuntimeDungeon>().Root;
-            // Set threshold to 1/3 of distance from the ship to the top of the dungeon
-            float heightThreshold = -Mathf.Abs(dungeonAnchor.transform.position.y/3); 
+            // Set threshold to 1/3 of distance from the origin to the top of the dungeon
+            heightThreshold = -Mathf.Abs(dungeonAnchor.transform.position.y/3); 
 
             LayerMask mask = LayerMask.GetMask("Default", "Room", "Terrain", "Foliage");
             List<GameObject> objectsAboveThreshold = new List<GameObject>();
@@ -779,7 +808,7 @@ namespace VoxxWeatherPlugin.Weathers
             {
                 float snowThickness = SnowThicknessManager.Instance.GetSnowThickness(localPlayer);
                 // White out the screen if the player is under snow
-                float localPlayerEyeY = localPlayer.playerEye.position.y;
+                float localPlayerEyeY = localPlayer.gameplayCamera.transform.position.y;
                 bool isUnderSnow = SnowThicknessManager.Instance.feetPositionY + snowThickness >= localPlayerEyeY - eyeBias; //TODO instead of feet position use collision point of character controller
 
                 if (isUnderSnow != isUnderSnowPreviousFrame)

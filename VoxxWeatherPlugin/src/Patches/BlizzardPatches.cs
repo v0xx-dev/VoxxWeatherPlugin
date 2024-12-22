@@ -24,37 +24,37 @@ namespace VoxxWeatherPlugin.Patches
             }
         }
 
-        [HarmonyPatch(typeof(StartOfRound), "StartGame")]
-        [HarmonyPrefix]
-        private static void RemoveBeesSnowPatch(StartOfRound __instance)
-        {
-            if (!__instance.IsHost || WeatherRegistry.WeatherManager.GetCurrentLevelWeather().Name == "Blizzard")
-                return;
+        // [HarmonyPatch(typeof(StartOfRound), "StartGame")]
+        // [HarmonyPrefix]
+        // private static void RemoveBeesSnowPatch(StartOfRound __instance)
+        // {
+        //     if (!__instance.IsHost || WeatherRegistry.WeatherManager.GetCurrentLevelWeather().Name == "Blizzard")
+        //         return;
 
-            cachedBees.Clear();
+        //     cachedBees.Clear();
                 
-            for (int i = __instance.currentLevel.DaytimeEnemies.Count - 1; i >= 0; i--)
-            {
-                if (__instance.currentLevel.DaytimeEnemies[i].enemyType.name.ToLower().Contains("bees"))
-                {
-                    // Cache the bees enemy to restore it after the blizzard and remove it from the list
-                    cachedBees.Add(__instance.currentLevel.DaytimeEnemies[i]);
-                    __instance.currentLevel.DaytimeEnemies.RemoveAt(i);
-                    Debug.LogDebug("Removing bees due to blizzard.");
-                }
-            }
-        }
+        //     for (int i = __instance.currentLevel.DaytimeEnemies.Count - 1; i >= 0; i--)
+        //     {
+        //         if (__instance.currentLevel.DaytimeEnemies[i].enemyType.name.ToLower().Contains("bees"))
+        //         {
+        //             // Cache the bees enemy to restore it after the blizzard and remove it from the list
+        //             cachedBees.Add(__instance.currentLevel.DaytimeEnemies[i]);
+        //             __instance.currentLevel.DaytimeEnemies.RemoveAt(i);
+        //             Debug.LogDebug("Removing bees due to blizzard.");
+        //         }
+        //     }
+        // }
 
-        [HarmonyPatch(typeof(StartOfRound), "EndOfGame")]
-        [HarmonyPrefix]
-        private static void RestoreBeesSnowPatch(StartOfRound __instance)
-        {
-            if (!__instance.IsHost || !(SnowfallWeather.Instance is BlizzardWeather && cachedBees.Count > 0))
-                return;
+        // [HarmonyPatch(typeof(StartOfRound), "EndOfGame")]
+        // [HarmonyPrefix]
+        // private static void RestoreBeesSnowPatch(StartOfRound __instance)
+        // {
+        //     if (!__instance.IsHost || !(SnowfallWeather.Instance is BlizzardWeather && cachedBees.Count > 0))
+        //         return;
             
-            __instance.currentLevel.DaytimeEnemies.AddRange(cachedBees);
-            cachedBees.Clear();
-        }
+        //     __instance.currentLevel.DaytimeEnemies.AddRange(cachedBees);
+        //     cachedBees.Clear();
+        // }
     }
 
 }

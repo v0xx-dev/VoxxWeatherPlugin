@@ -40,7 +40,7 @@ namespace VoxxWeatherPlugin.Utils
         /// Triangles completely outside the specified bounds are preserved, while triangles intersecting the bounds are processed.
         /// </remarks>
         /// <exception cref="System.ArgumentNullException">Thrown if `meshTerrainObject` or `levelBounds` is null.</exception>
-        internal static void PostprocessMeshTerrain(this GameObject meshTerrainObject, Bounds levelBounds, SnowfallWeather snowfallData)
+        internal static void PostprocessMeshTerrain(this GameObject meshTerrainObject, Bounds levelBounds, SnowfallWeather snowfallData, bool onlyUVs = false)
         {
             System.Diagnostics.Stopwatch sw = new System.Diagnostics.Stopwatch();
 
@@ -49,11 +49,54 @@ namespace VoxxWeatherPlugin.Utils
                 Debug.LogError("Object to modify and level bounds must be supplied.");
             }
 
-            Mesh originalMesh = meshTerrainObject!.GetComponent<MeshFilter>().sharedMesh;
+            MeshFilter? meshFilter = meshTerrainObject!.GetComponent<MeshFilter>();
+            MeshCollider? meshCollider = meshTerrainObject.GetComponent<MeshCollider>();
+
+            if (meshFilter == null || meshCollider == null)
+            {
+                Debug.LogError("MeshFilter and MeshCollider components must be present on the object to modify.");
+            }
+
+            Mesh originalMesh = meshFilter!.sharedMesh;
             (Mesh newMesh, int submeshIndex) = meshTerrainObject.ExtractLargestSubmesh();
             newMesh.name = originalMesh.name + "_Postprocessed";
             
             Debug.LogDebug("Extracted submesh with " + newMesh.vertexCount + " vertices and " + newMesh.triangles.Length / 3 + " triangles" + " from submesh " + submeshIndex + " of " + meshTerrainObject.name);
+
+            // Determine height axis
+            int heightAxis = 0;
+
+            Vector3 objectSpaceUpDirection = meshTerrainObject.transform.InverseTransformDirection(Vector3.up);
+            objectSpaceUpDirection.x *= Mathf.Sign(meshTerrainObject.transform.lossyScale.x);
+            objectSpaceUpDirection.y *= Mathf.Sign(meshTerrainObject.transform.lossyScale.y);
+            objectSpaceUpDirection.z *= Mathf.Sign(meshTerrainObject.transform.lossyScale.z);
+
+            if (Mathf.Abs(Vector3.Dot(objectSpaceUpDirection, Vector3.right)) > 0.5f)
+            {
+                heightAxis = 0;
+            }
+            else if (Mathf.Abs(Vector3.Dot(objectSpaceUpDirection, Vector3.up)) > 0.5f)
+            {
+                heightAxis = 1;
+            }
+            else if (Mathf.Abs(Vector3.Dot(objectSpaceUpDirection, Vector3.forward)) > 0.5f)
+            {
+                heightAxis = 2;
+            }
+
+            Debug.LogDebug("Object's up axis: " + heightAxis + ". Object's up direction: " + objectSpaceUpDirection);
+
+            if (onlyUVs)
+            {
+                newMesh.uv2 = UnwrapUVs(newMesh.vertices, heightAxis, true);
+                meshFilter = meshTerrainObject.GetComponent<MeshFilter>();
+                meshFilter.sharedMesh = newMesh;
+
+                meshCollider = meshTerrainObject.GetComponent<MeshCollider>();
+                meshCollider.sharedMesh = newMesh;
+
+                return;
+            }
 
             Bounds objectSpaceBounds;
             if (snowfallData.UseBounds)
@@ -82,29 +125,6 @@ namespace VoxxWeatherPlugin.Utils
             // Get the original mesh data
             Vector3[] vertices = newMesh.vertices;
             int[] triangles = newMesh.triangles;
-
-            // Determine height axis
-            int heightAxis = 0;
-
-            Vector3 objectSpaceUpDirection = meshTerrainObject.transform.InverseTransformDirection(Vector3.up);
-            objectSpaceUpDirection.x *= Mathf.Sign(meshTerrainObject.transform.lossyScale.x);
-            objectSpaceUpDirection.y *= Mathf.Sign(meshTerrainObject.transform.lossyScale.y);
-            objectSpaceUpDirection.z *= Mathf.Sign(meshTerrainObject.transform.lossyScale.z);
-
-            if (Mathf.Abs(Vector3.Dot(objectSpaceUpDirection, Vector3.right)) > 0.5f)
-            {
-                heightAxis = 0;
-            }
-            else if (Mathf.Abs(Vector3.Dot(objectSpaceUpDirection, Vector3.up)) > 0.5f)
-            {
-                heightAxis = 1;
-            }
-            else if (Mathf.Abs(Vector3.Dot(objectSpaceUpDirection, Vector3.forward)) > 0.5f)
-            {
-                heightAxis = 2;
-            }
-
-            Debug.LogDebug("Object's up axis: " + heightAxis + ". Object's up direction: " + objectSpaceUpDirection);
 
             //Calculate max scale only taking the absolute horizontal scales into account, horizontal is everything not on the height axis
             float maxScale = Mathf.Max(Mathf.Abs(meshTerrainObject.transform.lossyScale[(heightAxis + 1)%3]), Mathf.Abs(meshTerrainObject.transform.lossyScale[(heightAxis + 2) % 3]));
@@ -384,11 +404,8 @@ namespace VoxxWeatherPlugin.Utils
             newMesh.RecalculateTangents();
             newMesh.RecalculateBounds();
 
-            MeshFilter meshFilter = meshTerrainObject.GetComponent<MeshFilter>();
             meshFilter.sharedMesh = newMesh;
-
-            MeshCollider meshCollider = meshTerrainObject.GetComponent<MeshCollider>();
-            meshCollider.sharedMesh = newMesh;
+            meshCollider!.sharedMesh = newMesh;
         }
 
         private static Vector2[] UnwrapUVs(Vector3[] vertices, int upAxis, bool normalize)
@@ -601,6 +618,7 @@ namespace VoxxWeatherPlugin.Utils
             GL.Clear(true, true, Color.clear);
             
             var matrix = objectToBake.transform.localToWorldMatrix;
+            // UV1 is used for baking here (see shader implementation)
             if (snowfallData.bakeMaterial?.SetPass(0) ?? false)
                 Graphics.DrawMeshNow(mesh, matrix, submeshIndex);
 
@@ -1232,6 +1250,11 @@ namespace VoxxWeatherPlugin.Utils
             // Spawn the object on the network
             NetworkObject networkObject = spawnedItemObject.GetComponent<NetworkObject>();
             networkObject.Spawn();
+        }
+
+        public static string CleanMoonName(this string moonName)
+        {
+            return moonName.Replace(" ", "").Replace("_", "").Replace("-", "").ToLower();
         }
     
     }

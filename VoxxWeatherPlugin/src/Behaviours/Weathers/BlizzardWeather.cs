@@ -64,21 +64,23 @@ namespace VoxxWeatherPlugin.Weathers
 
         internal override void OnEnable()
         {
-            base.OnEnable();
+            OnStart();
             finalSnowHeight = seededRandom.NextDouble(MinSnowHeight, MaxSnowHeight);
             fullSnowNormalizedTime = seededRandom.NextDouble(MinSnowNormalizedTime, MaxSnowNormalizedTime);
             waveInterval = seededRandom.NextDouble(MinWaveInterval, MaxWaveInterval);
             numOfWaves = seededRandom.Next(MinWaveCount, MaxWaveCount);
             windForce = seededRandom.NextDouble(MinWindForce, MaxWindForce);
             timeUntilFrostbite = seededRandom.NextDouble(MinTimeUntilFrostbite, MaxTimeUntilFrostbite);
-            TimeOfDay.Instance.onTimeSync.AddListener(new UnityAction(OnGlobalTimeSync));
+            TimeOfDay.Instance.onTimeSync.AddListener(new UnityAction(OnGlobalTimeSync));     
+            VFXManager?.PopulateLevelWithVFX();
         }
 
         internal override void OnDisable()
         {
-            base.OnDisable();
+            OnFinish();
             timeAtStart = -1f;
             TimeOfDay.Instance.onTimeSync.RemoveListener(new UnityAction(OnGlobalTimeSync));
+            VFXManager?.Reset();
         }
 
         internal void OnGlobalTimeSync()
@@ -286,11 +288,6 @@ namespace VoxxWeatherPlugin.Weathers
                 // Place and enable the chill wave
                 chillWaveContainer.transform.position = initialPosition;
 
-                if (!GameNetworkManager.Instance.localPlayerController.isInsideFactory)
-                {
-                    chillWaveContainer.SetActive(true);
-                }
-
                 // Calculate target position (diametrically opposite)
                 Vector3 targetPosition = levelBounds.center - initialDirection * levelRadius;
 
@@ -305,6 +302,7 @@ namespace VoxxWeatherPlugin.Weathers
                 float startTime = TimeOfDay.Instance.globalTime;
                 while (elapsedTime < duration)
                 {
+                    chillWaveContainer.SetActive(!GameNetworkManager.Instance.localPlayerController.isInsideFactory); // Only show the chill wave if the player is not inside the factory
                     chillWaveContainer.transform.position = Vector3.Lerp(initialPosition, targetPosition, elapsedTime / duration);
                     elapsedTime = TimeOfDay.Instance.globalTime - startTime; // Using synced global time to avoid making this a NetworkBehaviour
                     yield return null;
@@ -321,6 +319,7 @@ namespace VoxxWeatherPlugin.Weathers
             waveInterval = seededRandom.NextDouble(MinWaveInterval, MaxWaveInterval);
             numOfWaves = seededRandom.Next(MinWaveCount, MaxWaveCount);
             timeSinceWave = 0;
+            chillWaveContainer.SetActive(false);
             isChillWaveActive = false;
         }
     }
@@ -376,6 +375,15 @@ namespace VoxxWeatherPlugin.Weathers
         internal override void PopulateLevelWithVFX(Bounds levelBounds = default, System.Random? seededRandom = null)
         {
             blizzardWaveContainer?.SetActive(false);
+
+            BoxCollider? waveCollider = blizzardWaveContainer?.GetComponent<BoxCollider>();
+            if (waveCollider != null)
+            {
+                //Change the center and scale y size so the lower edge is at SnowfallWeather.Instance.heightThreshold level, but current top edge is preserved
+                float newHeightSpan = levelBounds.size.y - SnowfallWeather.Instance!.heightThreshold;
+                waveCollider.center = new Vector3(0f, SnowfallWeather.Instance.heightThreshold + newHeightSpan / 2, waveCollider.center.z);
+                waveCollider.size = new Vector3(levelBounds.size.x, newHeightSpan, waveCollider.size.z);
+            }
             
             base.PopulateLevelWithVFX(levelBounds, seededRandom);
         }
