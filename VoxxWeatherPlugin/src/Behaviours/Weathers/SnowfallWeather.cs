@@ -199,8 +199,11 @@ namespace VoxxWeatherPlugin.Weathers
             levelDepthmapCamera.aspect = 1.0f;
             levelDepthmapCamera.enabled = false;
 
-            DepthVSMPass? depthVSMPass = levelDepthmapCamera.GetComponent<CustomPassVolume>().customPasses[0] as DepthVSMPass;
+            CustomPassVolume customPassVolume = snowVolume.GetComponent<CustomPassVolume>();
+            DepthVSMPass? depthVSMPass = customPassVolume.customPasses[0] as DepthVSMPass;
             depthVSMPass!.blurRadius = BlurRadius;
+            // This is because Diversity fucks up injection priorities
+            customPassVolume.injectionPoint = CustomPassInjectionPoint.BeforePostProcess;
 
             snowTracksMap = new RenderTexture(TracksMapResolution,
                                             TracksMapResolution,
