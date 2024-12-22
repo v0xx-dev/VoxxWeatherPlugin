@@ -206,4 +206,88 @@ namespace VoxxWeatherPlugin.Behaviours
         }
     }
 
+    [AddComponentMenu("VFX/Property Binders/Box Collider Binder")]
+    [VFXBinder("Collider/Box")]
+    class VFXBoxBinder : VFXBinderBase
+    {
+        public string Property { get { return (string)m_Property; } set { m_Property = value; UpdateSubProperties(); } }
+
+        [VFXPropertyBinding("UnityEditor.VFX.AABox"), SerializeField]
+        protected ExposedProperty m_Property = "AABox";
+        public BoxCollider Target = null;
+
+        private ExposedProperty Center;
+        private ExposedProperty Size;
+
+        protected override void OnEnable()
+        {
+            base.OnEnable();
+            UpdateSubProperties();
+        }
+
+        void OnValidate()
+        {
+            UpdateSubProperties();
+        }
+
+        void UpdateSubProperties()
+        {
+            Center = m_Property + "_center";
+            Size = m_Property + "_size";
+        }
+
+        public override bool IsValid(VisualEffect component)
+        {
+            return Target != null && component.HasVector3(Center) && component.HasVector3(Size);
+        }
+
+        public override void UpdateBinding(VisualEffect component)
+        {
+            component.SetVector3(Center, Target.center);
+            component.SetVector3(Size, Target.size);
+        }
+
+
+        public override string ToString()
+        {
+            return string.Format("Box : '{0}' -> {1}", m_Property, Target == null ? "(null)" : Target.name);
+        }
+    }
+
+    [AddComponentMenu("VFX/Property Binders/Box Collider and Camera Binder")]
+    [VFXBinder("Collider/BoxOrthoCamera")]
+    class VFXBoxOrthoBinder : VFXBoxBinder
+    {
+        public Camera? collisionCamera = null;
+
+        private float maxLength = 0;
+
+        public override bool IsValid(VisualEffect component)
+        {
+            return base.IsValid(component) && collisionCamera != null;
+        }
+
+        protected override void OnEnable()
+        {
+            base.OnEnable();
+            //Calculate max length by taking max from collider size
+        }
+
+        public override void UpdateBinding(VisualEffect component)
+        {
+            base.UpdateBinding(component);
+            if (maxLength == 0)
+            {
+                maxLength = Mathf.Max(Target.size.x, Target.size.y, Target.size.z) / 2f;
+                collisionCamera!.orthographicSize = maxLength;
+            }
+        }
+
+        protected override void OnDisable()
+        {
+            base.OnDisable();
+            maxLength = 0;
+        }
+
+    }
 }
