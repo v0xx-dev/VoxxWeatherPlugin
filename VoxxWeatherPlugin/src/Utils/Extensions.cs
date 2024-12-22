@@ -1192,9 +1192,31 @@ namespace VoxxWeatherPlugin.Utils
             }
         }
     
-        public static GameObject Duplicate(this GameObject original, bool disableShadows = true, bool removeCollider = true)
+        public static GameObject Duplicate(this GameObject original, bool disableShadows = true, bool removeCollider = true, bool noChildren = true)
         {
+            // Temporarily unparent children
+            List<Transform> children = new List<Transform>();
+            if (noChildren)
+            {
+                foreach (Transform child in original.transform)
+                {
+                    children.Add(child);
+                    child.SetParent(null);
+                }
+            }
+            
+            // Instantiate but without children of original
             GameObject duplicate = GameObject.Instantiate(original);
+
+            // Reparent children to the original
+            if (noChildren)
+            {
+                foreach (Transform child in children)
+                {
+                    child.SetParent(original.transform);
+                }
+            }
+
             duplicate.name = original.name + "_Copy";
             // Copy transform and hierarchy
             duplicate.transform.SetParent(original.transform.parent);

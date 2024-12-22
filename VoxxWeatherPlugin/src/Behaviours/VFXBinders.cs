@@ -259,12 +259,14 @@ namespace VoxxWeatherPlugin.Behaviours
     class VFXBoxOrthoBinder : VFXBoxBinder
     {
         public Camera? collisionCamera = null;
-
+        public AudioSource? audioSourceTemplate = null;
+        private AudioSource[]? audioSources = null;
         private float maxLength = 0;
+        private float audioRange = 70;
 
         public override bool IsValid(VisualEffect component)
         {
-            return base.IsValid(component) && collisionCamera != null;
+            return base.IsValid(component) && collisionCamera != null && audioSourceTemplate != null;
         }
 
         protected override void OnEnable()
@@ -280,13 +282,36 @@ namespace VoxxWeatherPlugin.Behaviours
             {
                 maxLength = Mathf.Max(Target.size.x, Target.size.y, Target.size.z) / 2f;
                 collisionCamera!.orthographicSize = maxLength;
+                audioRange = audioSourceTemplate.maxDistance;
+                // Place audio sources along collider x axis so that their range covers the whole box with 10% overlap between them
+                if (audioSources != null)
+                {
+                    foreach (var audioSource in audioSources)
+                    { 
+                        if (audioSource != null)
+#if DEBUG
+                            DestroyImmediate(audioSource.gameObject);
+#else
+                            Destroy(audioSource.gameObject);
+#endif
+                    }
+                }
+                audioSources = new AudioSource[Mathf.CeilToInt(Target.size.x / (0.9f*audioRange))];
+                for (int i = 0; i < audioSources.Length; i++)
+                {
+                    audioSources[i] = Instantiate(audioSourceTemplate, Target.transform);
+                    audioSources[i].transform.localPosition = new Vector3(0.9f*audioRange * i - Target.size.x / 2f, 0, 0);
+                    audioSources[i].maxDistance = audioRange;
+                    audioSources[i].gameObject.SetActive(true);
+                }
             }
         }
 
         protected override void OnDisable()
-        {
-            base.OnDisable();
+        {   
             maxLength = 0;
+            
+            base.OnDisable();
         }
 
     }
