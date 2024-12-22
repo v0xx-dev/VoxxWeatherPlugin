@@ -14,6 +14,7 @@ namespace VoxxWeatherPlugin.Behaviours
     public class SnowThicknessManager : MonoBehaviour
     {
         internal static SnowThicknessManager? Instance;
+        internal int errorCount = 0;
 
         [Header("Compute Shader")]
         [SerializeField]
@@ -83,6 +84,7 @@ namespace VoxxWeatherPlugin.Behaviours
 
         internal void Reset()
         {
+            errorCount = 0;
             inputNeedsUpdate = false;
             entitySnowDataMap.Clear();
             groundToIndex.Clear();
@@ -93,15 +95,22 @@ namespace VoxxWeatherPlugin.Behaviours
 
         internal void CalculateThickness()
         {
+            if (errorCount > 10)
+            {
+                // Too many errors, stop trying
+                return;
+            }
             if (snowfallData == null)
             {
                 Debug.LogError("Snowfall Weather is null, cannot calculate snow thickness!");
+                errorCount++;
                 return;
             }
 
             if (groundToIndex.Count == 0)
             {
                 Debug.LogError("No ground object is registered, cannot calculate snow thickness!");
+                errorCount++;
                 return;
             }
 
@@ -111,6 +120,7 @@ namespace VoxxWeatherPlugin.Behaviours
                 if (snowfallData.snowMasks == null)
                 {
                     Debug.LogError("Snow masks texture is null, cannot calculate snow thickness!");
+                    errorCount++;
                     return;
                 }
 
