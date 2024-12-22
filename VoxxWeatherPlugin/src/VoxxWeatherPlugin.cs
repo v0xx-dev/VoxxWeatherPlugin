@@ -57,10 +57,6 @@ namespace VoxxWeatherPlugin
                     harmony.PatchAll(typeof(SnowPatches));
                     Logger.LogInfo($"{PluginInfo.PLUGIN_GUID} snow patches successfully applied!");
 
-                    MethodInfo patchMethod = typeof(SnowPatches).GetMethod("EnemySnowHindrancePatch", BindingFlags.NonPublic | BindingFlags.Static);
-                    DynamicHarmonyPatcher.PatchAllTypes(typeof(EnemyAI), "Update", patchMethod, PatchType.Postfix, harmony, SnowPatches.unaffectedEnemyTypes); 
-                    Logger.LogInfo($"{PluginInfo.PLUGIN_GUID} enemy snow hindrance patches successfully applied!");
-
                     if (Configuration.EnableSnowfallWeather.Value)
                     {
                         WeatherTypeLoader.RegisterSnowfallWeather();
@@ -72,6 +68,11 @@ namespace VoxxWeatherPlugin
                         Logger.LogInfo($"{PluginInfo.PLUGIN_GUID} blizzard patches successfully applied!");
                         WeatherTypeLoader.RegisterBlizzardWeather();
                     }
+
+                    MethodInfo patchMethod = typeof(SnowPatches).GetMethod("EnemySnowHindrancePatch", BindingFlags.NonPublic | BindingFlags.Static);
+                    DynamicHarmonyPatcher.PatchAllTypes(typeof(EnemyAI), "Update", patchMethod, PatchType.Postfix, harmony, SnowPatches.unaffectedEnemyTypes); 
+                    Logger.LogInfo($"{PluginInfo.PLUGIN_GUID} enemy snow hindrance patches successfully applied!");
+
                 }
             }
 
@@ -162,13 +163,9 @@ namespace VoxxWeatherPlugin
                         }
                     }
                 }
-                catch(ReflectionTypeLoadException ex)
+                catch (Exception)
                 {
                     Debug.LogDebug($"Error loading types from assembly: {assembly.FullName}");
-                    foreach(var loaderEx in ex.LoaderExceptions)
-                    {
-                        Debug.LogDebug($" - {loaderEx.Message}");
-                    }
                 }
 
             }
