@@ -72,7 +72,7 @@ namespace VoxxWeatherPlugin.Weathers
             windForce = seededRandom.NextDouble(MinWindForce, MaxWindForce);
             timeUntilFrostbite = seededRandom.NextDouble(MinTimeUntilFrostbite, MaxTimeUntilFrostbite);
             TimeOfDay.Instance.onTimeSync.AddListener(new UnityAction(OnGlobalTimeSync));     
-            VFXManager?.PopulateLevelWithVFX();
+            VFXManager?.PopulateLevelWithVFX(levelBounds);
         }
 
         internal override void OnDisable()
@@ -175,10 +175,8 @@ namespace VoxxWeatherPlugin.Weathers
             {
                 isPlayerInBlizzard = false;
             }
-
         }
             
-
         internal override void SetColdZoneState()
         {
             PlayerTemperatureManager.isInColdZone = VFXManager.isUnderSnowPreviousFrame || isPlayerInBlizzard;
@@ -266,6 +264,7 @@ namespace VoxxWeatherPlugin.Weathers
             chillWaveContainer.transform.rotation = targetRotation;
 
             windDirection = Quaternion.Euler(0f, randomAngle, 0f) * windDirection;
+            windDirection.Normalize();
             windForce = seededRandom.NextDouble(MinWindForce, MaxWindForce);
             timeSinceWindChange = 0;
             isWindChangeActive = false;
@@ -282,7 +281,7 @@ namespace VoxxWeatherPlugin.Weathers
                 // Shake screen and play sound
                 VFXManager.PlaySonicBoomSFX();
                 // Calculate initial position
-                Vector3 initialDirection = -windDirection.normalized;
+                Vector3 initialDirection = -windDirection;
                 Vector3 initialPosition = levelBounds.center + initialDirection * levelRadius;
 
                 // Place and enable the chill wave
@@ -380,7 +379,7 @@ namespace VoxxWeatherPlugin.Weathers
             if (waveCollider != null)
             {
                 //Change the center and scale y size so the lower edge is at SnowfallWeather.Instance.heightThreshold level, but current top edge is preserved
-                float newHeightSpan = levelBounds.size.y - SnowfallWeather.Instance!.heightThreshold;
+                float newHeightSpan = levelBounds.extents.y - SnowfallWeather.Instance!.heightThreshold;
                 waveCollider.center = new Vector3(0f, SnowfallWeather.Instance.heightThreshold + newHeightSpan / 2, waveCollider.center.z);
                 waveCollider.size = new Vector3(levelBounds.size.x, newHeightSpan, waveCollider.size.z);
             }
