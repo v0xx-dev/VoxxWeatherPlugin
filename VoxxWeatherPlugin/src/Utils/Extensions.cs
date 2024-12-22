@@ -291,8 +291,9 @@ namespace VoxxWeatherPlugin.Utils
             }
 
             // Configure triangulation options
+            int maxAdditionalVertices = vertexIndicesInBounds.Count / 2;
             ConstraintOptions options = new ConstraintOptions() { ConformingDelaunay = true, SegmentSplitting = 2};
-            QualityOptions quality = new QualityOptions() { MinimumAngle = 30.0f, SteinerPoints = snowfallData.SubdivideMesh ? -1 : 0};
+            QualityOptions quality = new QualityOptions() { MinimumAngle = 30.0f, SteinerPoints = snowfallData.SubdivideMesh ? maxAdditionalVertices : 0};
 
             // Perform triangulation
             Debug.LogDebug($"Triangulating {polygon.Points.Count} vertices...");
@@ -797,8 +798,9 @@ namespace VoxxWeatherPlugin.Utils
                 }
 
                 // Configure triangulation options
+                int maxAdditionalVertices = vertices.Count/2;
                 ConstraintOptions options = new ConstraintOptions() { ConformingDelaunay = false, SegmentSplitting = 2};
-                QualityOptions quality = new QualityOptions() { MinimumAngle = 20.0f, SteinerPoints = snowfallData.RefineMesh ? -1 : 0};
+                QualityOptions quality = new QualityOptions() { MinimumAngle = 20.0f, SteinerPoints = snowfallData.RefineMesh ? maxAdditionalVertices : 0};
 
                 System.Diagnostics.Stopwatch sw = new System.Diagnostics.Stopwatch();
                 // Perform triangulation
