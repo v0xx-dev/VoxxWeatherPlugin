@@ -295,6 +295,7 @@ namespace VoxxWeatherPlugin.Utils
             QualityOptions quality = new QualityOptions() { MinimumAngle = 30.0f, SteinerPoints = snowfallData.SubdivideMesh ? -1 : 0};
 
             // Perform triangulation
+            Debug.LogDebug($"Triangulating {polygon.Points.Count} vertices...");
             sw.Restart();
             var mesh2d = polygon.Triangulate(options, quality);
             sw.Stop();

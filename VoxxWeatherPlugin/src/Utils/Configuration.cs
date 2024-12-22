@@ -22,7 +22,7 @@ namespace VoxxWeatherPlugin.Utils
         public static ConfigEntry<float> TimeUntilStrokeMin; //
         public static ConfigEntry<float> TimeUntilStrokeMax; //
         public static ConfigEntry<float> HeathazeDistortionStrength; //
-        public static ConfigEntry<float> HeathazeFilterMultiplier;
+        public static ConfigEntry<float> HeathazeFilterMultiplier; //
         #endregion
 
         #region Solar Flare

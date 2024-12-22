@@ -347,7 +347,7 @@ namespace VoxxWeatherPlugin.Weathers
 
         internal void FreezeWater()
         {
-            waterTriggerObjects = FindObjectsOfType<QuicksandTrigger>().Where(x => x.gameObject.activeSelf && x.isWater && x.gameObject.scene.name == currentLevelName).ToArray(); //&& !x.isInsideWater TODO
+            waterTriggerObjects = FindObjectsOfType<QuicksandTrigger>().Where(x => x.gameObject.activeSelf && x.isWater && x.gameObject.scene.name == currentLevelName && !x.isInsideWater).ToArray();
             HashSet<GameObject> iceObjects = new HashSet<GameObject>();
 
             foreach (QuicksandTrigger waterObject in waterTriggerObjects)
@@ -404,7 +404,7 @@ namespace VoxxWeatherPlugin.Weathers
 
         internal void FindAndSetupGround()
         {
-            // TODO: PARALLELIZE THIS
+            // TODO: Make this async
 
             // Stores mesh terrains and actual Unity terrains to keep track of of walkable ground objects and their texture index in the baked masks
             Dictionary <GameObject, int> groundToIndex = new Dictionary<GameObject, int>(); 
@@ -704,7 +704,7 @@ namespace VoxxWeatherPlugin.Weathers
         private bool isFading = false;
         internal bool isUnderSnowPreviousFrame = false;
         [SerializeField]
-        internal float eyeBias = 0.3f;
+        internal float eyeBias = 0.45f;
 
         [Header("Snow Tracker VFX")]
         

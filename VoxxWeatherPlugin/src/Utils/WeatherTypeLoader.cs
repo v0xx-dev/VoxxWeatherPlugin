@@ -51,7 +51,7 @@ namespace VoxxWeatherPlugin.Utils
 
             // Configure VFX settings
             heatwaveVFX.SetFloat("particleSpawnRate", Configuration.HeatwaveParticlesSpawnRate.Value);
-            // TODO add blurring strength configuration
+            heatwaveVFX.SetFloat("distortionScale", Configuration.HeathazeDistortionStrength.Value);
 
             heatwaveContainer.SetActive(true);
 
@@ -196,8 +196,6 @@ namespace VoxxWeatherPlugin.Utils
             
             // TODO add vfx configs
 
-            
-
             blizzardContainer.SetActive(true);
 
             ImprovedWeatherEffect blizzardWeatherEffect = new(effectObject, effectPermanentObject)
@@ -207,12 +205,18 @@ namespace VoxxWeatherPlugin.Utils
 
             Weather BlizzardWeather = new Weather("Blizzard", blizzardWeatherEffect)
             {
-                DefaultLevelFilters = new[] {"Rend", "Dine", "Artifice", "Titan", "March"},
-                LevelFilteringOption = FilteringOption.Include,
+                DefaultLevelFilters = ["Gordion", "Experimentation", "Assurance", "Offense", "Embrion",
+                                            "EGypt", "Penumbra", "EchoReach", "Infernis", "Atlantica",
+                                            "Gloom", "Orion", "Vertigo", "RelayStation", "Vaporization",
+                                            "Praetor", "Lithium", "Arcadia", "Sector", "Ichor", "AtlasAbyss",
+                                            "Asteroid13", "Asteroid14", "Fray", "Desolation", "Cosmocos",
+                                            "Junic", "Detritus", "CaltPrime", "Vow", "Offense", "Makron",
+                                            "Attenuation", "Argent", "Humidity"],
+                LevelFilteringOption = FilteringOption.Exclude,
                 Color = Color.cyan,
-                ScrapAmountMultiplier = 1.25f,
-                ScrapValueMultiplier = 1.2f,
-                DefaultWeight = 1000
+                ScrapAmountMultiplier = 1.4f,
+                ScrapValueMultiplier = 0.9f,
+                DefaultWeight = 75
             };
 
             WeatherManager.RegisterWeather(BlizzardWeather);
@@ -281,12 +285,17 @@ namespace VoxxWeatherPlugin.Utils
 
             Weather SnowfallWeatherEffect = new Weather("Snowfall", snowyWeatherEffect)
             {
-                DefaultLevelFilters = new[] {"Gordion"},
+                DefaultLevelFilters = ["Gordion", "Experimentation", "Assurance", "Embrion",
+                                            "EGypt", "Penumbra", "EchoReach", "Infernis", "Atlantica",
+                                            "Gloom", "Orion", "Vertigo", "RelayStation", "Vaporization",
+                                            "Praetor", "Lithium", "Arcadia", "Sector", "Ichor", "AtlasAbyss",
+                                            "Asteroid13", "Asteroid14", "Fray", "Desolation", "Cosmocos",
+                                            "Junic", "Detritus", "CaltPrime", "Submersion"],
                 LevelFilteringOption = FilteringOption.Exclude,
                 Color = Color.blue,
-                ScrapAmountMultiplier = 1.25f,
-                ScrapValueMultiplier = 1.2f,
-                DefaultWeight = 1000
+                ScrapAmountMultiplier = 1.5f,
+                ScrapValueMultiplier = 0.75f,
+                DefaultWeight = 100
             };
 
             WeatherManager.RegisterWeather(SnowfallWeatherEffect);

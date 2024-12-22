@@ -96,7 +96,6 @@ namespace VoxxWeatherPlugin.Patches
             return codeMatcher.InstructionEnumeration();
         }
 
-        //TODO: Maybe also slow down the player when they are freezing
         [HarmonyPatch(typeof(PlayerControllerB), "LateUpdate")]
         [HarmonyPostfix]
         [HarmonyPriority(Priority.Low)]
