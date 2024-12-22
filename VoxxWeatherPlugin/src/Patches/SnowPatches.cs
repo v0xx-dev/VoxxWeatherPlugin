@@ -34,6 +34,7 @@ namespace VoxxWeatherPlugin.Patches
 
         [HarmonyPatch(typeof(PlayerControllerB), "Update")]
         [HarmonyTranspiler]
+        [HarmonyPriority(Priority.VeryHigh)]
         private static IEnumerable<CodeInstruction> SnowHindranceTranspiler(IEnumerable<CodeInstruction> instructions)
         {
             var codeMatcher = new CodeMatcher(instructions);
