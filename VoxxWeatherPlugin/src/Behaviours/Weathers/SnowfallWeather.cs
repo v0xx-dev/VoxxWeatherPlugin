@@ -372,6 +372,10 @@ namespace VoxxWeatherPlugin.Weathers
             {
                 // Disable sinking
                 waterObject.enabled = false;
+                if (waterObject.TryGetComponent<Collider>(out Collider collider))
+                {
+                    collider.enabled = false;
+                }
             }
             foreach (GameObject waterSurface in waterSurfaceObjects)
             {
