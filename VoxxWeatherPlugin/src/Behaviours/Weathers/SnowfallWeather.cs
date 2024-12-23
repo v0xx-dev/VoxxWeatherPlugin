@@ -382,11 +382,14 @@ namespace VoxxWeatherPlugin.Weathers
                 MeshFilter meshFilter = waterSurface.GetComponent<MeshFilter>();
                 Mesh meshCopy = meshFilter.sharedMesh.MakeReadableCopy();
                 meshFilter.sharedMesh = meshCopy;
-                //Check for collider and if it exists, consider it a false positive, otherwise add a mesh collider
+                //Check for collider and if it exists, destroy it, otherwise add a mesh collider
                 // Only freeze water surfaces above the height threshold
-                if (waterSurface.transform.position.y > heightThreshold &&
-                    !waterSurface.TryGetComponent<Collider>(out Collider collider))
+                if (waterSurface.transform.position.y > heightThreshold)
                 {
+                    if (waterSurface.TryGetComponent<Collider>(out Collider collider))
+                    {
+                        Destroy(collider);
+                    }
                     MeshCollider meshCollider = waterSurface.AddComponent<MeshCollider>();
                     meshCollider.sharedMesh = meshCopy;
                 }
@@ -639,8 +642,8 @@ namespace VoxxWeatherPlugin.Weathers
                     isOutOfBoundsInMaterial = nameString.Contains("outofbounds");
                     isDecalLayerMatched = (meshRenderer.renderingLayerMask & decalLayerMask) != 0;
 
-                    // Collect water surface objects. Must have "water" in the name and no collider
-                    if (nameString.Contains("water") && !obj.TryGetComponent<Collider>(out Collider _))
+                    // Collect water surface objects. Must have "water" in the name and no active collider
+                    if (nameString.Contains("water") && !(obj.TryGetComponent<Collider>(out Collider waterCollider) && waterCollider.enabled))
                     {   
                         waterSurfaceObjects.Add(obj);
                     }
@@ -824,7 +827,7 @@ namespace VoxxWeatherPlugin.Weathers
                 float snowThickness = SnowThicknessManager.Instance.GetSnowThickness(localPlayer);
                 // White out the screen if the player is under snow
                 float localPlayerEyeY = localPlayer.gameplayCamera.transform.position.y;
-                bool isUnderSnow = SnowThicknessManager.Instance.feetPositionY + snowThickness >= localPlayerEyeY - eyeBias; //TODO instead of feet position use collision point of character controller
+                bool isUnderSnow = SnowThicknessManager.Instance.feetPositionY + snowThickness >= localPlayerEyeY - eyeBias;
 
                 if (isUnderSnow != isUnderSnowPreviousFrame)
                 {

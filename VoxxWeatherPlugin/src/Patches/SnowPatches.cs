@@ -371,7 +371,7 @@ namespace VoxxWeatherPlugin.Patches
                 // Override footstep sound if snow is thick enough
                 if (SnowfallVFXManager.snowFootstepIndex != -1 &&
                     SnowThicknessManager.Instance.isEntityOnNaturalGround(playerScript) &&
-                     SnowThicknessManager.Instance.GetSnowThickness(playerScript) > 0.1f
+                     SnowThicknessManager.Instance.GetSnowThickness(playerScript) > 0.1f // offset is not applied here for nonlocal player so they would produce normal footstep sounds
                     )
                 {
                     snowOverride = true;

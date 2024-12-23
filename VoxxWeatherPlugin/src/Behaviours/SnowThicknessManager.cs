@@ -4,8 +4,6 @@ using System.Linq;
 using System.Collections.Generic;
 using GameNetcodeStuff;
 using VoxxWeatherPlugin.Utils;
-using VoxxWeatherPlugin.Patches;
-using UnityEngine.VFX;
 using UnityEngine.Rendering;
 using Unity.Collections;
 
@@ -26,8 +24,6 @@ namespace VoxxWeatherPlugin.Behaviours
         private int kernelHandle;
         [SerializeField]
         internal bool inputNeedsUpdate = false;
-        [SerializeField]
-        internal float feetPositionY; // player's feet position
 
         //Compute buffers
         [SerializeField]
@@ -53,6 +49,10 @@ namespace VoxxWeatherPlugin.Behaviours
         internal bool isOnNaturalGround => isPlayerOnNaturalGround();
         [SerializeField]
         internal bool isOnIce = false;
+        [SerializeField]
+        internal float feetPositionY = 0f; // player's feet position
+        [SerializeField]
+        internal float snowThicknessOffset = 0f;
 
 #if DEBUG
         [Header("Debug")]
@@ -251,7 +251,15 @@ namespace VoxxWeatherPlugin.Behaviours
         internal float GetSnowThickness(MonoBehaviour entity)
         {
             EntitySnowData? data = GetEntityData(entity);
-            return data.HasValue ? data.Value.snowThickness : 0f;
+            if (!data.HasValue)
+            {
+                return 0f;
+            }
+            if (entity == GameNetworkManager.Instance.localPlayerController)
+            {
+                return Mathf.Clamp(data.Value.snowThickness - snowThicknessOffset, 0, 2*SnowfallWeather.Instance?.finalSnowHeight ?? 0f);
+            }
+            return data.Value.snowThickness;
         }
 
         internal bool IsEntityValidForSnow(MonoBehaviour entity)
@@ -278,13 +286,57 @@ namespace VoxxWeatherPlugin.Behaviours
 
         internal void UpdateEntityData(MonoBehaviour entity, RaycastHit hit)
         {
-            if (entitySnowDataInArray == null)
+            if (!GetSnowDataIndex(entity, out int index))
             {
-                Debug.LogError("Entity snow data array is null, cannot update entity data!");
                 return;
             }
 
-            int index;
+            bool hitGround = StoreSnowData(entity, index, hit);
+
+            if (entity == GameNetworkManager.Instance.localPlayerController) 
+            {
+                snowThicknessOffset = 0f;
+                isOnIce = iceObjects.Contains(hit.collider.gameObject);
+            }
+
+            if (!hitGround &&
+                entity is PlayerControllerB player &&
+                !player.isInsideFactory &&
+                SnowfallWeather.Instance != null)
+            {
+                // For players, check the objects below the first hit object because snow might protrude through it due to precision errors in the depth buffer
+                RaycastHit[] hits = Physics.RaycastAll(hit.point - 0.05f * Vector3.up, Vector3.down, SnowfallWeather.Instance.finalSnowHeight);
+                foreach (RaycastHit hitBelow in hits)
+                {
+                    if (groundToIndex.ContainsKey(hitBelow.collider.gameObject))
+                    {
+                        StoreSnowData(entity, index, hitBelow);
+                        if (player == GameNetworkManager.Instance.localPlayerController) 
+                        {
+                            // For the local player, calculate the snow thickness offset based on the difference between the player's feet position and the hit point
+                            snowThicknessOffset = Mathf.Clamp(feetPositionY - hitBelow.point.y, 0f, SnowfallWeather.Instance?.finalSnowHeight ?? 0f);
+                        }
+                        break;
+                    }
+                }
+            }
+
+#if DEBUG
+            // Copy the hit data for debugging
+            RaycastHit hitCopy = hit;
+            entityHitData[entity] = hitCopy;
+#endif 
+        }
+
+        internal bool GetSnowDataIndex(MonoBehaviour entity, out int index)
+        {
+            index = -1; // To cause an error if not set and we try to use it
+            if (entitySnowDataInArray == null)
+            {
+                Debug.LogError("Entity snow data array is null, cannot update entity data!");
+                return false;
+            }
+
             if (!entitySnowDataMap.ContainsKey(entity))
             {
                 if (freeIndices.Count > 0)
@@ -294,9 +346,8 @@ namespace VoxxWeatherPlugin.Behaviours
                 else
                 {
                     Debug.LogWarning("Entity count for snow tracking exceeds the maximum limit, won't add more entities!");
-                    return;
+                    return false;
                 }
-
                 entitySnowDataMap[entity] = index;
                 entitySnowDataInArray[index] = new EntitySnowData();
             }
@@ -305,14 +356,20 @@ namespace VoxxWeatherPlugin.Behaviours
                 index = entitySnowDataMap[entity];
             }
 
-            EntitySnowData data = entitySnowDataInArray[index];
+            return true;
+        }
 
+        private bool StoreSnowData(MonoBehaviour entity, int index, RaycastHit hit)
+        {
+            EntitySnowData data = entitySnowDataInArray![index];
+            bool isHitValid = false;
             if (IsEntityValidForSnow(entity) && groundToIndex.ContainsKey(hit.collider.gameObject))
             {
                 int textureIndex = groundToIndex[hit.collider.gameObject];
                 data!.w = hit.point;
                 data.uv = new Vector2(hit.textureCoord2.x, hit.textureCoord2.y);
                 data.textureIndex = textureIndex;
+                isHitValid = true;
             }
             else
             {
@@ -321,18 +378,7 @@ namespace VoxxWeatherPlugin.Behaviours
 
             entitySnowDataInArray[index] = data;
 
-            //Update fields for a local player
-            if (entity == GameNetworkManager.Instance.localPlayerController) 
-            {
-                isOnIce = iceObjects.Contains(hit.collider.gameObject);
-            }
-
-#if DEBUG
-            // Copy the hit data for debugging
-            RaycastHit hitCopy = hit;
-            entityHitData[entity] = hitCopy;
-#endif 
-
+            return isHitValid;
         }
 
         internal void RemoveEntityData(MonoBehaviour entity)
