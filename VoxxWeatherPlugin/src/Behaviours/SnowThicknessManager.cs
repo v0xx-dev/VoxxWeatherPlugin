@@ -9,9 +9,9 @@ using Unity.Collections;
 
 namespace VoxxWeatherPlugin.Behaviours
 {
-    public class SnowThicknessManager : MonoBehaviour
+    internal class SnowThicknessManager : MonoBehaviour
     {
-        internal static SnowThicknessManager? Instance;
+        public static SnowThicknessManager? Instance;
         internal int errorCount = 0;
 
         [Header("Compute Shader")]
@@ -65,7 +65,7 @@ namespace VoxxWeatherPlugin.Behaviours
         public AudioReverbTrigger? reverbTrigger;
 
 #endif
-        public void Awake()
+        void Awake()
         {
             Instance = this;
         }
@@ -243,13 +243,29 @@ namespace VoxxWeatherPlugin.Behaviours
             return isEntityOnNaturalGround(GameNetworkManager.Instance.localPlayerController);
         }
 
-        internal bool isEntityOnNaturalGround(MonoBehaviour entity)
+        /// <summary>
+        /// Checks if an entity is standing on natural ground.
+        /// </summary>
+        /// <param name="entity">The entity to check.</param>
+        /// <returns>True if the entity is standing on natural ground, false otherwise.</returns>
+        /// <remarks>
+        /// Natural ground includes grass, gravel, snow, and rock tagged terrain objects.
+        /// </remarks>
+        public bool isEntityOnNaturalGround(MonoBehaviour entity)
         {
             EntitySnowData? data = GetEntityData(entity);
             return data.HasValue ? data.Value.textureIndex != -1 : false;
         }
 
-        internal float GetSnowThickness(MonoBehaviour entity)
+        /// <summary>
+        /// Gets the snow thickness at the entity's position.
+        /// </summary>
+        /// <param name="entity">The entity to get the snow thickness for.</param>
+        /// <returns>The snow thickness at the entity's position.</returns>
+        /// <remarks>
+        /// The snow thickness is clamped between 0 and the final snow height.
+        /// </remarks>
+        public float GetSnowThickness(MonoBehaviour entity)
         {
             EntitySnowData? data = GetEntityData(entity);
             if (!data.HasValue)
@@ -262,21 +278,16 @@ namespace VoxxWeatherPlugin.Behaviours
             }
             return data.Value.snowThickness;
         }
-
-        internal bool IsEntityValidForSnow(MonoBehaviour entity)
-        {
-            if (entity is PlayerControllerB player)
-            {
-                return player.isPlayerControlled && !player.isPlayerDead && !player.isInsideFactory;
-            }
-            else if (entity is EnemyAI enemy)
-            {
-                return enemy.isOutside && !enemy.isEnemyDead;
-            }
-            return false;
-        }
         
-        internal EntitySnowData? GetEntityData(MonoBehaviour entity)
+        /// <summary>
+        /// Gets the snow data for an entity.
+        /// </summary>
+        /// <param name="entity">The entity to get the snow data for.</param>
+        /// <returns>The snow data for the entity.</returns>
+        /// <remarks>
+        /// If the entity is not found in the snow data map, returns null.
+        /// </remarks>
+        public EntitySnowData? GetEntityData(MonoBehaviour entity)
         {
             if (entitySnowDataMap.TryGetValue(entity, out int index))
             {
@@ -285,7 +296,16 @@ namespace VoxxWeatherPlugin.Behaviours
             return null;
         }
 
-        internal void UpdateEntityData(MonoBehaviour entity, RaycastHit hit)
+        /// <summary>
+        /// Registers or updates the snow data for an entity.
+        /// </summary>
+        /// <param name="entity">The entity to update the snow data for.</param>
+        /// <param name="hit">The hit data to update the snow data with.</param>
+        /// <remarks>
+        /// IF entity capacity is exceeded, won't add more entities.
+        /// For players, may check the objects below the first hit object since snow might protrude through it due to precision errors in the depth buffer.
+        /// </remarks>
+        public void UpdateEntityData(MonoBehaviour entity, RaycastHit hit)
         {
             if (!GetSnowDataIndex(entity, out int index))
             {
@@ -329,7 +349,38 @@ namespace VoxxWeatherPlugin.Behaviours
 #endif 
         }
 
-        internal bool GetSnowDataIndex(MonoBehaviour entity, out int index)
+        /// <summary>
+        /// Removes the snow data for an entity.
+        /// </summary>
+        /// <param name="entity">The entity to remove the snow data for.</param>
+        /// <remarks>
+        /// If the entity is not found in the snow data map, does nothing.
+        /// </remarks>
+        public void RemoveEntityData(MonoBehaviour entity)
+        {
+            if (entitySnowDataMap.TryGetValue(entity, out int index))
+            {
+                entitySnowDataMap.Remove(entity);
+                entitySnowDataInArray?[index].Reset();
+                entitySnowDataOutArray?[index].Reset();
+                freeIndices.Push(index);
+            }
+        }
+
+        private bool IsEntityValidForSnow(MonoBehaviour entity)
+        {
+            if (entity is PlayerControllerB player)
+            {
+                return player.isPlayerControlled && !player.isPlayerDead && !player.isInsideFactory;
+            }
+            else if (entity is EnemyAI enemy)
+            {
+                return enemy.isOutside && !enemy.isEnemyDead;
+            }
+            return false;
+        }
+
+        private bool GetSnowDataIndex(MonoBehaviour entity, out int index)
         {
             index = -1; // To cause an error if not set and we try to use it
             if (entitySnowDataInArray == null)
@@ -380,17 +431,6 @@ namespace VoxxWeatherPlugin.Behaviours
             entitySnowDataInArray[index] = data;
 
             return isHitValid;
-        }
-
-        internal void RemoveEntityData(MonoBehaviour entity)
-        {
-            if (entitySnowDataMap.TryGetValue(entity, out int index))
-            {
-                entitySnowDataMap.Remove(entity);
-                entitySnowDataInArray?[index].Reset();
-                entitySnowDataOutArray?[index].Reset();
-                freeIndices.Push(index);
-            }
         }
 
         void OnDestroy()

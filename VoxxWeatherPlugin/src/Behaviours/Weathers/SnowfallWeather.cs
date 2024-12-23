@@ -811,9 +811,9 @@ namespace VoxxWeatherPlugin.Weathers
             addedVanillaFootprints = false;
             PlayerTemperatureManager.isInColdZone = false;
             SnowThicknessManager.Instance?.Reset();
-            SnowPatches.CleanupFootprintTrackers(SnowPatches.snowTrackersDict);
-            SnowPatches.CleanupFootprintTrackers(SnowPatches.snowShovelDict);
-            SnowPatches.ToggleFootprintTrackers(false);
+            SnowTrackersManager.CleanupFootprintTrackers(SnowTrackersManager.snowTrackersDict);
+            SnowTrackersManager.CleanupFootprintTrackers(SnowTrackersManager.snowShovelDict);
+            SnowTrackersManager.ToggleFootprintTrackers(false);
         }
 
         internal void Update()
@@ -908,7 +908,7 @@ namespace VoxxWeatherPlugin.Weathers
                 }
             }
 
-            SnowPatches.ToggleFootprintTrackers(true);
+            SnowTrackersManager.ToggleFootprintTrackers(true);
 
             SnowfallWeather.Instance.snowVolume!.enabled = true;
             SnowfallWeather.Instance.snowTrackerCameraContainer?.SetActive(true);
@@ -1017,8 +1017,8 @@ namespace VoxxWeatherPlugin.Weathers
 
         internal void OnDestroy()
         {
-            SnowPatches.snowTrackersDict.Clear();
-            SnowPatches.snowShovelDict.Clear();
+            SnowTrackersManager.snowTrackersDict.Clear();
+            SnowTrackersManager.snowShovelDict.Clear();
         }
     }
 }

@@ -389,8 +389,8 @@ namespace VoxxWeatherPlugin.Utils
             #region Mesh & Terrain processing
             meshProcessingBlacklist = Config.Bind("Mesh & Terrain Processing",
                                                 "meshProcessingBlacklist",
-                                                "Vow;Adamance;Summit;",
-                                                "List of moons that will be excluded from additional mesh processing. Only put moons that have MESH terrains in this list. Separate with a semicolon. Example: 'Summit;Vow;Adamance'");
+                                                "Vow;Adamance;Summit",
+                                                "List of moons that will be excluded from additional mesh processing. Only put moons that have MESH terrains in this list. You can safely put any moon here that was created with the TerraMesh tool! Separate with a semicolon. Example: 'Summit;Vow;Adamance'");
             subdivideMesh = Config.Bind("Mesh & Terrain Processing",
                                         "subdivideMesh",
                                         true,
