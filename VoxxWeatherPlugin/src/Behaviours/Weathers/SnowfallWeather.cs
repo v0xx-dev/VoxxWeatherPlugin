@@ -221,7 +221,7 @@ namespace VoxxWeatherPlugin.Weathers
             snowTracksCamera!.targetTexture = snowTracksMap;
             snowTracksCamera.aspect = 1.0f;
 
-            moonProcessingBlacklist = Configuration.meshProcessingBlacklist.Value.CleanMoonName().Split(';');
+            moonProcessingBlacklist = Configuration.meshProcessingBlacklist.Value.CleanMoonName().TrimEnd(';').Split(';');
         }
 
         internal void OnStart()
@@ -250,6 +250,7 @@ namespace VoxxWeatherPlugin.Weathers
             Destroy(snowMasks);
             groundObjectCandidates.Clear();
             waterSurfaceObjects.Clear();
+            PlayerTemperatureManager.normalizedTemperature = 0f;
         }
 
         internal virtual void OnEnable()

@@ -50,6 +50,7 @@ namespace VoxxWeatherPlugin.Weathers
         private void OnDisable()
         {
             VFXManager?.Reset();
+            PlayerTemperatureManager.normalizedTemperature = 0f;
         }
 
         private void SetupHeatwaveWeather()
