@@ -91,6 +91,7 @@ namespace VoxxWeatherPlugin.Behaviours
             iceObjects.Clear();
             isOnIce = false;
             freeIndices = new Stack<int>(Enumerable.Range(0, MaxEntityCount).Reverse());
+            entitySnowDataOutArray = new EntitySnowData[MaxEntityCount];
         }
 
         internal void CalculateThickness()
