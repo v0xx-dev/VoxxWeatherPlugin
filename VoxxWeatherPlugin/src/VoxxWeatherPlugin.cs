@@ -142,9 +142,19 @@ namespace VoxxWeatherPlugin
         private static List<Type> FindDerivedTypes(Type baseType, string methodName)
         {
             var derivedTypes = new List<Type>();
-
+            Assembly[] assemblies;
             // Get all loaded assemblies in the current AppDomain
-            Assembly[] assemblies = AppDomain.CurrentDomain.GetAssemblies();
+            if (Configuration.patchModdedEnemies.Value)
+            {
+                Debug.LogDebug("Searching for modded enemy types...");
+                assemblies = AppDomain.CurrentDomain.GetAssemblies();
+            }
+            else
+            {
+                Debug.LogDebug("Patching vanilla enemy types...");
+                //Only load the main game assembly
+                assemblies = [typeof(EnemyAI).Assembly];
+            }
 
             foreach (Assembly assembly in assemblies)
             {

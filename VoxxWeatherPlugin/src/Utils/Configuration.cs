@@ -51,6 +51,7 @@ namespace VoxxWeatherPlugin.Utils
         public static ConfigEntry<float>  frostbiteDamageInterval; //
         public static ConfigEntry<float>  timeToWarmUp; //
         public static ConfigEntry<bool>  enableEasterEgg; //
+        public static ConfigEntry<bool>  patchModdedEnemies; //
         #endregion
 
         #region Blizzard
@@ -246,6 +247,10 @@ namespace VoxxWeatherPlugin.Utils
                                         "enableEasterEgg",
                                         true,
                                         "Allow festivities during snowfall weather during special time of the year.");   
+            patchModdedEnemies = Config.Bind("Snowfall",
+                                            "patchModdedEnemies",
+                                            false,
+                                            "Attempt to patch modded enemies to be affected by snowfall weather (only works if they inherit from vanilla EnemyAI class)).");
             
             #endregion
 

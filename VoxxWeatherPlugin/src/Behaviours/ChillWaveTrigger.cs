@@ -25,7 +25,7 @@ namespace VoxxWeatherPlugin.Behaviours
             if (other.CompareTag("Player"))
             {
                 PlayerControllerB playerController = other.gameObject.GetComponent<PlayerControllerB>();
-                if (playerController != GameNetworkManager.Instance.localPlayerController || collidedWithLocalPlayer)
+                if (playerController != GameNetworkManager.Instance.localPlayerController || collidedWithLocalPlayer || playerController.isInsideFactory)
                     return;
                 if (PlayerTemperatureManager.isInColdZone)
                 {
