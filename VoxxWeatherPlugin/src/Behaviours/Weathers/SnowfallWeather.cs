@@ -427,7 +427,7 @@ namespace VoxxWeatherPlugin.Weathers
         {
             GameObject temp = GameObject.CreatePrimitive(type);
             Mesh mesh = temp.GetComponent<MeshFilter>().sharedMesh;
-            GameObject.DestroyImmediate(temp);
+            GameObject.Destroy(temp);
             return mesh;
         }
 
@@ -441,7 +441,7 @@ namespace VoxxWeatherPlugin.Weathers
             bool isMoonBlacklisted = false;
             foreach (string moon in moonProcessingBlacklist)
             {
-                if (currentLevelName.Contains(moon))
+                if (currentLevelName.CleanMoonName().Contains(moon))
                 {
                     isMoonBlacklisted = true;
                     break;
@@ -515,7 +515,7 @@ namespace VoxxWeatherPlugin.Weathers
         internal void PrepareMeshForSnow(GameObject meshTerrain, int texId)
         {
             // Duplicate the mesh and set the snow vertex material
-            GameObject snowGround = meshTerrain.Duplicate(disableShadows: true, removeCollider: true);
+            GameObject snowGround = meshTerrain.Duplicate(disableShadows: !Configuration.snowCastsShadows.Value, removeCollider: true);
             MeshRenderer meshRenderer = snowGround.GetComponent<MeshRenderer>();
             meshRenderer.sharedMaterial = CurrentSnowVertexMaterial;
             // Deselect snow OVERLAY rendering layers from vertex snow objects

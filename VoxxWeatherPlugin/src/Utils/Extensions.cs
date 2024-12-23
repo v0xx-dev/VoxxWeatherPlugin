@@ -675,7 +675,7 @@ namespace VoxxWeatherPlugin.Utils
             if (textureIndex != -1) // Copy the texture to the specified index in the masks texture array
             {
                 Graphics.CopyTexture(maskTexture, 0, 0, snowfallData.snowMasks, textureIndex, 0);
-                Object.DestroyImmediate(maskTexture);
+                Object.Destroy(maskTexture);
             }
             else
             {
@@ -1222,20 +1222,37 @@ namespace VoxxWeatherPlugin.Utils
             duplicate.transform.localPosition = original.transform.localPosition;
             duplicate.transform.localRotation = original.transform.localRotation;
             duplicate.transform.localScale = original.transform.localScale;
-            if (disableShadows)
+
+            // Disable shadows for all renderers in the duplicate
+            MeshRenderer[] renderers = duplicate.GetComponentsInChildren<MeshRenderer>();
+            foreach (MeshRenderer renderer in renderers)
             {
-                MeshRenderer[] renderers = duplicate.GetComponentsInChildren<MeshRenderer>();
-                foreach (MeshRenderer renderer in renderers)
+                renderer.shadowCastingMode = ShadowCastingMode.Off;
+            }
+            
+            if (!disableShadows)
+            {
+                // Disable shadows for the original object
+                MeshRenderer? renderer = original.GetComponent<MeshRenderer>();
+                if (renderer != null)
                 {
                     renderer.shadowCastingMode = ShadowCastingMode.Off;
                 }
+
+                // Duplicate will cast shadows
+                renderer = duplicate.GetComponent<MeshRenderer>();
+                if (renderer != null)
+                {
+                    renderer.shadowCastingMode = ShadowCastingMode.On;
+                }
             }
+
             if (removeCollider)
             {
                 Collider[] colliders = duplicate.GetComponentsInChildren<Collider>();
                 foreach (Collider collider in colliders)
                 {
-                    GameObject.DestroyImmediate(collider);
+                    GameObject.Destroy(collider);
                 }
             }
 
