@@ -199,7 +199,7 @@ namespace VoxxWeatherPlugin.Weathers
             levelDepthmapCamera.aspect = 1.0f;
             levelDepthmapCamera.enabled = false;
 
-            CustomPassVolume customPassVolume = snowVolume.GetComponent<CustomPassVolume>();
+            CustomPassVolume customPassVolume = levelDepthmapCamera.GetComponent<CustomPassVolume>();
             DepthVSMPass? depthVSMPass = customPassVolume.customPasses[0] as DepthVSMPass;
             depthVSMPass!.blurRadius = BlurRadius;
             // This is because Diversity fucks up injection priorities
@@ -744,7 +744,7 @@ namespace VoxxWeatherPlugin.Weathers
         private bool isFading = false;
         internal bool isUnderSnowPreviousFrame = false;
         [SerializeField]
-        internal float eyeBias = 0.45f;
+        internal float eyeBias = 0.43f;
 
         [Header("Snow Tracker VFX")]
         

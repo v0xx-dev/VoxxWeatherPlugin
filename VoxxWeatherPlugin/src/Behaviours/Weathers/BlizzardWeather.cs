@@ -4,6 +4,7 @@ using System.Collections;
 using GameNetcodeStuff;
 using UnityEngine.Rendering;
 using UnityEngine.Events;
+using VoxxWeatherPlugin.Behaviours;
 
 namespace VoxxWeatherPlugin.Weathers
 {
@@ -69,7 +70,8 @@ namespace VoxxWeatherPlugin.Weathers
             fullSnowNormalizedTime = seededRandom.NextDouble(MinSnowNormalizedTime, MaxSnowNormalizedTime);
             waveInterval = seededRandom.NextDouble(MinWaveInterval, MaxWaveInterval);
             numOfWaves = seededRandom.Next(MinWaveCount, MaxWaveCount);
-            windForce = seededRandom.NextDouble(MinWindForce, MaxWindForce);
+            // If no ground objects are found, the wind force will be set to the maximum
+            windForce = groundObjectCandidates.Count > 0 ? seededRandom.NextDouble(MinWindForce, MaxWindForce) : MaxWindForce;
             timeUntilFrostbite = seededRandom.NextDouble(MinTimeUntilFrostbite, MaxTimeUntilFrostbite);
             TimeOfDay.Instance.onTimeSync.AddListener(new UnityAction(OnGlobalTimeSync));     
             VFXManager?.PopulateLevelWithVFX(levelBounds);
@@ -191,10 +193,6 @@ namespace VoxxWeatherPlugin.Weathers
         internal bool IsWindAllowed(PlayerControllerB localPlayer)
         {
 #if DEBUG
-            if (localPlayer.isClimbingLadder)
-            {
-                Debug.LogDebug("Player is climbing ladder");
-            }
             if (localPlayer.physicsParent != null)
             {
                 Debug.LogDebug("Player is in vehicle");
@@ -224,7 +222,7 @@ namespace VoxxWeatherPlugin.Weathers
                 Debug.LogDebug("Player is inside interior lighting");
             }
 #endif
-            return !(localPlayer.isClimbingLadder || localPlayer.physicsParent != null || 
+            return !(localPlayer.physicsParent != null || 
                     localPlayer.isInHangarShipRoom || localPlayer.isInsideFactory ||
                      localPlayer.isInElevator || localPlayer.inAnimationWithEnemy ||
                       localPlayer.isPlayerDead || (localPlayer.currentAudioTrigger?.insideLighting ?? false));
@@ -236,7 +234,7 @@ namespace VoxxWeatherPlugin.Weathers
             GameObject chillWaveContainer = VFXManager.blizzardWaveContainer;
 
             // Generate a random angle
-            float randomAngle = seededRandom.NextDouble(-25f, 45f); // So it would tend to change direction clockwise
+            float randomAngle = seededRandom.NextDouble(-25f, 90f); // So it would tend to change direction clockwise
             
             Debug.LogDebug("Changing wind direction by " + randomAngle + " degrees");
             
@@ -282,13 +280,14 @@ namespace VoxxWeatherPlugin.Weathers
                 VFXManager.PlaySonicBoomSFX();
                 // Calculate initial position
                 Vector3 initialDirection = -windDirection;
-                Vector3 initialPosition = levelBounds.center + initialDirection * levelRadius;
+                Vector3 initialPosition = initialDirection * levelRadius;
+                initialPosition.y = 0; // Ignore the vertical component (we use collider for positioning)
 
                 // Place and enable the chill wave
                 chillWaveContainer.transform.position = initialPosition;
 
                 // Calculate target position (diametrically opposite)
-                Vector3 targetPosition = levelBounds.center - initialDirection * levelRadius;
+                Vector3 targetPosition = - initialDirection * levelRadius;
 
                 // Face the chill wave towards the target position
                 chillWaveContainer.transform.LookAt(targetPosition);
@@ -375,13 +374,12 @@ namespace VoxxWeatherPlugin.Weathers
         {
             blizzardWaveContainer?.SetActive(false);
 
-            BoxCollider? waveCollider = blizzardWaveContainer?.GetComponent<BoxCollider>();
-            if (waveCollider != null)
+            ChillWaveTrigger? chillWaveTrigger = blizzardWaveContainer?.GetComponent<ChillWaveTrigger>();
+
+            if (chillWaveTrigger != null)
             {
-                //Change the center and scale y size so the lower edge is at SnowfallWeather.Instance.heightThreshold level, but current top edge is preserved
-                float newHeightSpan = levelBounds.extents.y - SnowfallWeather.Instance!.heightThreshold;
-                waveCollider.center = new Vector3(0f, SnowfallWeather.Instance.heightThreshold + newHeightSpan / 2, waveCollider.center.z);
-                waveCollider.size = new Vector3(levelBounds.size.x, newHeightSpan, waveCollider.size.z);
+                chillWaveTrigger.SetupChillWave(levelBounds);
+                Debug.LogDebug("Chill wave trigger setup!");
             }
             
             base.PopulateLevelWithVFX(levelBounds, seededRandom);

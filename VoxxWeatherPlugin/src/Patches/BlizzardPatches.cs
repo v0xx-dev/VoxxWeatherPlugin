@@ -1,8 +1,9 @@
 ﻿using HarmonyLib;
 using VoxxWeatherPlugin.Weathers;
 using UnityEngine;
-using System.Runtime.CompilerServices;
 using System.Collections.Generic;
+using GameNetcodeStuff;
+using VoxxWeatherPlugin.Utils;
 
 namespace VoxxWeatherPlugin.Patches
 {
@@ -22,6 +23,22 @@ namespace VoxxWeatherPlugin.Patches
                 // Muffle dogs hearing during blizzard, depending on wind force. Muffled by 35% at wind force > 0.5, not muffled at wind force = 0
                 noiseLoudness *= Mathf.Clamp(1 - blizzardWeather.windForce, 0.65f, 1f);
             }
+        }
+
+        [HarmonyPatch(typeof(PlayerControllerB), "CancelSpecialTriggerAnimations")]
+        [HarmonyPrefix]
+        private static bool LadderWindPatch(PlayerControllerB __instance)
+        {
+            // When player is too cold, players can't climb ladders during blizzards
+            if (SnowfallWeather.Instance is BlizzardWeather blizzardWeather &&
+                 blizzardWeather.IsActive &&
+                 __instance.isClimbingLadder &&
+                 blizzardWeather.isLocalPlayerInWind &&
+                 PlayerTemperatureManager.ColdSeverity < 0.8f)
+            {
+                return false;
+            }
+            return true;
         }
 
         // [HarmonyPatch(typeof(StartOfRound), "StartGame")]
