@@ -3,11 +3,15 @@ using GameNetcodeStuff;
 using VoxxWeatherPlugin.Utils;
 using System.Collections;
 using VoxxWeatherPlugin.Weathers;
+using UnityEngine.UIElements;
 
 namespace VoxxWeatherPlugin.Behaviours
 {
     public class ChillWaveTrigger: MonoBehaviour
     {
+        public AudioSource? audioSourceTemplate;
+        private AudioSource[]? audioSources;
+        public Camera? collisionCamera;
         [SerializeField]
         internal int WaveDamage => Configuration.chillingWaveDamage.Value;
         [SerializeField]
@@ -75,5 +79,50 @@ namespace VoxxWeatherPlugin.Behaviours
 
             collidedWithLocalPlayer = false;
         }
+
+        internal void SetupChillWave(Bounds levelBounds)
+        {
+            if (audioSourceTemplate == null)
+            {
+                audioSourceTemplate = gameObject.GetComponentInChildren<AudioSource>(true);
+                audioSourceTemplate.gameObject.SetActive(false);
+            }
+            if (collisionCamera == null)
+            {
+                collisionCamera = gameObject.GetComponentInChildren<Camera>(true);
+            }
+
+            BoxCollider waveCollider = gameObject.GetComponent<BoxCollider>();
+
+            //Change the center and scale y size so the lower edge is at SnowfallWeather.Instance.heightThreshold level, but current top edge is preserved
+            float newHeightSpan = levelBounds.extents.y - SnowfallWeather.Instance!.heightThreshold;
+            waveCollider.center = new Vector3(0f, SnowfallWeather.Instance.heightThreshold + newHeightSpan / 2, waveCollider.center.z);
+            waveCollider.size = new Vector3(levelBounds.size.x, newHeightSpan, waveCollider.size.z);
+
+            float maxLength = Mathf.Max(waveCollider.size.x, waveCollider.size.y, waveCollider.size.z) / 2f;
+            collisionCamera!.orthographicSize = maxLength;
+            float audioRange = audioSourceTemplate.maxDistance;
+            // Destroy previous audio sources
+            if (audioSources != null)
+            {
+                foreach (var audioSource in audioSources)
+                { 
+                    if (audioSource != null)
+                    {
+                        Destroy(audioSource.gameObject);
+                    }
+                }
+            }
+            // Place audio sources along collider x axis so that their range covers the whole box with 10% overlap between them
+            audioSources = new AudioSource[Mathf.CeilToInt(waveCollider.size.x / (0.9f*audioRange))];
+            for (int i = 0; i < audioSources.Length; i++)
+            {
+                audioSources[i] = Instantiate(audioSourceTemplate, transform);
+                audioSources[i].transform.localPosition = new Vector3(0.9f*audioRange * i - waveCollider.size.x / 2f, 0, 0);
+                audioSources[i].maxDistance = audioRange;
+                audioSources[i].gameObject.SetActive(true);
+            }
+        }
+        
     }
 }
