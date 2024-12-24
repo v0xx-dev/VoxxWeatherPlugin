@@ -665,6 +665,12 @@ namespace VoxxWeatherPlugin.Weathers
                     break;
                 }
             }
+
+            int validLayerMask = LayerMask.GetMask("Default", "Room");
+            if ((obj.layer & validLayerMask) == 0)
+            {
+                return false;
+            }
             
             // Exit early if the object does not match the defined tags
             if (!isTagMatched)
