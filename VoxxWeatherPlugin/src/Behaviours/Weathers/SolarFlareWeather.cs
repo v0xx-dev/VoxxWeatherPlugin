@@ -85,7 +85,13 @@ namespace VoxxWeatherPlugin.Weathers
 
             FlareIntensity[] flareIntensities = (FlareIntensity[])Enum.GetValues(typeof(FlareIntensity));
             FlareIntensity randomIntensity = flareIntensities[seededRandom.Next(flareIntensities.Length)];
+            if (flareTypes == null)
+            {
+                Debug.LogWarning("Flare types not set up correctly! Likely FixPluginTypesSerialization is not installed!");
+                return;
+            }
             flareData = flareTypes?[(int)randomIntensity];
+
             
             VFXManager?.PopulateLevelWithVFX();
 
@@ -458,7 +464,7 @@ namespace VoxxWeatherPlugin.Weathers
             if (SolarFlareWeather.Instance?.flareData != null)
             {
                 auroraObject.transform.parent = SolarFlareWeather.Instance.transform; // to stop it from moving with the player
-                auroraObject.transform.position = levelBounds.center;
+                auroraObject.transform.position = new Vector3(levelBounds.center.x, StartOfRound.Instance.shipBounds.bounds.center.y, levelBounds.center.z);
                 auroraObject.transform.rotation = Quaternion.identity;
                 auroraVFX.SetVector4("auroraColor", SolarFlareWeather.Instance.flareData.AuroraColor1);
                 auroraVFX.SetVector4("auroraColor2", SolarFlareWeather.Instance.flareData.AuroraColor2);
@@ -511,13 +517,9 @@ namespace VoxxWeatherPlugin.Weathers
                 flareObject.transform.localScale = sunTexture.transform.lossyScale * (SolarFlareWeather.Instance?.flareData?.FlareSize ?? 1.5f);
             }
 
-            if (sunLuminosity < auroraSunThreshold) //add check for sun's position relative to horizon???
+            if (sunLuminosity < auroraSunThreshold && (!auroraObject?.activeInHierarchy ?? false)) //add check for sun's position relative to horizon???
             {
                 auroraObject?.SetActive(true);
-            }
-            else
-            {
-                auroraObject?.SetActive(false);
             }
         }
 
@@ -581,6 +583,8 @@ namespace VoxxWeatherPlugin.Weathers
             {
                 sunLightData = TimeOfDay.Instance.sunDirect.GetComponent<HDAdditionalLightData>();
             }
+            
+            flareObject?.SetActive(true);
         }
 
         private void OnDisable()
