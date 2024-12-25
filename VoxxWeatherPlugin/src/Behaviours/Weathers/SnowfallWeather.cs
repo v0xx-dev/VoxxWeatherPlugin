@@ -13,6 +13,7 @@ using System;
 using System.Collections;
 using GameNetcodeStuff;
 using UnityEngine.AI;
+using Unity.AI.Navigation;
 
 namespace VoxxWeatherPlugin.Weathers
 {
@@ -153,7 +154,7 @@ namespace VoxxWeatherPlugin.Weathers
         internal List<GameObject> waterSurfaceObjects = [];
         [SerializeField]
         internal List<GameObject> groundObjectCandidates = [];
-        internal string currentLevelName => StartOfRound.Instance?.currentLevel.sceneName ?? "";
+        internal string currentSceneName => StartOfRound.Instance?.currentLevel.sceneName ?? "";
         internal Bounds levelBounds;
         internal System.Random? seededRandom;
         private HDAdditionalLightData? sunLightData;
@@ -169,6 +170,10 @@ namespace VoxxWeatherPlugin.Weathers
         {   
             Instance = this;
 
+            // Alpha test pass
+            snowOverlayCustomPass = snowVolume!.customPasses[1] as SnowOverlayCustomPass;
+            snowOverlayCustomPass!.snowOverlayMaterial = Instantiate(snowOverlayMaterial);
+            // No alpha test pass
             snowOverlayCustomPass = snowVolume!.customPasses[0] as SnowOverlayCustomPass;
             snowOverlayCustomPass!.snowOverlayMaterial = snowOverlayMaterial;
             snowOverlayCustomPass.snowVertexMaterial = CurrentSnowVertexMaterial;
@@ -236,11 +241,11 @@ namespace VoxxWeatherPlugin.Weathers
             fullSnowNormalizedTime = seededRandom.NextDouble(MinSnowNormalizedTime, MaxSnowNormalizedTime);
             ModifyRenderMasks();
             FindAndSetupGround();
+            ModifyScrollingFog();
             if (Configuration.freezeWater.Value)
             {
                 FreezeWater();
             }
-            ModifyScrollingFog();
             UpdateLevelDepthmap();
             StartCoroutine(RefreshDepthmapCoroutine(levelDepthmapCamera!, levelDepthmap!, bakeSnowMaps: false, waitForLanding: true));
         }
@@ -366,8 +371,15 @@ namespace VoxxWeatherPlugin.Weathers
 
         internal void FreezeWater()
         {
-            waterTriggerObjects = FindObjectsOfType<QuicksandTrigger>().Where(x => x.gameObject.activeSelf && x.isWater && x.gameObject.scene.name == currentLevelName && !x.isInsideWater).ToArray();
+            waterTriggerObjects = FindObjectsOfType<QuicksandTrigger>().Where(x => x.enabled &&
+                                                                                x.gameObject.activeInHierarchy &&
+                                                                                x.isWater &&
+                                                                                x.gameObject.scene.name == currentSceneName &&
+                                                                                !x.isInsideWater).ToArray();
             HashSet<GameObject> iceObjects = new HashSet<GameObject>();
+            NavMeshModifierVolume[] navMeshModifiers = FindObjectsOfType<NavMeshModifierVolume>().Where(x => x.gameObject.activeInHierarchy &&
+                                                                                    x.gameObject.scene.name == currentSceneName &&
+                                                                                    x.transform.position.y > heightThreshold).ToArray();
 
             foreach (QuicksandTrigger waterObject in waterTriggerObjects)
             {
@@ -383,6 +395,10 @@ namespace VoxxWeatherPlugin.Weathers
                 MeshFilter meshFilter = waterSurface.GetComponent<MeshFilter>();
                 Mesh meshCopy = meshFilter.sharedMesh.MakeReadableCopy();
                 meshFilter.sharedMesh = meshCopy;
+                
+                //Get renderer component, we know it exists since we checked it in the CheckIfObjectIsTerrain method
+                Renderer renderer = waterSurface.GetComponent<Renderer>();
+
                 //Check for collider and if it exists, destroy it, otherwise add a mesh collider
                 // Only freeze water surfaces above the height threshold
                 if (waterSurface.transform.position.y > heightThreshold)
@@ -393,11 +409,27 @@ namespace VoxxWeatherPlugin.Weathers
                     }
                     MeshCollider meshCollider = waterSurface.AddComponent<MeshCollider>();
                     meshCollider.sharedMesh = meshCopy;
+
+                    // Check if any bounds of NavMeshModifierVolume intersect with the water surface bounds and disable it in that case
+                    foreach (NavMeshModifierVolume navMeshModifier in navMeshModifiers)
+                    {
+                        if (!navMeshModifier.enabled)
+                        {
+                            continue;
+                        }
+                        Bounds bounds = new Bounds(navMeshModifier.center + navMeshModifier.transform.position, navMeshModifier.size);
+                        Bounds waterBounds = renderer.bounds;
+                        // Enlarge along y axis since water surfaces are thin
+                        waterBounds.size = new Vector3(waterBounds.size.x, 2f, waterBounds.size.z);
+                        if (bounds.Intersects(waterBounds))
+                        {
+                            Debug.LogDebug($"Disabling NavMeshModifierVolume {navMeshModifier.name} intersecting with water surface {waterSurface.name}");
+                            navMeshModifier.enabled = false;
+                        }
+                    }
                 }
                 else continue;
 
-                //Get renderer component, we know it exists since we checked it in the CheckIfObjectIsTerrain method
-                Renderer renderer = waterSurface.GetComponent<Renderer>();
                 renderer.sharedMaterial = iceMaterial;
 
                 // Rise slightly
@@ -409,13 +441,23 @@ namespace VoxxWeatherPlugin.Weathers
             }
             // Store the ice objects
             SnowThicknessManager.Instance!.iceObjects = iceObjects;
+
+            // Rebake NavMesh
+            GameObject navMeshContainer = GameObject.FindGameObjectWithTag("OutsideLevelNavMesh");
+            if (navMeshContainer != null)
+            {
+                navMeshContainer.GetComponent<NavMeshSurface>().BuildNavMesh();
+                Debug.LogDebug("NavMesh rebaked for ice!");
+            }
         }
 
         internal void ModifyScrollingFog()
         {
             LocalVolumetricFog[] fogArray = FindObjectsOfType<LocalVolumetricFog>();
-            fogArray = fogArray.Where(x => x.gameObject.activeSelf && x.gameObject.scene.name == currentLevelName).ToArray();
-            float additionalMeanFreePath = seededRandom!.NextDouble(7f, 14f);
+            fogArray = fogArray.Where(x => x.gameObject.activeSelf &&
+                                        x.gameObject.scene.name == currentSceneName &&
+                                        x.transform.position.y > heightThreshold).ToArray();
+            float additionalMeanFreePath = seededRandom!.NextDouble(5f, 15f);
             foreach (LocalVolumetricFog fog in fogArray)
             {
                 fog.parameters.textureScrollingSpeed = Vector3.zero;
@@ -441,7 +483,7 @@ namespace VoxxWeatherPlugin.Weathers
             bool isMoonBlacklisted = false;
             foreach (string moon in moonProcessingBlacklist)
             {
-                if (currentLevelName.CleanMoonName().Contains(moon))
+                if (currentSceneName.CleanMoonName().Contains(moon))
                 {
                     isMoonBlacklisted = true;
                     break;
@@ -582,7 +624,7 @@ namespace VoxxWeatherPlugin.Weathers
             List<GameObject> objectsAboveThreshold = new List<GameObject>();
 
             // Get the target scene
-            Scene scene = SceneManager.GetSceneByName(currentLevelName);
+            Scene scene = SceneManager.GetSceneByName(currentSceneName);
 
             // Reset the list of ground objects to find possible mesh terrains to render snow on
             groundObjectCandidates = new List<GameObject>();
@@ -644,9 +686,17 @@ namespace VoxxWeatherPlugin.Weathers
                     isDecalLayerMatched = (meshRenderer.renderingLayerMask & decalLayerMask) != 0;
 
                     // Collect water surface objects. Must have "water" in the name and no active collider
-                    if (nameString.Contains("water") && !(obj.TryGetComponent<Collider>(out Collider waterCollider) && waterCollider.enabled))
+                    if (nameString.Contains("water") &&
+                        !(obj.TryGetComponent<Collider>(out Collider waterCollider)
+                        && waterCollider.enabled))
                     {   
-                        waterSurfaceObjects.Add(obj);
+                        //Check if scaled mesh bounds are big enough to be considered a water surface, but also thin enough
+                        Bounds bounds = meshRenderer.bounds;
+                        float sizeThreshold = 20f;
+                        if (bounds.size.x > sizeThreshold && bounds.size.z > sizeThreshold && bounds.size.y < 2f)
+                        {
+                            waterSurfaceObjects.Add(obj);
+                        }
                     }
                 }
             }
@@ -665,13 +715,16 @@ namespace VoxxWeatherPlugin.Weathers
                     break;
                 }
             }
+            
+            // Ground should be on the default or room layer
+            int roomLayer = LayerMask.NameToLayer("Room");
+            int defaultLayer = LayerMask.NameToLayer("Default");
 
-            int validLayerMask = LayerMask.GetMask("Default", "Room");
-            if ((obj.layer & validLayerMask) == 0)
+            if (gameObject.layer != roomLayer && gameObject.layer != defaultLayer)
             {
                 return false;
             }
-            
+
             // Exit early if the object does not match the defined tags
             if (!isTagMatched)
             {
@@ -933,7 +986,6 @@ namespace VoxxWeatherPlugin.Weathers
             }
 
 #if DEBUG
-            Debug.LogDebug("Merry Christmas!");
             JingleBells();
 #endif
 
@@ -965,7 +1017,8 @@ namespace VoxxWeatherPlugin.Weathers
                 Debug.LogError("Gift box item not found in the item database!");
                 return;
             }
-
+            
+            Debug.LogDebug("Merry Christmas!");
             
             System.Random randomizer = SnowfallWeather.Instance!.seededRandom!;
 

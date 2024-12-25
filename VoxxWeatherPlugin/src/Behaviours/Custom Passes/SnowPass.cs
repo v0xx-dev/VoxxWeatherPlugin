@@ -134,7 +134,7 @@ namespace VoxxWeatherPlugin.Behaviours
         protected override void Execute(CustomPassContext ctx)
         {
             var shaderPasses = GetShaderTagIds();
-            if (snowOverlayMaterial == null || snowVertexMaterial == null)
+            if (snowOverlayMaterial == null)
             {   
                 Debug.LogWarning("Attempt to call with an empty override material. Skipping the call to avoid errors");
                 return;
@@ -234,6 +234,11 @@ namespace VoxxWeatherPlugin.Behaviours
             material.SetFloat(SnowfallShaderIDs.MaxSnowHeight, SnowfallWeather.Instance.finalSnowHeight);
             material.SetVector(SnowfallShaderIDs.ShipPosition, SnowfallWeather.Instance.shipPosition);
             material.SetFloat(SnowfallShaderIDs.Emission, SnowfallWeather.Instance.emissionMultiplier);
+
+            // Opaque objects should have higher snow noise scale to produce 'patches' of snow
+            // Opaque alpha tested objects should have lower snow noise scale to appear more uniformly covered
+            float snowNoiseScaleBias = renderQueueType == RenderQueueType.OpaqueNoAlphaTest ? 10f : -0.5f;
+            material.SetFloat(SnowfallShaderIDs.SnowNoiseScaleOverlay, SnowfallWeather.Instance.snowScale + snowNoiseScaleBias);
         }
 
         internal void RenderForwardRendererList(FrameSettings frameSettings,

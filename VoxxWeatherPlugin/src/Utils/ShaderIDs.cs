@@ -14,6 +14,7 @@ namespace VoxxWeatherPlugin.Utils
         internal static readonly int PCFKernelSize = Shader.PropertyToID("_PCFKernelSize");
         internal static readonly int SnowNoisePower = Shader.PropertyToID("_SnowNoisePower");
         internal static readonly int SnowNoiseScale = Shader.PropertyToID("_SnowNoiseScale");
+        internal static readonly int SnowNoiseScaleOverlay = Shader.PropertyToID("_SnowNoiseScaleOverlay");
         internal static readonly int MaxSnowHeight = Shader.PropertyToID("_MaxSnowHeight");
         internal static readonly int SnowOcclusionBias = Shader.PropertyToID("_SnowOcclusionBias");
         internal static readonly int BaseTessellationFactor = Shader.PropertyToID("_BaseTessellationFactor");

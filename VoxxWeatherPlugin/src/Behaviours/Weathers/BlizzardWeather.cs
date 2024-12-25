@@ -234,7 +234,7 @@ namespace VoxxWeatherPlugin.Weathers
             GameObject chillWaveContainer = VFXManager.blizzardWaveContainer;
 
             // Generate a random angle
-            float randomAngle = seededRandom.NextDouble(-25f, 90f); // So it would tend to change direction clockwise
+            float randomAngle = seededRandom.NextDouble(-5f, 20f); // So it would tend to change direction clockwise
             
             Debug.LogDebug("Changing wind direction by " + randomAngle + " degrees");
             
@@ -343,7 +343,6 @@ namespace VoxxWeatherPlugin.Weathers
         internal override void OnEnable()
         {
             base.OnEnable();
-            blizzardWaveContainer?.SetActive(true);
         }
 
         internal override void OnDisable()

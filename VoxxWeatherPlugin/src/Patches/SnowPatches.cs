@@ -206,21 +206,23 @@ namespace VoxxWeatherPlugin.Patches
         [HarmonyPrefix]
         private static void EnemySnowTracksPatch(EnemyAI __instance)
         {
-            if (__instance is ForestGiantAI)
+            switch (__instance)
             {
-                SnowTrackersManager.AddFootprintTracker(__instance, 10f, 0.167f, 0.2f);
-            }
-            else if (__instance is RadMechAI)
-            {
-                SnowTrackersManager.AddFootprintTracker(__instance, 8f, 0.167f, 0.2f);
-            }
-            else if (__instance is SandWormAI)
-            {
-                SnowTrackersManager.AddFootprintTracker(__instance, 10f, 0.167f, 1f);
-            }
-            else if (!unaffectedEnemyTypes.Contains(__instance.GetType()))
-            {
-                SnowTrackersManager.AddFootprintTracker(__instance, 2f, 0.167f, 0.2f);
+                case ForestGiantAI:
+                    SnowTrackersManager.AddFootprintTracker(__instance, 10f, 0.167f, 0.2f);
+                    break;
+                case RadMechAI:
+                    SnowTrackersManager.AddFootprintTracker(__instance, 8f, 0.167f, 0.2f);
+                    break;
+                case SandWormAI:
+                    SnowTrackersManager.AddFootprintTracker(__instance, 25f, 0.167f, 1f);
+                    break;
+                default:
+                    if (!unaffectedEnemyTypes.Contains(__instance.GetType()))
+                    {
+                        SnowTrackersManager.AddFootprintTracker(__instance, 2f, 0.167f, 0.2f);
+                    }
+                    break;
             }
         }
 
