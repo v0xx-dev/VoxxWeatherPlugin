@@ -1,16 +1,17 @@
 using UnityEngine;
 using GameNetcodeStuff;
+using VoxxWeatherPlugin.Utils;
 
 namespace VoxxWeatherPlugin.Behaviours
 {
     internal class ToxicFumes : MonoBehaviour
     {
         [SerializeField]
-        private float damageTime = 3f;
+        private float DamageTime => Configuration.ToxicDamageInterval.Value;
         [SerializeField]
-        private float drunknessPower = 1.5f;
+        private float DrunknessPower => Configuration.ToxicPoisoningStrength.Value;
         [SerializeField]
-        private int damageAmount = 5;
+        private int DamageAmount => Configuration.ToxicDamageAmount.Value;
 
         private float damageTimer = 0f;
         private bool isPoisoningLocalPlayer = false;
@@ -36,11 +37,11 @@ namespace VoxxWeatherPlugin.Behaviours
 
                     isPoisoningLocalPlayer = true;
                     damageTimer += Time.deltaTime;
-                    playerController.drunknessInertia = Mathf.Clamp(playerController.drunknessInertia + Time.deltaTime / drunknessPower * playerController.drunknessSpeed, 0.1f, 10f);
+                    playerController.drunknessInertia = Mathf.Clamp(playerController.drunknessInertia + Time.deltaTime / DrunknessPower * playerController.drunknessSpeed, 0.1f, 10f);
                     playerController.increasingDrunknessThisFrame = true;
-                    if (damageTimer >= damageTime)
+                    if (damageTimer >= DamageTime)
                     {
-                        playerController.DamagePlayer(damageAmount, true, true, CauseOfDeath.Suffocation, 0, false, default);
+                        playerController.DamagePlayer(DamageAmount, true, true, CauseOfDeath.Suffocation, 0, false, default);
                         damageTimer = 0;
                     }
                 }
@@ -67,7 +68,7 @@ namespace VoxxWeatherPlugin.Behaviours
             {
                 return;
             }
-            damageTimer = Mathf.Clamp(damageTimer - Time.deltaTime, 0, damageTime);
+            damageTimer = Mathf.Clamp(damageTimer - Time.deltaTime, 0, DamageTime);
         }
     }
 }

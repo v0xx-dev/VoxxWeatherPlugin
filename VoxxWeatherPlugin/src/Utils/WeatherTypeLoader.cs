@@ -291,7 +291,7 @@ namespace VoxxWeatherPlugin.Utils
                                         "Praetor", "Lithium", "Arcadia", "Sector", "Ichor", "AtlasAbyss",
                                         "Asteroid13", "Asteroid14", "Fray", "Desolation", "Cosmocos",
                                         "Junic", "Detritus", "CaltPrime", "Submersion", "Maritopia",
-                                        "Cambrian", "Halation", "Black Mesa"],
+                                        "Cambrian", "Halation", "Black Mesa", "Baykal"],
                 LevelFilteringOption = FilteringOption.Exclude,
                 Color = Color.blue,
                 ScrapAmountMultiplier = 1.5f,
@@ -321,47 +321,64 @@ namespace VoxxWeatherPlugin.Utils
             return true;   
         }
 
-        // public static void RegisterMeteorWeather()
-        // {
-        //     GameObject meteorPrefab = WeatherAssetLoader.LoadAsset<GameObject>(bundleName, "MeteorContainer");
-        //     meteorPrefab.SetActive(false);
+        public static void RegisterToxicSmogWeather()
+        {
+            GameObject? toxicSmogPrefab = WeatherAssetLoader.LoadAsset<GameObject>(bundleName, "ToxicSmogWeatherContainer");
+            if (toxicSmogPrefab == null)
+            {
+                Debug.LogError("Failed to load Toxic Fog Weather assets. Weather registration failed.");
+                return;
+            }
+            toxicSmogPrefab.SetActive(false);
+            GameObject toxicSmogContainer = GameObject.Instantiate(toxicSmogPrefab);
+            toxicSmogContainer.hideFlags = HideFlags.HideAndDontSave;
+            GameObject.DontDestroyOnLoad(toxicSmogContainer);
 
-        //     if (meteorPrefab == null)
-        //     {
-        //         Debug.LogError("Failed to load Meteor Weather assets. Weather registration failed.");
-        //     }
+            ToxicSmogWeather toxicSmogWeatherController = toxicSmogContainer.GetComponentInChildren<ToxicSmogWeather>(true);
+            GameObject effectPermanentObject = toxicSmogWeatherController.gameObject;
+            effectPermanentObject.SetActive(false);
 
-        //     GameObject meteorEffect = new GameObject("MeteorEffect");
-        //     meteorEffect.SetActive(false);
-        //     MeteorWeather meteorWeatherController = meteorEffect.AddComponent<MeteorWeather>();
-        //     meteorWeatherController.meteorPrefab = meteorPrefab;
-        //     GameObject effectPermanentObject = GameObject.Instantiate(meteorEffect);
-        //     GameObject.DontDestroyOnLoad(effectPermanentObject);
-        //     effectPermanentObject.hideFlags = HideFlags.HideAndDontSave;
+            ToxicSmogVFXManager toxicSmogVFXManager = toxicSmogContainer.GetComponentInChildren<ToxicSmogVFXManager>(true);
+            //Possibly setup vfx configuration here
+            GameObject effectObject = toxicSmogVFXManager.gameObject;
+            effectObject.SetActive(false);
 
-        //     GameObject effectObject = GameObject.Instantiate(new GameObject("MeteorVFX"));
-        //     effectObject.SetActive(false);
-        //     GameObject.DontDestroyOnLoad(effectObject);
-        //     effectObject.hideFlags = HideFlags.HideAndDontSave;
+            toxicSmogWeatherController.VFXManager = toxicSmogVFXManager;      
 
-        //     ImprovedWeatherEffect meteorWeatherEffect = new(effectObject, effectPermanentObject)
-        //     {
-        //         SunAnimatorBool = "eclipse",
-        //     };
+            // Fix broken references (WHY, UNITY, WHY)
+            VisualEffectAsset? toxicFumesVFXAsset = WeatherAssetLoader.LoadAsset<VisualEffectAsset>(bundleName, "ToxicFumesVFX");
 
-        //     Weather MeteorWeather = new Weather("MeteorTest", meteorWeatherEffect)
-        //     {
-        //         DefaultLevelFilters = new[] {"Gordion"},
-        //         LevelFilteringOption = FilteringOption.Exclude,
-        //         Color = Color.red,
-        //         ScrapAmountMultiplier = 1.25f,
-        //         ScrapValueMultiplier = 1.2f,
-        //         DefaultWeight = 1000
-        //     };
+            if (toxicFumesVFXAsset == null)
+            {
+                Debug.LogError("Failed to load Toxic Fog Weather visual assets. Weather registration failed.");
+                return;
+            }
 
-        //     WeatherManager.RegisterWeather(MeteorWeather);
-        //     Debug.Log($"{PluginInfo.PLUGIN_GUID}: Meteor weather registered!");
+            VisualEffect? toxicFumesVFX = toxicSmogVFXManager.hazardPrefab?.GetComponent<VisualEffect>();
+            toxicFumesVFX.visualEffectAsset = toxicFumesVFXAsset;
 
-        // }
+            // TODO add vfx configs
+
+            toxicSmogContainer.SetActive(true);
+
+            ImprovedWeatherEffect toxicWeatherEffect = new(effectObject, effectPermanentObject)
+            {
+                SunAnimatorBool = "",
+            };
+
+            Weather ToxicSmogWeatherEffect = new Weather("Toxic Smog", toxicWeatherEffect)
+            {
+                DefaultLevelFilters = ["Gordion", "Derelict"],
+                LevelFilteringOption = FilteringOption.Exclude,
+                Color = new Color(0.413f, 0.589f, 0.210f), // dark lime green
+                ScrapAmountMultiplier = 1.3f,
+                ScrapValueMultiplier = 0.7f,
+                DefaultWeight = 100
+            };
+
+            WeatherManager.RegisterWeather(ToxicSmogWeatherEffect);
+            Debug.Log($"{PluginInfo.PLUGIN_GUID}: Toxic Smog weather registered!");
+
+        }
     }
 }

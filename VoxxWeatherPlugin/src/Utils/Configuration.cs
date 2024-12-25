@@ -15,6 +15,7 @@ namespace VoxxWeatherPlugin.Utils
         public static ConfigEntry<bool> EnableSolarFlareWeather; //
         public static ConfigEntry<bool> EnableSnowfallWeather; //
         public static ConfigEntry<bool> EnableBlizzardWeather; //
+        public static ConfigEntry<bool> EnableToxicSmogWeather; //
         #endregion
         
         #region Heatwave
@@ -100,6 +101,17 @@ namespace VoxxWeatherPlugin.Utils
         public static ConfigEntry<int> maxMeshStep; //
         public static ConfigEntry<float> falloffRatio; //
         #endregion
+
+        #region Toxic Smog
+        public static ConfigEntry<float> ToxicDamageInterval; //
+        public static ConfigEntry<int> ToxicDamageAmount; //
+        public static ConfigEntry<float> ToxicPoisoningStrength; //
+        public static ConfigEntry<float> MinFreePath; //
+        public static ConfigEntry<float> MaxFreePath; //
+        public static ConfigEntry<int> MinFumesAmount; //
+        public static ConfigEntry<int> MaxFumesAmount; //
+        public static ConfigEntry<float> FactoryAmountMultiplier; //
+        #endregion
         
         internal static void Initialize(BepInPlugin metadata)
         {
@@ -111,6 +123,7 @@ namespace VoxxWeatherPlugin.Utils
             EnableSolarFlareWeather = Config.Bind("Weather", "EnableSolarFlareWeather", true, "Enable or disable Solar Flare weather");
             EnableSnowfallWeather = Config.Bind("Weather", "EnableSnowfallWeather", true, "Enable or disable Snowfall weather");
             EnableBlizzardWeather = Config.Bind("Weather", "EnableBlizzardWeather", true, "Enable or disable Blizzard weather");
+            EnableToxicSmogWeather = Config.Bind("Weather", "EnableToxicSmogWeather", true, "Enable or disable Toxic Smog weather");
             #endregion
             
             #region Heatwave
@@ -437,6 +450,50 @@ namespace VoxxWeatherPlugin.Utils
                                     new ConfigDescription("TerraMesh. How fast the step size increases outside of calculated playable level bounds. Higher values increase speed but reduce quality. 1 is linear falloff, 2 is quadratic, 3 is cubic, etc.",
                                                         new AcceptableValueRange<float>(0, 16f)));
             #endregion
+
+            #region Toxic Smog
+            ToxicDamageInterval = Config.Bind("Toxic Smog",
+                                            "ToxicDamageInterval",
+                                            5f,
+                                            new ConfigDescription("Time in seconds between toxic smog damage ticks.",
+                                                                new AcceptableValueRange<float>(0, 9999f)));
+            ToxicDamageAmount = Config.Bind("Toxic Smog",
+                                            "ToxicDamageAmount",
+                                            5,
+                                            new ConfigDescription("Amount of damage dealt by toxic smog effect.",
+                                                                new AcceptableValueRange<int>(0, 100)));
+            ToxicPoisoningStrength = Config.Bind("Toxic Smog",
+                                                "ToxicPoisoningStrength",
+                                                1.5f,
+                                                new ConfigDescription("Strength of the toxic poisoning effect. Higher values make the effect more intense.",
+                                                                    new AcceptableValueRange<float>(0, 99f)));
+            MinFreePath = Config.Bind("Toxic Smog",
+                                    "MinFreePath",
+                                    8f,
+                                    new ConfigDescription("Minimum free path length for toxic smog in meters. Actual free path length is random between min and max.",
+                                                        new AcceptableValueRange<float>(0, 256f)));
+            MaxFreePath = Config.Bind("Toxic Smog",
+                                    "MaxFreePath",
+                                    25f,
+                                    new ConfigDescription("Maximum free path length for toxic smog in meters. Actual free path length is random between min and max.",
+                                                        new AcceptableValueRange<float>(0, 256f)));
+            MinFumesAmount = Config.Bind("Toxic Smog",
+                                        "MinFumesAmount",
+                                        40,
+                                        new ConfigDescription("Minimum amount of fumes spawned outside. Actual amount is random between min and max.",
+                                                            new AcceptableValueRange<int>(0, 256)));
+            MaxFumesAmount = Config.Bind("Toxic Smog",
+                                        "MaxFumesAmount",
+                                        75,
+                                        new ConfigDescription("Maximum amount of fumes spawned outside. Actual amount is random between min and max.",
+                                                            new AcceptableValueRange<int>(0, 256)));
+            FactoryAmountMultiplier = Config.Bind("Toxic Smog",
+                                                "FactoryAmountMultiplier",
+                                                0.6f,
+                                                new ConfigDescription("Multiplier for the amount of fumes placed in the interior with respect to outside. Keep in mind that their amount is also multiplied by a dungeon size!",
+                                                                    new AcceptableValueRange<float>(0, 10f)));
+            #endregion
+                                                            
         }
     }
 }

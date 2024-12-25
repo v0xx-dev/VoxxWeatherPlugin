@@ -1,5 +1,5 @@
 using UnityEngine;
-using System;
+using DunGen;
 using UnityEngine.Rendering.HighDefinition;
 using VoxxWeatherPlugin.Utils;
 using System.Collections.Generic;
@@ -13,7 +13,7 @@ namespace VoxxWeatherPlugin.Weathers
     {
         public static ToxicSmogWeather? Instance { get; private set; }
         [SerializeField]
-        ToxicSmogVFXManager? VFXManager;
+        internal ToxicSmogVFXManager? VFXManager;
         private Bounds levelBounds;
         private System.Random? seededRandom;
         void Awake()
@@ -28,25 +28,30 @@ namespace VoxxWeatherPlugin.Weathers
             VFXManager?.PopulateLevelWithVFX(levelBounds, seededRandom);
         }
 
+        void OnDisable()
+        {
+            VFXManager?.Reset();
+        }
+
         
     }
 
     internal class ToxicSmogVFXManager : BaseVFXManager
     {
         [Header("Smog")]
-        private float MinFreePath = 12f;
-        private float MaxFreePath = 36f;
         [SerializeField]
         private float smogFreePath = 24f;
+        private float MinFreePath => Configuration.MinFreePath.Value;
+        private float MaxFreePath => Configuration.MaxFreePath.Value;
         [SerializeField]
         private LocalVolumetricFog? toxicVolumetricFog;
 
         [Header("Fumes")]
-        private int MinFumesAmount = 12;
-        private int MaxFumesAmount = 36;
         [SerializeField]
         private int fumesAmount = 24;
-        private float factoryAmountMultiplier = 0.5f;
+        private int MinFumesAmount => Configuration.MinFumesAmount.Value;
+        private int MaxFumesAmount => Configuration.MaxFumesAmount.Value;
+        private float factoryAmountMultiplier => Configuration.FactoryAmountMultiplier.Value;
         [SerializeField]
         private int factoryFumesAmount = 12;
         [SerializeField]
@@ -54,13 +59,31 @@ namespace VoxxWeatherPlugin.Weathers
         [SerializeField]
         private GameObject? fumesContainerOutside;
         [SerializeField]
-        private GameObject hazardPrefab; // Assign in the inspector
+        internal GameObject? hazardPrefab; // Assign in the inspector
         private float spawnRadius = 20f;
         private float minDistanceBetweenHazards = 5f;
-        private float minDistanceFromEntrances = 15f;
-        private int numberOfHazards;
+        private float minDistanceFromBlockers = 15f;
         private List<Vector3>? spawnedPositions;
         private int maxAttempts;
+
+        void Awake()
+        {
+            hazardPrefab?.SetActive(false);
+        }
+
+        void OnEnable()
+        {
+            toxicVolumetricFog?.gameObject.SetActive(true);
+            fumesContainerOutside?.SetActive(true);
+            fumesContainerInside?.SetActive(false);
+        }
+
+        void OnDisable()
+        {
+            toxicVolumetricFog?.gameObject.SetActive(false);
+            fumesContainerOutside?.SetActive(false);
+            fumesContainerInside?.SetActive(true);
+        }
 
         internal override void PopulateLevelWithVFX(Bounds levelBounds = default, System.Random? seededRandom = null)
         {
@@ -69,10 +92,22 @@ namespace VoxxWeatherPlugin.Weathers
                 GameObject toxicFogContainer = new GameObject("ToxicFog");
                 toxicVolumetricFog = toxicFogContainer.AddComponent<LocalVolumetricFog>();
                 toxicFogContainer.transform.SetParent(ToxicSmogWeather.Instance!.transform);
-                toxicVolumetricFog.parameters.albedo = Color.green;
+                toxicVolumetricFog.parameters.albedo = new Color(0.413f, 0.589f, 0.210f); //dark lime green
                 toxicVolumetricFog.parameters.blendingMode = LocalVolumetricFogBlendingMode.Additive;
                 toxicVolumetricFog.parameters.falloffMode = LocalVolumetricFogFalloffMode.Linear;
             }
+            else
+            {
+                toxicVolumetricFog.gameObject.SetActive(true);
+            }
+
+            if (seededRandom == null)
+            {
+                seededRandom = new System.Random(StartOfRound.Instance.randomMapSeed);
+            }
+
+            // Find the dungeon scale
+            float dungeonSize = StartOfRound.Instance.currentLevel.factorySizeMultiplier;
 
             // Randomly select density
             smogFreePath = seededRandom.NextDouble(MinFreePath, MaxFreePath);
@@ -84,19 +119,117 @@ namespace VoxxWeatherPlugin.Weathers
             toxicVolumetricFog.parameters.distanceFadeEnd = levelBounds.size.x;
 
             fumesAmount = seededRandom.Next(MinFumesAmount, MaxFumesAmount);
-            factoryFumesAmount = Mathf.CeilToInt(fumesAmount * factoryAmountMultiplier);
-            if (fumesContainerInside = null)
-            {
-                fumesContainerInside = new GameObject("FumesContainerInside");
-            }
+            factoryFumesAmount = Mathf.CeilToInt(fumesAmount * factoryAmountMultiplier * dungeonSize);
 
-
+            // Cache entrance positions and map objects
+            EntranceTeleport[] entrances = FindObjectsOfType<EntranceTeleport>();
+            Transform mapPropsContainer = GameObject.FindGameObjectWithTag("MapPropsContainer").transform;
+            
             if (fumesContainerOutside == null)
             {
-                fumesContainerOutside = new GameObject("fumesContainerOutside");
+                fumesContainerOutside = new GameObject("FumesContainerOutside");
+                fumesContainerOutside.transform.SetParent(mapPropsContainer);
             }
 
+            // Use outside AI nodes as anchors
+            List<Vector3> anchorPositions = RoundManager.Instance.outsideAINodes.Select(node => node.transform.position).ToList();
+            // Use outside entrances as blockers
+            List<Vector3> blockersPositions = entrances.Where(entrance => !entrance.isEntranceToBuilding).Select(entrance => entrance.transform.position).ToList();
+            ///Add ship bounds to the list of blockers
+            blockersPositions.AddRange([StartOfRound.Instance.shipBounds.transform.position, Vector3.zero]);
+            Debug.LogDebug($"Outdoor fumes: Anchor positions: {anchorPositions.Count}, Blockers positions: {blockersPositions.Count}");
+            SpawnFumes(anchorPositions, blockersPositions, fumesAmount, fumesContainerOutside!, seededRandom);
 
+            if (fumesContainerInside == null)
+            {
+                fumesContainerInside = new GameObject("FumesContainerInside");
+                fumesContainerInside.transform.SetParent(mapPropsContainer);
+            }
+
+            // Use item spawners AND AI nodes as anchors
+            anchorPositions = RoundManager.Instance.spawnedSyncedObjects.Select(obj => obj.transform.position).ToList();
+            anchorPositions.AddRange(RoundManager.Instance.insideAINodes.Select(obj => obj.transform.position));
+            // Use entrances as blockers
+            blockersPositions = entrances.Where(entrance => entrance.isEntranceToBuilding).Select(entrance => entrance.transform.position).ToList();
+            Debug.LogDebug($"Indoor fumes: Anchor positions: {anchorPositions.Count}, Blockers positions: {blockersPositions.Count}");
+            SpawnFumes(anchorPositions, blockersPositions, factoryFumesAmount, fumesContainerInside!, seededRandom);
+        }
+
+        private void SpawnFumes(List<Vector3> anchors, List<Vector3> blockedPositions, int amount, GameObject container, System.Random random)
+        {
+            if (hazardPrefab == null)
+            {
+                Debug.LogError("Hazard Spawner: hazardPrefab is not set");
+                return;
+            }
+
+            if (container == null)
+            {
+                Debug.LogError("Hazard Spawner: container is not set");
+                return;
+            }
+
+            spawnedPositions = new List<Vector3>(amount);
+
+            maxAttempts = amount * 3;
+
+            NavMeshHit navHit = new NavMeshHit();
+
+            for (int i = 0; i < maxAttempts && spawnedPositions.Count < amount; i++)
+            {
+                // Randomly select an object to spawn around
+                int randomObjectIndex = random.Next(anchors.Count);
+                Vector3 objectPosition = anchors[randomObjectIndex];
+
+                Vector3 potentialPosition = GetValidSpawnPosition(objectPosition, blockedPositions, ref navHit, random);
+                if (potentialPosition != Vector3.zero)
+                {
+                    GameObject spawnedHazard = Instantiate(hazardPrefab, potentialPosition, Quaternion.identity, container.transform);
+                    spawnedHazard.SetActive(true);
+                    spawnedPositions.Add(potentialPosition);
+                }
+            }
+
+            Debug.LogDebug($"Spawned {spawnedPositions.Count} hazards out of {amount}");
+        }
+
+        private Vector3 GetValidSpawnPosition(Vector3 objectPosition, List<Vector3> blockedPositions, ref NavMeshHit navHit, System.Random random)
+        {
+            Vector3 potentialPosition = RoundManager.Instance.GetRandomNavMeshPositionInBoxPredictable(
+                                                objectPosition, spawnRadius, navHit, random, NavMesh.AllAreas);
+
+            if (IsPositionValid(potentialPosition, blockedPositions))
+            {
+                return potentialPosition;
+            }
+
+            return Vector3.zero;
+        }
+
+        private bool IsPositionValid(Vector3 position, List<Vector3> blockedPositions)
+        {
+            float sqrMinDistanceBetweenHazards = minDistanceBetweenHazards * minDistanceBetweenHazards;
+            float sqrMinDistanceFromBlockers = minDistanceFromBlockers * minDistanceFromBlockers;
+
+            // Check distance from other hazards
+            for (int i = 0; i < spawnedPositions!.Count; i++)
+            {
+                if ((position - spawnedPositions[i]).sqrMagnitude < sqrMinDistanceBetweenHazards)
+                {
+                    return false;
+                }
+            }
+
+            // Check distance from EntranceTeleport objects
+            for (int i = 0; i < blockedPositions.Count; i++)
+            {
+                if ((position - blockedPositions[i]).sqrMagnitude < sqrMinDistanceFromBlockers)
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         internal override void Reset()
@@ -110,127 +243,11 @@ namespace VoxxWeatherPlugin.Weathers
             {
                 Destroy(fumesContainerOutside);
             }
-        }
-    }
 
-    internal class InteriorHazardSpawner : MonoBehaviour
-    {
-        public GameObject hazardPrefab; // Assign in the inspector
-        public int minNumberOfHazards = 10;
-        public int maxNumberOfHazards = 20;
-        public float spawnRadius = 20f;
-        public float minDistanceBetweenHazards = 5f;
-        public float minDistanceFromEntrances = 15f;
+            fumesContainerInside = null;
+            fumesContainerOutside = null;
 
-        private int numberOfHazards;
-        private List<Vector3> spawnedPositions;
-        private Vector3[] randomMapObjectsPositions;
-        private Vector3[] entrancePositions;
-        private System.Random random;
-        private int maxAttempts;
-
-        void Start()
-        {
-            if (hazardPrefab == null)
-            {
-                Debug.LogError("InteriorHazardSpawner: Hazard prefab is not assigned!");
-                return;
-            }
-
-            StartOfRound.Instance.StartNewRoundEvent.AddListener(OnNewRound);
-        }
-
-        private void OnNewRound()
-        {
-            InitializeSpawner();
-            SpawnHazards();
-            StartOfRound.Instance.StartNewRoundEvent.RemoveListener(OnNewRound);
-            this.enabled = false;
-        }
-        
-        private void InitializeSpawner()
-        {
-            random = new System.Random(StartOfRound.Instance.randomMapSeed + 422);
-
-            numberOfHazards = random.Next(minNumberOfHazards, maxNumberOfHazards + 1);
-            spawnedPositions = new List<Vector3>(numberOfHazards);
-            maxAttempts = numberOfHazards * 3;
-
-            // Cache entrance positions and map objects
-            EntranceTeleport[] interiorEntrances = FindObjectsOfType<EntranceTeleport>().Where(entrance => !entrance.isEntranceToBuilding).ToArray();
-            SpawnSyncedObject[] randomMapObjects = FindObjectsOfType<SpawnSyncedObject>();
-            entrancePositions = new Vector3[interiorEntrances.Length];
-            for (int i = 0; i < interiorEntrances.Length; i++)
-            {
-                entrancePositions[i] = interiorEntrances[i].transform.position;
-            }
-
-            randomMapObjectsPositions = new Vector3[randomMapObjects.Length];
-            for (int i = 0; i < randomMapObjects.Length; i++)
-            {
-                randomMapObjectsPositions[i] = randomMapObjects[i].transform.position;
-            }
-        }
-
-        private void SpawnHazards()
-        {
-            NavMeshHit navHit = new NavMeshHit();
-
-            for (int i = 0; i < maxAttempts && spawnedPositions.Count < numberOfHazards; i++)
-            {
-                // Randomly select an object to spawn around
-                int randomObjectIndex = random.Next(randomMapObjectsPositions.Length);
-                Vector3 objectPosition = randomMapObjectsPositions[randomObjectIndex];
-
-                Vector3 potentialPosition = GetValidSpawnPosition(objectPosition, ref navHit);
-                if (potentialPosition != Vector3.zero)
-                {
-                    GameObject spawnedHazard = Instantiate(hazardPrefab, potentialPosition, Quaternion.identity);
-                    spawnedHazard.transform.SetParent(transform);
-                    spawnedPositions.Add(potentialPosition);
-                }
-            }
-
-            Debug.Log($"InteriorHazardSpawner: Spawned {spawnedPositions.Count} hazards out of {numberOfHazards}");
-        }
-
-        private Vector3 GetValidSpawnPosition(Vector3 objectPosition, ref NavMeshHit navHit)
-        {
-            Vector3 potentialPosition = RoundManager.Instance.GetRandomNavMeshPositionInBoxPredictable(
-                objectPosition, spawnRadius, navHit, random, NavMesh.AllAreas);
-
-            if (IsPositionValid(potentialPosition))
-            {
-                return potentialPosition;
-            }
-
-            return Vector3.zero;
-        }
-
-        private bool IsPositionValid(Vector3 position)
-        {
-            float sqrMinDistanceBetweenHazards = minDistanceBetweenHazards * minDistanceBetweenHazards;
-            float sqrMinDistanceFromEntrances = minDistanceFromEntrances * minDistanceFromEntrances;
-
-            // Check distance from other hazards
-            for (int i = 0; i < spawnedPositions.Count; i++)
-            {
-                if ((position - spawnedPositions[i]).sqrMagnitude < sqrMinDistanceBetweenHazards)
-                {
-                    return false;
-                }
-            }
-
-            // Check distance from EntranceTeleport objects
-            for (int i = 0; i < entrancePositions.Length; i++)
-            {
-                if ((position - entrancePositions[i]).sqrMagnitude < sqrMinDistanceFromEntrances)
-                {
-                    return false;
-                }
-            }
-
-            return true;
+            toxicVolumetricFog?.gameObject.SetActive(false);
         }
     }
 }

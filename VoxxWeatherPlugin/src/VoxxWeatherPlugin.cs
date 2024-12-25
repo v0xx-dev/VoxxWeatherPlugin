@@ -49,6 +49,11 @@ namespace VoxxWeatherPlugin
                 Logger.LogInfo($"{PluginInfo.PLUGIN_GUID} heatwave patches successfully applied!");
             }
 
+            if (Configuration.EnableToxicSmogWeather.Value)
+            {
+                WeatherTypeLoader.RegisterToxicSmogWeather();
+            }
+
             if (Configuration.EnableBlizzardWeather.Value || Configuration.EnableSnowfallWeather.Value)
             {
                 bool snowManagerLoaded = WeatherTypeLoader.LoadSnowManager();
