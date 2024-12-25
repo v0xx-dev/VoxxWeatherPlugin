@@ -13,43 +13,25 @@ namespace VoxxWeatherPlugin.Behaviours
         [SerializeField]
         private int DamageAmount => Configuration.ToxicDamageAmount.Value;
 
-        private float damageTimer = 0f;
-        private bool isPoisoningLocalPlayer = false;
+        private static float damageTimer = 0f;
+        private static bool isPoisoningLocalPlayer = false;
 
         protected virtual void OnTriggerStay(Collider other)
-        {
-            ApplyToxicEffect(other);
-        }
-
-        internal void ApplyToxicEffect(Collider other)
         {
             if (other.CompareTag("Player"))
             {
                 PlayerControllerB playerController = other.gameObject.GetComponent<PlayerControllerB>();
 
-                if (playerController == GameNetworkManager.Instance.localPlayerController && !playerController.isInHangarShipRoom)
+                if (playerController == GameNetworkManager.Instance.localPlayerController )
                 {
-                    if (playerController.isPlayerDead)
-                    {
-                        isPoisoningLocalPlayer = false;
-                        return;
-                    }
-
                     isPoisoningLocalPlayer = true;
-                    damageTimer += Time.deltaTime;
                     playerController.drunknessInertia = Mathf.Clamp(playerController.drunknessInertia + Time.deltaTime / DrunknessPower * playerController.drunknessSpeed, 0.1f, 10f);
                     playerController.increasingDrunknessThisFrame = true;
-                    if (damageTimer >= DamageTime)
-                    {
-                        playerController.DamagePlayer(DamageAmount, true, true, CauseOfDeath.Suffocation, 0, false, default);
-                        damageTimer = 0;
-                    }
                 }
             }
         }
-        
 
-        internal void OnTriggerExit(Collider other)
+        private void OnTriggerExit(Collider other)
         {
             if (other.CompareTag("Player"))
             {
@@ -62,13 +44,29 @@ namespace VoxxWeatherPlugin.Behaviours
             }
         }
 
-        protected virtual void Update()
+        private void Update()
         {
-            if (isPoisoningLocalPlayer || damageTimer <= 0)
+            PlayerControllerB playerController = GameNetworkManager.Instance.localPlayerController;
+
+            if (playerController.isPlayerDead || playerController.isInHangarShipRoom)
             {
-                return;
+                isPoisoningLocalPlayer = false;
             }
-            damageTimer = Mathf.Clamp(damageTimer - Time.deltaTime, 0, DamageTime);
+
+            if (isPoisoningLocalPlayer)
+            {
+                damageTimer += Time.deltaTime;
+                if (damageTimer >= DamageTime)
+                {
+                    playerController.DamagePlayer(DamageAmount, true, true, CauseOfDeath.Suffocation, 0, false, default);
+                    damageTimer = 0;
+                }
+            }
+            else if (damageTimer > 0)
+            {
+                damageTimer -= Time.deltaTime;
+            }
+            
         }
     }
 }

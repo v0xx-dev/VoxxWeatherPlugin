@@ -454,7 +454,7 @@ namespace VoxxWeatherPlugin.Utils
             #region Toxic Smog
             ToxicDamageInterval = Config.Bind("Toxic Smog",
                                             "ToxicDamageInterval",
-                                            5f,
+                                            1.5f,
                                             new ConfigDescription("Time in seconds between toxic smog damage ticks.",
                                                                 new AcceptableValueRange<float>(0, 9999f)));
             ToxicDamageAmount = Config.Bind("Toxic Smog",
@@ -464,8 +464,8 @@ namespace VoxxWeatherPlugin.Utils
                                                                 new AcceptableValueRange<int>(0, 100)));
             ToxicPoisoningStrength = Config.Bind("Toxic Smog",
                                                 "ToxicPoisoningStrength",
-                                                1.5f,
-                                                new ConfigDescription("Strength of the toxic poisoning effect. Higher values make the effect more intense.",
+                                                1.2f,
+                                                new ConfigDescription("Strength of the toxic poisoning effect. Lower values make the effect more intense.",
                                                                     new AcceptableValueRange<float>(0, 99f)));
             MinFreePath = Config.Bind("Toxic Smog",
                                     "MinFreePath",
