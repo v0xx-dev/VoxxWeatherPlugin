@@ -69,6 +69,7 @@ namespace VoxxWeatherPlugin.Utils
         #endregion
 
         #region Snow & Blizzard Graphics
+        public static ConfigEntry<float> snowParticlesMultiplier; //
         public static ConfigEntry<bool> useOpaqueSnowMaterial; //
         // public static ConfigEntry<bool> fixPosterizationForSnowOverlay; //
         public static ConfigEntry<bool> snowCastsShadows; //
@@ -85,7 +86,7 @@ namespace VoxxWeatherPlugin.Utils
         public static ConfigEntry<bool>  adaptiveTesselation; //
         public static ConfigEntry<bool>  softSnowEdges;
         public static ConfigEntry<bool>  enableSnowTracks;
-        public static ConfigEntry<bool>  enableVFXCollisions;
+        public static ConfigEntry<bool>  enableVFXCollisions; //
         #endregion
 
         #region Snow & Blizzard Mesh and Terrain Processing
@@ -323,7 +324,11 @@ namespace VoxxWeatherPlugin.Utils
             #endregion
 
             #region Snow & Blizzard Graphics
-            
+            snowParticlesMultiplier = Config.Bind("Snow Graphics",
+                                            "snowParticlesMultiplier",
+                                            1f,
+                                            new ConfigDescription("Multiplier for the amount of snow/blizzard particles. Lower values may reduce performance impact but also visual quality.",
+                                                                new AcceptableValueRange<float>(0, 10f)));
             useOpaqueSnowMaterial = Config.Bind("Snow Graphics",
                                                 "useOpaqueSnowMaterial",
                                                 false,

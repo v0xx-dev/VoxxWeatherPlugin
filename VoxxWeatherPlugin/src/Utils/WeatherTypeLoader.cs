@@ -191,9 +191,18 @@ namespace VoxxWeatherPlugin.Utils
             blizzardWeatherController.snowVertexMaterial!.shader = vertexSnowShader;
             blizzardWeatherController.snowVertexOpaqueMaterial!.shader = opaqueVertexSnowShader;
             blizzardWeatherController.terraMeshShader = terrainLitShader;
-            blizzardVFXManager.snowVFXContainer!.GetComponent<VisualEffect>().visualEffectAsset = blizzardVFXAsset;
-            blizzardVFXManager.blizzardWaveContainer!.GetComponentInChildren<VisualEffect>(true).visualEffectAsset = blizzardWaveVFXAsset;
-            
+            VisualEffect blizzardVFX = blizzardVFXManager.snowVFXContainer!.GetComponent<VisualEffect>();
+            blizzardVFX.visualEffectAsset = blizzardVFXAsset;
+            blizzardVFX.SetFloat("spawnRateMultiplier", Configuration.snowParticlesMultiplier.Value);
+            blizzardVFX.SetBool("isCollisonEnabled", Configuration.enableVFXCollisions.Value);
+            Camera blizzardCamera = blizzardVFX.GetComponentInChildren<Camera>(true);
+            blizzardCamera.enabled = Configuration.enableVFXCollisions.Value;
+            VisualEffect chillWaveVFX = blizzardVFXManager.blizzardWaveContainer!.GetComponentInChildren<VisualEffect>(true);
+            chillWaveVFX.visualEffectAsset = blizzardWaveVFXAsset;
+            chillWaveVFX.SetFloat("spawnRateMultiplier", Configuration.snowParticlesMultiplier.Value);
+            chillWaveVFX.SetBool("isCollisonEnabled", Configuration.enableVFXCollisions.Value);
+            Camera chillWaveCamera = chillWaveVFX.GetComponentInChildren<Camera>(true);
+            chillWaveCamera.enabled = Configuration.enableVFXCollisions.Value;
             // TODO add vfx configs
 
             blizzardContainer.SetActive(true);
@@ -272,7 +281,9 @@ namespace VoxxWeatherPlugin.Utils
             snowfallWeatherController.snowVertexMaterial!.shader = vertexSnowShader;
             snowfallWeatherController.snowVertexOpaqueMaterial!.shader = opaqueVertexSnowShader;
             snowfallWeatherController.terraMeshShader = terrainLitShader;
-            snowfallVFXManager.snowVFXContainer!.GetComponent<VisualEffect>().visualEffectAsset = snowVFXAsset;
+            VisualEffect snowVFX = snowfallVFXManager.snowVFXContainer!.GetComponent<VisualEffect>();
+            snowVFX.visualEffectAsset = snowVFXAsset;
+            snowVFX.SetFloat("spawnRateMultiplier", Configuration.snowParticlesMultiplier.Value);
 
             // TODO add vfx configs
 
