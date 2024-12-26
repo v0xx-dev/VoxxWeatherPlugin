@@ -25,7 +25,7 @@ namespace VoxxWeatherPlugin.Patches
         internal static float frostbiteTimer = 0f;
         internal static HashSet<Type> unaffectedEnemyTypes = new HashSet<Type> {typeof(ForestGiantAI), typeof(RadMechAI), typeof(DoublewingAI),
                                                                                 typeof(ButlerBeesEnemyAI), typeof(DocileLocustBeesAI), typeof(RedLocustBees),
-                                                                                typeof(DressGirlAI)};//, typeof(SandWormAI)}; TODO: Add SandWormAI if it's affected by snow hindrance
+                                                                                typeof(DressGirlAI), typeof(SandWormAI)};
 
         
 

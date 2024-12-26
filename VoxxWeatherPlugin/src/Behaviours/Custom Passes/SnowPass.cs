@@ -113,14 +113,14 @@ namespace VoxxWeatherPlugin.Behaviours
                     HDShaderPassNames.s_EmptyName,              // Add an empty slot for the override material
             };
 
-            if (snowOverlayMaterial == null || snowVertexMaterial == null)
+            if (snowOverlayMaterial == null)
             {
                 Debug.LogWarning("Attempt to call with an empty override material. Some variables will be set to default values");
                 return;
             }
 
             SetupMaterial(snowOverlayMaterial);
-            SetupMaterial(snowVertexMaterial);
+            SetupMaterial(snowVertexMaterial!);
         }
 
         ShaderTagId[]? GetShaderTagIds()

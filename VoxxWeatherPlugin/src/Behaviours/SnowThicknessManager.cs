@@ -411,6 +411,7 @@ namespace VoxxWeatherPlugin.Behaviours
             return true;
         }
 
+        // VERY IMPORTANT: UV1 for mesh terrain must be projected the same way as in Unity's terrain system for consistency (if terrain collider is used)
         private bool StoreSnowData(MonoBehaviour entity, int index, RaycastHit hit)
         {
             EntitySnowData data = entitySnowDataInArray![index];
@@ -419,7 +420,7 @@ namespace VoxxWeatherPlugin.Behaviours
             {
                 int textureIndex = groundToIndex[hit.collider.gameObject];
                 data!.w = hit.point;
-                data.uv = new Vector2(hit.textureCoord2.x, hit.textureCoord2.y);
+                data.uv = new Vector2(hit.textureCoord2.x, hit.textureCoord2.y); 
                 data.textureIndex = textureIndex;
                 isHitValid = true;
             }
