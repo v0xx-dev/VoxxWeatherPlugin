@@ -34,7 +34,7 @@ namespace VoxxWeatherPlugin.Patches
                  blizzardWeather.IsActive &&
                  __instance.isClimbingLadder &&
                  blizzardWeather.isLocalPlayerInWind &&
-                 PlayerTemperatureManager.ColdSeverity < 0.8f)
+                 PlayerEffectsManager.ColdSeverity < 0.8f)
             {
                 return false;
             }

@@ -163,11 +163,11 @@ namespace VoxxWeatherPlugin.Weathers
             {
                 if (localPlayer.physicsParent != null)
                 {
-                    PlayerTemperatureManager.heatTransferRate = 0.05f; // Cooling down slower in vehicles
+                    PlayerEffectsManager.heatTransferRate = 0.05f; // Cooling down slower in vehicles
                 }
                 else
                 {
-                    PlayerTemperatureManager.heatTransferRate = 1f; // Cooling down faster outdoors
+                    PlayerEffectsManager.heatTransferRate = 1f; // Cooling down faster outdoors
                 }
 
                 localPlayer.externalForces += windDirection * windForce;
@@ -181,7 +181,7 @@ namespace VoxxWeatherPlugin.Weathers
             
         internal override void SetColdZoneState()
         {
-            PlayerTemperatureManager.isInColdZone = VFXManager.isUnderSnowPreviousFrame || isPlayerInBlizzard;
+            PlayerEffectsManager.isInColdZone = VFXManager.isUnderSnowPreviousFrame || isPlayerInBlizzard;
         }
 
         Vector3 GetNearestPointOnPlane(Vector3 point, Vector3 planePoint, Vector3 planeNormal)

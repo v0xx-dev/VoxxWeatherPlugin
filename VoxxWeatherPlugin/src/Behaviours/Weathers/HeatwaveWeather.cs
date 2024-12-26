@@ -34,7 +34,7 @@ namespace VoxxWeatherPlugin.Weathers
             if (heatwaveTrigger == null)
                 heatwaveTrigger = gameObject.AddComponent<BoxCollider>();
             heatwaveTrigger.isTrigger = true;
-            PlayerTemperatureManager.heatEffectVolume = exhaustionFilter;
+            PlayerEffectsManager.heatEffectVolume = exhaustionFilter;
         }
 
         private void OnEnable()
@@ -50,7 +50,7 @@ namespace VoxxWeatherPlugin.Weathers
         private void OnDisable()
         {
             VFXManager?.Reset();
-            PlayerTemperatureManager.normalizedTemperature = 0f;
+            PlayerEffectsManager.normalizedTemperature = 0f;
         }
 
         private void SetupHeatwaveWeather()
@@ -77,7 +77,7 @@ namespace VoxxWeatherPlugin.Weathers
                 if (playerController != GameNetworkManager.Instance.localPlayerController)
                     return;
 
-                PlayerTemperatureManager.isInHeatZone = true;
+                PlayerEffectsManager.isInHeatZone = true;
             }
             // else if (other.CompareTag("Aluminum") && LayerMask.LayerToName(other.gameObject.layer) == "Vehicle")
             // {
@@ -97,8 +97,8 @@ namespace VoxxWeatherPlugin.Weathers
                 if (playerController != GameNetworkManager.Instance.localPlayerController)
                     return;
 
-                PlayerTemperatureManager.heatTransferRate = 1f;
-                PlayerTemperatureManager.isInHeatZone = false;
+                PlayerEffectsManager.heatTransferRate = 1f;
+                PlayerEffectsManager.isInHeatZone = false;
             }
             // else if (other.CompareTag("Aluminum") && LayerMask.LayerToName(other.gameObject.layer) == "Vehicle")
             // {
@@ -232,8 +232,8 @@ namespace VoxxWeatherPlugin.Weathers
             heatwaveVFXContainer = null;
             Debug.LogDebug("Heatwave VFX container destroyed.");
             
-            PlayerTemperatureManager.isInHeatZone = false;
-            PlayerTemperatureManager.heatTransferRate = 1f;
+            PlayerEffectsManager.isInHeatZone = false;
+            PlayerEffectsManager.heatTransferRate = 1f;
         }
 
         private void OnEnable()

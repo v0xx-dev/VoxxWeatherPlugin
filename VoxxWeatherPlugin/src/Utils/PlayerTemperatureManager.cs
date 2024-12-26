@@ -5,10 +5,11 @@ using VoxxWeatherPlugin.Patches;
 
 namespace VoxxWeatherPlugin.Utils
 {
-    internal class PlayerTemperatureManager
+    internal class PlayerEffectsManager
     {
         public static bool isInHeatZone = false;
         public static bool isInColdZone = false;
+        public static bool isPoisoned = false;
         public static float heatTransferRate = 1f;
         public static float normalizedTemperature = 0f; // 0 - room temperature, 1 - heatstroke, -1 - hypothermia
         public static float HeatSeverity => Mathf.Clamp01(normalizedTemperature);

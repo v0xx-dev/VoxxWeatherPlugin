@@ -52,6 +52,8 @@ namespace VoxxWeatherPlugin
             if (Configuration.EnableToxicSmogWeather.Value)
             {
                 WeatherTypeLoader.RegisterToxicSmogWeather();
+                harmony.PatchAll(typeof(ToxicPatches));
+                Logger.LogInfo($"{PluginInfo.PLUGIN_GUID} toxic smog patches successfully applied!");
             }
 
             if (Configuration.EnableBlizzardWeather.Value || Configuration.EnableSnowfallWeather.Value)

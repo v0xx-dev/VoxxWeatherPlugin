@@ -37,31 +37,31 @@ namespace VoxxWeatherPlugin.Patches
 
             if (CheckConditionsForHeatingStop(__instance))
             {
-                PlayerTemperatureManager.heatTransferRate = 1f;
-                PlayerTemperatureManager.isInHeatZone = false;
+                PlayerEffectsManager.heatTransferRate = 1f;
+                PlayerEffectsManager.isInHeatZone = false;
             }
             else if (CheckConditionsForHeatingPause(__instance))
             {
-                PlayerTemperatureManager.heatTransferRate = .25f; //heat slower when in special interact animation or in a car
+                PlayerEffectsManager.heatTransferRate = .25f; //heat slower when in special interact animation or in a car
             }
             else
             {
-                PlayerTemperatureManager.heatTransferRate = 1f;
+                PlayerEffectsManager.heatTransferRate = 1f;
             }
 
             // Gradually reduce heat severity when not in heat zone
-            if (!PlayerTemperatureManager.isInHeatZone)
+            if (!PlayerEffectsManager.isInHeatZone)
             {
-                PlayerTemperatureManager.ResetPlayerTemperature(Time.deltaTime / timeToCool);
+                PlayerEffectsManager.ResetPlayerTemperature(Time.deltaTime / timeToCool);
             }
             else
             {
-                PlayerTemperatureManager.SetPlayerTemperature(Time.deltaTime / HeatwaveWeather.Instance!.timeInHeatZoneMax * HeatwaveWeather.Instance!.timeOfDayFactor);
+                PlayerEffectsManager.SetPlayerTemperature(Time.deltaTime / HeatwaveWeather.Instance!.timeInHeatZoneMax * HeatwaveWeather.Instance!.timeOfDayFactor);
             }
 
-            float severity = PlayerTemperatureManager.HeatSeverity;
+            float severity = PlayerEffectsManager.HeatSeverity;
 
-            //Debug.Log($"Severity: {severity}, inHeatZone: {PlayerTemperatureManager.isInHeatZone}, heatMultiplier {PlayerTemperatureManager.heatSeverityMultiplier}, isInside {__instance.isInsideFactory}");
+            //Debug.Log($"Severity: {severity}, inHeatZone: {PlayerEffectsManager.isInHeatZone}, heatMultiplier {PlayerEffectsManager.heatSeverityMultiplier}, isInside {__instance.isInsideFactory}");
 
             if (severity > 0)
             {
@@ -110,7 +110,7 @@ namespace VoxxWeatherPlugin.Patches
                     // Insert the additional condition
                     codes.InsertRange(i + 4, new[]
                     {
-                        new CodeInstruction(OpCodes.Call, AccessTools.PropertyGetter(typeof(PlayerTemperatureManager), "HeatSeverity")),
+                        new CodeInstruction(OpCodes.Call, AccessTools.PropertyGetter(typeof(PlayerEffectsManager), "HeatSeverity")),
                         new CodeInstruction(OpCodes.Ldc_R4, 0.85f),
                         new CodeInstruction(OpCodes.Ble_Un_S, originalJumpTarget)
                     });

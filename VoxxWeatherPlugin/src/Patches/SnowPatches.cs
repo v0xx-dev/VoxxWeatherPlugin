@@ -103,18 +103,18 @@ namespace VoxxWeatherPlugin.Patches
                 return;
 
             // Gradually reduce heat severity when not in heat zone
-            if (!PlayerTemperatureManager.isInColdZone)
+            if (!PlayerEffectsManager.isInColdZone)
             {
-                PlayerTemperatureManager.ResetPlayerTemperature(Time.deltaTime / TimeToWarmUp);
+                PlayerEffectsManager.ResetPlayerTemperature(Time.deltaTime / TimeToWarmUp);
             }
             else
             {
-                PlayerTemperatureManager.SetPlayerTemperature(-Time.deltaTime / SnowfallWeather.Instance!.timeUntilFrostbite);
+                PlayerEffectsManager.SetPlayerTemperature(-Time.deltaTime / SnowfallWeather.Instance!.timeUntilFrostbite);
             }
 
-            float severity = PlayerTemperatureManager.ColdSeverity;
+            float severity = PlayerEffectsManager.ColdSeverity;
 
-            // Debug.LogDebug($"Severity: {severity}, inColdZone: {PlayerTemperatureManager.isInColdZone}, frostbiteTimer: {frostbiteTimer}, heatTransferRate: {PlayerTemperatureManager.heatTransferRate}");
+            // Debug.LogDebug($"Severity: {severity}, inColdZone: {PlayerEffectsManager.isInColdZone}, frostbiteTimer: {frostbiteTimer}, heatTransferRate: {PlayerEffectsManager.heatTransferRate}");
             
             if (severity >= frostbiteThreshold)
             {

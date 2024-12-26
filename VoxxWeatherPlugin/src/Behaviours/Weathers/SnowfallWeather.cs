@@ -255,7 +255,7 @@ namespace VoxxWeatherPlugin.Weathers
             Destroy(snowMasks);
             groundObjectCandidates.Clear();
             waterSurfaceObjects.Clear();
-            PlayerTemperatureManager.normalizedTemperature = 0f;
+            PlayerEffectsManager.normalizedTemperature = 0f;
         }
 
         internal virtual void OnEnable()
@@ -306,7 +306,7 @@ namespace VoxxWeatherPlugin.Weathers
 
         internal virtual void SetColdZoneState()
         {
-            PlayerTemperatureManager.isInColdZone = VFXManager!.isUnderSnowPreviousFrame;
+            PlayerEffectsManager.isInColdZone = VFXManager!.isUnderSnowPreviousFrame;
         }
 
         internal void UpdateCameraPosition(GameObject? cameraContainer, Camera? camera)
@@ -835,7 +835,7 @@ namespace VoxxWeatherPlugin.Weathers
         internal virtual void OnEnable()
         {
             snowVFXContainer?.SetActive(true);
-            PlayerTemperatureManager.freezeEffectVolume = frostbiteFilter;
+            PlayerEffectsManager.freezeEffectVolume = frostbiteFilter;
             
             frostbiteFilter!.enabled = true;
             frostyFilter!.enabled = true;
@@ -861,14 +861,14 @@ namespace VoxxWeatherPlugin.Weathers
             SnowfallWeather.Instance!.snowVolume!.enabled = false;
             SnowfallWeather.Instance.snowTrackerCameraContainer?.SetActive(false);
             snowMovementHindranceMultiplier = 1f;
-            PlayerTemperatureManager.isInColdZone = false;
+            PlayerEffectsManager.isInColdZone = false;
             isUnderSnowPreviousFrame = false;
         }
 
         internal override void Reset()
         {
             addedVanillaFootprints = false;
-            PlayerTemperatureManager.isInColdZone = false;
+            PlayerEffectsManager.isInColdZone = false;
             SnowThicknessManager.Instance?.Reset();
             SnowTrackersManager.CleanupFootprintTrackers(SnowTrackersManager.snowTrackersDict);
             SnowTrackersManager.CleanupFootprintTrackers(SnowTrackersManager.snowShovelDict);
@@ -898,7 +898,7 @@ namespace VoxxWeatherPlugin.Weathers
                 UpdateFade();
 
                 // If the user decreases frostbite damage from the default value (10), add additional slowdown
-                float metaSnowThickness = Mathf.Clamp01(1 - SnowPatches.FrostbiteDamage/10f) * PlayerTemperatureManager.ColdSeverity;
+                float metaSnowThickness = Mathf.Clamp01(1 - SnowPatches.FrostbiteDamage/10f) * PlayerEffectsManager.ColdSeverity;
 
                 // Slow down the player if they are in snow (only if snow thickness is above 0.4, caps at 2.5 height)
                 snowMovementHindranceMultiplier = 1 + 5*Mathf.Clamp01((snowThickness + metaSnowThickness - 0.4f)/2.1f);

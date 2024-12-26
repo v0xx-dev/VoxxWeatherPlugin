@@ -27,7 +27,7 @@ namespace VoxxWeatherPlugin.Behaviours
                 PlayerControllerB playerController = other.gameObject.GetComponent<PlayerControllerB>();
                 if (playerController != GameNetworkManager.Instance.localPlayerController || collidedWithLocalPlayer || playerController.isInsideFactory)
                     return;
-                if (PlayerTemperatureManager.isInColdZone)
+                if (PlayerEffectsManager.isInColdZone)
                 {
                     if (temperatureChangeCoroutine == null)
                     {
@@ -49,7 +49,7 @@ namespace VoxxWeatherPlugin.Behaviours
         internal IEnumerator TemperatureChangeCoroutine()
         {
             float targetTemperature = -0.8f;
-            float initialTemperature = PlayerTemperatureManager.normalizedTemperature;
+            float initialTemperature = PlayerEffectsManager.normalizedTemperature;
             if (initialTemperature > targetTemperature)
             {
                 float duration = 0.5f; // half of a second
@@ -59,13 +59,13 @@ namespace VoxxWeatherPlugin.Behaviours
                 {
                     float newTemperature = Mathf.Lerp(initialTemperature, targetTemperature, elapsedTime / duration);
                     // Calculate the delta to reach the new temperature
-                    float temperatureDelta = newTemperature - PlayerTemperatureManager.normalizedTemperature;
-                    PlayerTemperatureManager.SetPlayerTemperature(temperatureDelta); 
+                    float temperatureDelta = newTemperature - PlayerEffectsManager.normalizedTemperature;
+                    PlayerEffectsManager.SetPlayerTemperature(temperatureDelta); 
                     yield return null;
                 }
 
-                float finalDelta = targetTemperature - PlayerTemperatureManager.normalizedTemperature;
-                PlayerTemperatureManager.SetPlayerTemperature(finalDelta);
+                float finalDelta = targetTemperature - PlayerEffectsManager.normalizedTemperature;
+                PlayerEffectsManager.SetPlayerTemperature(finalDelta);
             }
         } 
 
