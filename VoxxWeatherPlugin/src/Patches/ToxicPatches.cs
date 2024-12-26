@@ -18,7 +18,7 @@ namespace VoxxWeatherPlugin.Patches
         [HarmonyPrefix]
         private static void PoisoningPatchPrefix(PlayerControllerB __instance)
         {
-            if (!(ToxicSmogWeather.Instance?.IsActive ?? false) || !__instance.IsOwner || !__instance.isPlayerControlled)
+            if (!(ToxicSmogWeather.Instance?.IsActive ?? false) || !__instance.IsOwner)
                 return;
             
             if (__instance.isPlayerDead || __instance.isInHangarShipRoom)

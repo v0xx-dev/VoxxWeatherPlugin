@@ -311,7 +311,7 @@ namespace VoxxWeatherPlugin.Utils
             }
 
             // Configure triangulation options
-            int maxAdditionalVertices = vertexIndicesInBounds.Count / 2;
+            int maxAdditionalVertices = Mathf.Min(vertexIndicesInBounds.Count / 4, 30000);
             ConstraintOptions options = new ConstraintOptions() { ConformingDelaunay = true, SegmentSplitting = 2};
             QualityOptions quality = new QualityOptions() { MinimumAngle = 30.0f, SteinerPoints = snowfallData.SubdivideMesh ? maxAdditionalVertices : 0};
 
@@ -816,7 +816,7 @@ namespace VoxxWeatherPlugin.Utils
                 }
 
                 // Configure triangulation options
-                int maxAdditionalVertices = vertices.Count/2;
+                int maxAdditionalVertices = Mathf.Min(vertices.Count / 4, 30000);
                 ConstraintOptions options = new ConstraintOptions() { ConformingDelaunay = false, SegmentSplitting = 2};
                 QualityOptions quality = new QualityOptions() { MinimumAngle = 20.0f, SteinerPoints = snowfallData.RefineMesh ? maxAdditionalVertices : 0};
 

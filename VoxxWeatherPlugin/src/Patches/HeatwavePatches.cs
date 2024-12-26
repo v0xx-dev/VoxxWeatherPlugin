@@ -22,7 +22,7 @@ namespace VoxxWeatherPlugin.Patches
         [HarmonyPriority(Priority.High)]
         private static void HeatStrokePatchPrefix(PlayerControllerB __instance)
         {
-            if (!(HeatwaveWeather.Instance?.IsActive ?? false) || !__instance.IsOwner || !__instance.isPlayerControlled)
+            if (!(HeatwaveWeather.Instance?.IsActive ?? false) || !__instance.IsOwner )
                 return;
             prevSprintMeter = __instance.sprintMeter;
         }
@@ -32,7 +32,7 @@ namespace VoxxWeatherPlugin.Patches
         [HarmonyPriority(Priority.Low)]
         private static void HeatStrokePatchLatePostfix(PlayerControllerB __instance)
         {
-            if (!(HeatwaveWeather.Instance?.IsActive ?? false) || !__instance.IsOwner || !__instance.isPlayerControlled)
+            if (!(HeatwaveWeather.Instance?.IsActive ?? false) || !__instance.IsOwner )
                 return;
 
             if (CheckConditionsForHeatingStop(__instance))

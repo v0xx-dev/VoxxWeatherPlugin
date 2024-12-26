@@ -53,6 +53,7 @@ namespace VoxxWeatherPlugin.Utils
         public static ConfigEntry<float>  timeToWarmUp; //
         public static ConfigEntry<bool>  enableEasterEgg; //
         public static ConfigEntry<bool>  patchModdedEnemies; //
+        public static ConfigEntry<bool>  snowAffectsEnemies; //
         #endregion
 
         #region Blizzard
@@ -266,6 +267,10 @@ namespace VoxxWeatherPlugin.Utils
                                             false,
                                             "Attempt to patch modded enemies to be affected by snowfall weather (only works if they inherit from vanilla EnemyAI class)).");
             
+            snowAffectsEnemies = Config.Bind("Snowfall",
+                                            "snowAffectsEnemies",
+                                            true,
+                                            "Allow snowfall weather to affect enemies. If disabled enemies will not be slowed down by snow.");
             #endregion
 
             #region Blizzard
@@ -416,7 +421,9 @@ namespace VoxxWeatherPlugin.Utils
                                         "useLevelBounds",
                                         true,
                                         "Use level bounds to limit mesh and terrain processing to the playable area. Disabling this will process the whole level, which will improve the entire levels geometry, but will increase loading times");
+            
             // TerraMesh related
+
             refineMesh = Config.Bind("Mesh & Terrain Processing",
                                     "refineMesh",
                                     true,
@@ -466,7 +473,7 @@ namespace VoxxWeatherPlugin.Utils
                                                 "ToxicPoisoningStrength",
                                                 1.0f,
                                                 new ConfigDescription("Strength of the toxic poisoning effect. Lower values make the effect more intense.",
-                                                                    new AcceptableValueRange<float>(0, 99f)));
+                                                                    new AcceptableValueRange<float>(1e-8f, 99f)));
             MinFreePath = Config.Bind("Toxic Smog",
                                     "MinFreePath",
                                     8f,

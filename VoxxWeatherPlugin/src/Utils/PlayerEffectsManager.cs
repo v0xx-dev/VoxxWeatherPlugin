@@ -2,6 +2,7 @@
 using UnityEngine;
 using System;
 using VoxxWeatherPlugin.Patches;
+using GameNetcodeStuff;
 
 namespace VoxxWeatherPlugin.Utils
 {
@@ -40,6 +41,18 @@ namespace VoxxWeatherPlugin.Utils
         {
             // Gradually reset temperature to 0
             SetPlayerTemperature(-Mathf.Sign(normalizedTemperature) * temperatureDelta);
+        }
+
+        internal static void SetPoisoningEffect()
+        {
+            PlayerControllerB localPlayerController = GameNetworkManager.Instance.localPlayerController;
+            float drunknessEffectPower = StartOfRound.Instance.drunknessSideEffect.Evaluate(localPlayerController.drunkness);
+            // Set visual effect
+            HUDManager.Instance.drunknessFilter.weight = Mathf.Lerp(HUDManager.Instance.drunknessFilter.weight, drunknessEffectPower, 5f * Time.deltaTime);
+            HUDManager.Instance.gasImageAlpha.alpha = HUDManager.Instance.drunknessFilter.weight * 1.5f;
+            // Set audio effect
+            SoundManager.Instance.playerVoicePitchTargets[localPlayerController.playerClientId] = drunknessEffectPower <= 0.15f ? 1f : 1f + drunknessEffectPower;
+      
         }
         
     }

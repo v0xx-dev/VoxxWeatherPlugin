@@ -4,7 +4,6 @@ using UnityEngine;
 using System.Collections.Generic;
 using System.Reflection.Emit;
 using GameNetcodeStuff;
-using UnityEngine.VFX;
 using VoxxWeatherPlugin.Utils;
 using VoxxWeatherPlugin.Behaviours;
 using System;
@@ -16,8 +15,7 @@ namespace VoxxWeatherPlugin.Patches
     [HarmonyPatch]
     internal class SnowPatches
     {
-        internal static bool allowClientCalculations = false;
-        public static Dictionary<EnemyAI, (float, float)> agentSpeedCache = new Dictionary<EnemyAI, (float, float)>();
+        internal static bool SnowAffectsEnemies => Configuration.snowAffectsEnemies.Value;
         public static float TimeToWarmUp => Configuration.timeToWarmUp.Value;   // Time to warm up from cold to room temperature
         internal static float FrostbiteDamageInterval => Configuration.frostbiteDamageInterval.Value;
         internal static float FrostbiteDamage => Configuration.frostbiteDamage.Value;
@@ -95,11 +93,11 @@ namespace VoxxWeatherPlugin.Patches
         }
 
         [HarmonyPatch(typeof(PlayerControllerB), "LateUpdate")]
-        [HarmonyPostfix]
+        [HarmonyPrefix]
         [HarmonyPriority(Priority.Low)]
         private static void FrostbiteLatePostfix(PlayerControllerB __instance)
         {
-            if (!(SnowfallWeather.Instance?.IsActive ?? false) || !__instance.IsOwner || !__instance.isPlayerControlled)
+            if (!(SnowfallWeather.Instance?.IsActive ?? false) || !__instance.IsOwner)
                 return;
 
             // Gradually reduce heat severity when not in heat zone
@@ -146,7 +144,10 @@ namespace VoxxWeatherPlugin.Patches
         [HarmonyPrefix]
         private static void EnemyGroundSamplerPatch(EnemyAI __instance)
         {
-            if ((GameNetworkManager.Instance.isHostingGame || allowClientCalculations) && (SnowfallWeather.Instance?.IsActive ?? false) && __instance.isOutside)
+            if (SnowAffectsEnemies &&
+                GameNetworkManager.Instance.isHostingGame &&
+                (SnowfallWeather.Instance?.IsActive ?? false) &&
+                __instance.isOutside)
             {
                 // Check if enemy is affected by snow hindrance
                 if (!unaffectedEnemyTypes.Contains(__instance.GetType()))
@@ -162,31 +163,10 @@ namespace VoxxWeatherPlugin.Patches
         //Generic patch for all enemies, we patch manually since each derived enemy type overrides the base implementation
         private static void EnemySnowHindrancePatch(EnemyAI __instance)
         {
-            if (GameNetworkManager.Instance.isHostingGame && (SnowfallWeather.Instance?.IsActive ?? false) && __instance.isOutside)
+            if (SnowAffectsEnemies &&
+                GameNetworkManager.Instance.isHostingGame &&
+                (SnowfallWeather.Instance?.IsActive ?? false) && __instance.isOutside)
             {
-                // float snowThickness = SnowThicknessManager.Instance!.GetSnowThickness(__instance);
-                // // Slow down if the entity in snow (only if snow thickness is above 0.4, caps at 2.5 height)
-                // float snowMovementHindranceMultiplier = 1 + 5*Mathf.Clamp01((snowThickness - 0.4f)/2.1f);
-                // if (agentSpeedCache.TryGetValue(__instance, out (float, float) cache))
-                // {
-                //     (float supposedAgentSpeed, float prevSnowHindranceMultiplier) = cache;
-                //     // Check if the agent speed has changed and if the speed without snow hindrance is different from the cached value
-                //     // EnemyAI agent speed can be changed elsewhere, so we need to do this check to be able to restore the intended speed
-                //     if (!Mathf.Approximately(supposedAgentSpeed, __instance.agent.speed) && 
-                //         !Mathf.Approximately(supposedAgentSpeed, __instance.agent.speed * prevSnowHindranceMultiplier))
-                //     {
-                //         supposedAgentSpeed = __instance.agent.speed;
-                //     }
-                //     __instance.agent.speed = supposedAgentSpeed / snowMovementHindranceMultiplier;
-                //     agentSpeedCache[__instance] = (supposedAgentSpeed, snowMovementHindranceMultiplier);
-                // }
-                // else
-                // {
-                //     // Cache the agent speed and the hindrance multiplier to be able to restore original speed
-                //     agentSpeedCache[__instance] = (__instance.agent.speed, snowMovementHindranceMultiplier);
-                //     __instance.agent.speed /= snowMovementHindranceMultiplier;
-                // }
-
                 float snowThickness = SnowThicknessManager.Instance!.GetSnowThickness(__instance);
                 // Slow down if the entity in snow (only if snow thickness is above 0.4, caps at 2.5 height)
                 float snowMovementHindranceMultiplier = 1 + 5*Mathf.Clamp01((snowThickness - 0.4f)/2.1f);
