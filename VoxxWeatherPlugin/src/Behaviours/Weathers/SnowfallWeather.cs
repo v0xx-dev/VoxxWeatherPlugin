@@ -176,7 +176,9 @@ namespace VoxxWeatherPlugin.Weathers
             // No alpha test pass
             snowOverlayCustomPass = snowVolume!.customPasses[0] as SnowOverlayCustomPass;
             snowOverlayCustomPass!.snowOverlayMaterial = snowOverlayMaterial;
-            snowOverlayCustomPass.snowVertexMaterial = CurrentSnowVertexMaterial;
+            
+            snowOverlayCustomPass.SetupMaterial(snowOverlayMaterial);
+            snowOverlayCustomPass.SetupMaterial(CurrentSnowVertexMaterial);
             // if (Configuration.fixPosterizationForSnowOverlay.Value)
             // {
             //     // Increase normal strength and change color for snow overlay material
@@ -255,6 +257,7 @@ namespace VoxxWeatherPlugin.Weathers
             Destroy(snowMasks);
             groundObjectCandidates.Clear();
             waterSurfaceObjects.Clear();
+            snowOverlayCustomPass?.snowVertexMaterials.Clear();
             PlayerEffectsManager.normalizedTemperature = 0f;
         }
 
@@ -564,15 +567,20 @@ namespace VoxxWeatherPlugin.Weathers
             // Duplicate the mesh and set the snow vertex material
             GameObject snowGround = meshTerrain.Duplicate(disableShadows: !Configuration.snowCastsShadows.Value, removeCollider: true);
             MeshRenderer meshRenderer = snowGround.GetComponent<MeshRenderer>();
-            meshRenderer.sharedMaterial = CurrentSnowVertexMaterial;
+            // Duplicate the snow vertex material to allow SRP batching
+            Material? snowVertexCopy = Instantiate(CurrentSnowVertexMaterial);
+            snowVertexCopy.SetFloat(SnowfallShaderIDs.TexIndex, texId);
+            snowOverlayCustomPass!.snowVertexMaterials.Add(snowVertexCopy);
+            meshRenderer.sharedMaterial = snowVertexCopy;
             // Deselect snow OVERLAY rendering layers from vertex snow objects
             meshRenderer.renderingLayerMask &= ~(uint)snowOverlayCustomPass!.renderingLayers;
             // Upload the mesh to the GPU to save RAM. TODO: Prevents NavMesh baking
             // snowGround.GetComponent<MeshFilter>().sharedMesh.UploadMeshData(true);
             // Override the material property block to set the object ID to sample from a single Texture2DArray
-            MaterialPropertyBlock propertyBlock = new MaterialPropertyBlock();
-            propertyBlock.SetFloat(SnowfallShaderIDs.TexIndex, texId);
-            meshRenderer.SetPropertyBlock(propertyBlock);
+            // This brakes batching
+            // MaterialPropertyBlock propertyBlock = new MaterialPropertyBlock();
+            // propertyBlock.SetFloat(SnowfallShaderIDs.TexIndex, texId);
+            // meshRenderer.SetPropertyBlock(propertyBlock);
         }
 
         internal void BakeSnowMasks()
@@ -603,7 +611,10 @@ namespace VoxxWeatherPlugin.Weathers
 
             snowMasks.Apply(updateMipmaps: BakeMipmaps, makeNoLongerReadable: true); // Move to the GPU
 
-            CurrentSnowVertexMaterial?.SetTexture(SnowfallShaderIDs.SnowMasks, snowMasks);
+            foreach (Material snowVertexMaterial in snowOverlayCustomPass!.snowVertexMaterials)
+            {
+                snowVertexMaterial?.SetTexture(SnowfallShaderIDs.SnowMasks, snowMasks);
+            }
         }
 
         internal void ModifyRenderMasks()

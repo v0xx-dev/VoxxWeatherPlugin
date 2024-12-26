@@ -4,6 +4,7 @@ using UnityEngine.Rendering;
 using System;
 using VoxxWeatherPlugin.Weathers;
 using VoxxWeatherPlugin.Utils;
+using System.Collections.Generic;
 
 namespace VoxxWeatherPlugin.Behaviours
 {
@@ -66,7 +67,7 @@ namespace VoxxWeatherPlugin.Behaviours
 
         // Override material
         public Material? snowOverlayMaterial = null;
-        public Material? snowVertexMaterial = null;
+        public List<Material> snowVertexMaterials = new List<Material>();
         [SerializeField]
         internal int overrideMaterialPassIndex = 0;
         public string overrideMaterialPassName = "Forward";
@@ -112,15 +113,6 @@ namespace VoxxWeatherPlugin.Behaviours
                     HDShaderPassNames.s_DepthOnlyName,
                     HDShaderPassNames.s_EmptyName,              // Add an empty slot for the override material
             };
-
-            if (snowOverlayMaterial == null)
-            {
-                Debug.LogWarning("Attempt to call with an empty override material. Some variables will be set to default values");
-                return;
-            }
-
-            SetupMaterial(snowOverlayMaterial);
-            SetupMaterial(snowVertexMaterial!);
         }
 
         ShaderTagId[]? GetShaderTagIds()
@@ -166,7 +158,7 @@ namespace VoxxWeatherPlugin.Behaviours
             shaderPasses[shaderPasses.Length - 1] = new ShaderTagId(overrideMaterialPassName);
 
             RefreshSnowMaterial(snowOverlayMaterial);
-            RefreshSnowMaterial(snowVertexMaterial);
+            RefreshSnowMaterial(snowVertexMaterials);
 
             var mask = overrideDepthState ? RenderStateMask.Depth : 0;
             mask |= overrideDepthState && !depthWrite ? RenderStateMask.Stencil : 0;
@@ -218,7 +210,7 @@ namespace VoxxWeatherPlugin.Behaviours
         }
 
         
-        internal void RefreshSnowMaterial(Material material)
+        internal void RefreshSnowMaterial(Material? material)
         {
             if (material == null)
             {
@@ -239,6 +231,18 @@ namespace VoxxWeatherPlugin.Behaviours
             // Opaque alpha tested objects should have lower snow noise scale to appear more uniformly covered
             float snowNoiseScaleBias = renderQueueType == RenderQueueType.OpaqueNoAlphaTest ? 10f : -0.5f;
             material.SetFloat(SnowfallShaderIDs.SnowNoiseScaleOverlay, SnowfallWeather.Instance.snowScale + snowNoiseScaleBias);
+        }
+
+        internal void RefreshSnowMaterial(List<Material>? materials)
+        {
+            if (materials?.Count == 0)
+            {
+                return;
+            }
+            foreach (var material in materials!)
+            {
+                RefreshSnowMaterial(material);
+            }
         }
 
         internal void RenderForwardRendererList(FrameSettings frameSettings,
