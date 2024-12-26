@@ -538,6 +538,7 @@ namespace VoxxWeatherPlugin.Weathers
                 RenderTextureFormat.Default,
                 RenderTextureReadWrite.Linear
             );
+            
             Graphics.Blit(texture, rt);
             Texture2D readableTexture = new Texture2D(texture.width, texture.height);
             RenderTexture previous = RenderTexture.active;
@@ -584,7 +585,10 @@ namespace VoxxWeatherPlugin.Weathers
                 sunLightData = TimeOfDay.Instance.sunDirect.GetComponent<HDAdditionalLightData>();
             }
             
-            flareObject?.SetActive(true);
+            if (sunTexture != null)
+            {
+                flareObject?.SetActive(true);
+            }
         }
 
         private void OnDisable()
