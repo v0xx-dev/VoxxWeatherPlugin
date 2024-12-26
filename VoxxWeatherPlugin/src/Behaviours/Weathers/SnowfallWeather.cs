@@ -371,6 +371,10 @@ namespace VoxxWeatherPlugin.Weathers
 
         internal void FreezeWater()
         {
+            // Measure time
+            System.Diagnostics.Stopwatch stopwatch = new System.Diagnostics.Stopwatch();
+            stopwatch.Start();
+
             waterTriggerObjects = FindObjectsOfType<QuicksandTrigger>().Where(x => x.enabled &&
                                                                                 x.gameObject.activeInHierarchy &&
                                                                                 x.isWater &&
@@ -379,7 +383,8 @@ namespace VoxxWeatherPlugin.Weathers
             HashSet<GameObject> iceObjects = new HashSet<GameObject>();
             NavMeshModifierVolume[] navMeshModifiers = FindObjectsOfType<NavMeshModifierVolume>().Where(x => x.gameObject.activeInHierarchy &&
                                                                                     x.gameObject.scene.name == currentSceneName &&
-                                                                                    x.transform.position.y > heightThreshold).ToArray();
+                                                                                    x.transform.position.y > heightThreshold &&
+                                                                                    x.enabled).ToArray();
 
             foreach (QuicksandTrigger waterObject in waterTriggerObjects)
             {
@@ -390,6 +395,7 @@ namespace VoxxWeatherPlugin.Weathers
                     collider.enabled = false;
                 }
             }
+
             foreach (GameObject waterSurface in waterSurfaceObjects)
             {
                 MeshFilter meshFilter = waterSurface.GetComponent<MeshFilter>();
@@ -413,10 +419,6 @@ namespace VoxxWeatherPlugin.Weathers
                     // Check if any bounds of NavMeshModifierVolume intersect with the water surface bounds and disable it in that case
                     foreach (NavMeshModifierVolume navMeshModifier in navMeshModifiers)
                     {
-                        if (!navMeshModifier.enabled)
-                        {
-                            continue;
-                        }
                         Bounds bounds = new Bounds(navMeshModifier.center + navMeshModifier.transform.position, navMeshModifier.size);
                         Bounds waterBounds = renderer.bounds;
                         // Enlarge along y axis since water surfaces are thin
@@ -449,6 +451,9 @@ namespace VoxxWeatherPlugin.Weathers
                 navMeshContainer.GetComponent<NavMeshSurface>().BuildNavMesh();
                 Debug.LogDebug("NavMesh rebaked for ice!");
             }
+
+            stopwatch.Stop();
+            Debug.LogDebug($"Freezing water took {stopwatch.ElapsedMilliseconds} ms");
         }
 
         internal void ModifyScrollingFog()
@@ -1018,7 +1023,7 @@ namespace VoxxWeatherPlugin.Weathers
                 return;
             }
             
-            Debug.LogDebug("Merry Christmas!");
+            Debug.Log("Merry Christmas!");
             
             System.Random randomizer = SnowfallWeather.Instance!.seededRandom!;
 
