@@ -92,6 +92,48 @@ namespace VoxxWeatherPlugin.Patches
             return codeMatcher.InstructionEnumeration();
         }
 
+        [HarmonyPatch(typeof(RoundManager), "SpawnOutsideHazards")]
+        [HarmonyTranspiler]
+        private static IEnumerable<CodeInstruction> IceRebakeTranspiler(IEnumerable<CodeInstruction> instructions, ILGenerator generator)
+        {
+            var codes = new List<CodeInstruction>(instructions);
+
+            for (int i = 0; i < codes.Count - 4; i++)
+            {
+                if (codes[i].opcode == OpCodes.Ldloc_S &&
+                    codes[i + 1].opcode == OpCodes.Ldc_I4_0 &&
+                    codes[i + 2].opcode == OpCodes.Ble &&
+                    codes[i + 3].opcode == OpCodes.Ldstr)
+                {
+                    // Get the original target of the fail jump
+                    Label originalTarget = (Label)codes[i + 2].operand;
+
+                    // Define a new label for the fail jump target
+                    Label failJumpTarget = generator.DefineLabel();
+                    // Insert an additional condition
+                    codes.InsertRange(i,
+                    [
+                        new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(SnowPatches), nameof(DelayRebakeForIce))),
+                        new CodeInstruction(OpCodes.Brfalse, failJumpTarget)
+                    ]);
+
+                    // Find the original jump target and add the new label
+                    for (int j = i + 4; j < codes.Count; j++)
+                    {
+                        if (codes[j].labels.Contains(originalTarget))
+                        {
+                            codes[j].labels.Add(failJumpTarget);
+                            break;
+                        }
+                    }
+
+                    Debug.Log("Patched RoundManager.SpawnOutsideHazards to include ice rebake condition!");
+                    break;
+                }
+            }
+            return codes;
+        }
+
         [HarmonyPatch(typeof(PlayerControllerB), "LateUpdate")]
         [HarmonyPrefix]
         [HarmonyPriority(Priority.Low)]
@@ -311,6 +353,17 @@ namespace VoxxWeatherPlugin.Patches
             }
 
             return !isOnGround || isSameSurface || snowOverride;
+        }
+
+        // Patch for ice rebake condition
+        // true if we should NOT delay rebaking navmesh for ice
+        public static bool DelayRebakeForIce()
+        {
+            string currentWeather = WeatherRegistry.WeatherManager.GetCurrentLevelWeather().Name;
+            bool delayRebake = (currentWeather == "Snowfall" || currentWeather == "Blizzard") &&
+                                Configuration.freezeWater.Value;
+            Debug.LogDebug($"Should we delay NavMesh rebaking for ice: {delayRebake}");
+            return !delayRebake;
         }
         
     }

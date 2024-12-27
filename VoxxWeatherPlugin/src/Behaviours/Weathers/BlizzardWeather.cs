@@ -300,7 +300,7 @@ namespace VoxxWeatherPlugin.Weathers
                 float startTime = TimeOfDay.Instance.globalTime;
                 while (elapsedTime < duration)
                 {
-                    chillWaveContainer.SetActive(!GameNetworkManager.Instance.localPlayerController.isInsideFactory); // Only show the chill wave if the player is not inside the factory
+                    chillWaveContainer.SetActive(!GameNetworkManager.Instance?.localPlayerController?.isInsideFactory ?? false); // Only show the chill wave if the player is not inside the factory
                     chillWaveContainer.transform.position = Vector3.Lerp(initialPosition, targetPosition, elapsedTime / duration);
                     elapsedTime = TimeOfDay.Instance.globalTime - startTime; // Using synced global time to avoid making this a NetworkBehaviour
                     yield return null;

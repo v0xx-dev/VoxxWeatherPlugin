@@ -194,14 +194,14 @@ namespace VoxxWeatherPlugin.Utils
             VisualEffect blizzardVFX = blizzardVFXManager.snowVFXContainer!.GetComponent<VisualEffect>();
             blizzardVFX.visualEffectAsset = blizzardVFXAsset;
             blizzardVFX.SetFloat("spawnRateMultiplier", Configuration.snowParticlesMultiplier.Value);
-            blizzardVFX.SetBool("isCollisonEnabled", Configuration.enableVFXCollisions.Value);
+            blizzardVFX.SetBool("isCollisionEnabled", Configuration.enableVFXCollisions.Value);
             Camera blizzardCamera = blizzardVFX.GetComponentInChildren<Camera>(true);
             blizzardCamera.enabled = Configuration.enableVFXCollisions.Value;
             VisualEffect chillWaveVFX = blizzardVFXManager.blizzardWaveContainer!.GetComponentInChildren<VisualEffect>(true);
             chillWaveVFX.visualEffectAsset = blizzardWaveVFXAsset;
             chillWaveVFX.SetFloat("spawnRateMultiplier", Configuration.snowParticlesMultiplier.Value);
-            chillWaveVFX.SetBool("isCollisonEnabled", Configuration.enableVFXCollisions.Value);
-            Camera chillWaveCamera = chillWaveVFX.GetComponentInChildren<Camera>(true);
+            chillWaveVFX.SetBool("isCollisionEnabled", Configuration.enableVFXCollisions.Value);
+            Camera chillWaveCamera = blizzardVFXManager.blizzardWaveContainer!.GetComponentInChildren<Camera>(true);
             chillWaveCamera.enabled = Configuration.enableVFXCollisions.Value;
             // TODO add vfx configs
 

@@ -234,15 +234,14 @@ namespace VoxxWeatherPlugin.Weathers
         internal void OnStart()
         {
             Instance = this; // Change the global reference to this instance (for patches)
-
             seededRandom = new System.Random(StartOfRound.Instance.randomMapSeed);
             sunLightData = TimeOfDay.Instance.sunDirect?.GetComponent<HDAdditionalLightData>();
-            levelBounds = PlayableAreaCalculator.CalculateZoneSize(1.5f);
             snowScale = seededRandom.NextDouble(0.7f, 1.3f); // Snow patchy-ness
             finalSnowHeight = seededRandom.NextDouble(MinSnowHeight, MaxSnowHeight);
             fullSnowNormalizedTime = seededRandom.NextDouble(MinSnowNormalizedTime, MaxSnowNormalizedTime);
+            levelBounds = PlayableAreaCalculator.CalculateZoneSize(1.5f);
             ModifyRenderMasks();
-            FindAndSetupGround();
+            SetupGround();
             ModifyScrollingFog();
             if (Configuration.freezeWater.Value)
             {
@@ -383,12 +382,13 @@ namespace VoxxWeatherPlugin.Weathers
                                                                                 x.isWater &&
                                                                                 x.gameObject.scene.name == currentSceneName &&
                                                                                 !x.isInsideWater).ToArray();
+
             HashSet<GameObject> iceObjects = new HashSet<GameObject>();
+            stopwatch.Restart();
             NavMeshModifierVolume[] navMeshModifiers = FindObjectsOfType<NavMeshModifierVolume>().Where(x => x.gameObject.activeInHierarchy &&
                                                                                     x.gameObject.scene.name == currentSceneName &&
                                                                                     x.transform.position.y > heightThreshold &&
                                                                                     x.enabled).ToArray();
-
             foreach (QuicksandTrigger waterObject in waterTriggerObjects)
             {
                 // Disable sinking
@@ -398,7 +398,6 @@ namespace VoxxWeatherPlugin.Weathers
                     collider.enabled = false;
                 }
             }
-
             foreach (GameObject waterSurface in waterSurfaceObjects)
             {
                 MeshFilter meshFilter = waterSurface.GetComponent<MeshFilter>();
@@ -446,12 +445,12 @@ namespace VoxxWeatherPlugin.Weathers
             }
             // Store the ice objects
             SnowThicknessManager.Instance!.iceObjects = iceObjects;
-
             // Rebake NavMesh
             GameObject navMeshContainer = GameObject.FindGameObjectWithTag("OutsideLevelNavMesh");
             if (navMeshContainer != null)
             {
-                navMeshContainer.GetComponent<NavMeshSurface>().BuildNavMesh();
+                NavMeshSurface navMesh = navMeshContainer.GetComponent<NavMeshSurface>();
+                navMesh.UpdateNavMesh(navMesh.navMeshData);
                 Debug.LogDebug("NavMesh rebaked for ice!");
             }
 
@@ -481,7 +480,7 @@ namespace VoxxWeatherPlugin.Weathers
             return mesh;
         }
 
-        internal void FindAndSetupGround()
+        internal void SetupGround()
         {
             // TODO: Make this async
 
