@@ -11,10 +11,10 @@ namespace VoxxWeatherPlugin.Weathers
     internal class BlizzardWeather: SnowfallWeather
     {
         // Overrides   
-        internal new float MinSnowHeight => 0.6f*Configuration.minSnowHeight.Value;
-        internal new float MaxSnowHeight => 0.6f*Configuration.maxSnowHeight.Value;
-        internal new float MinSnowNormalizedTime => 0.2f*Configuration.minTimeToFullSnow.Value;
-        internal new float MaxSnowNormalizedTime => 0.3f*Configuration.maxTimeToFullSnow.Value;
+        internal new float MinSnowHeight => 0.6f*Configuration.minSnowHeightBlizzard.Value;
+        internal new float MaxSnowHeight => 0.6f*Configuration.maxSnowHeightBlizzard.Value;
+        internal new float MinSnowNormalizedTime => 0.3f*Configuration.minTimeToFullSnowBlizzard.Value;
+        internal new float MaxSnowNormalizedTime => 0.3f*Configuration.maxTimeToFullSnowBlizzard.Value;
 
         [Header("Visuals")]
         [SerializeField]
@@ -120,8 +120,6 @@ namespace VoxxWeatherPlugin.Weathers
         internal void FixedUpdate()
         {
             Vector3 playerHeadPos = GameNetworkManager.Instance.localPlayerController.gameplayCamera.transform.position;
-            // Could be optimized since the camera position is constant relative to the player, TODO?
-            // Vector3 nearestPointOnPlane = GetNearestPointOnPlane(playerHeadPos, blizzardCollisionCamera.transform.position, windDirection);
             
             // Calculate the direction vector from playerHeadPos to blizzard source
             Vector3 directionToSource = (blizzardCollisionCamera.transform.position - playerHeadPos).normalized;
@@ -182,12 +180,6 @@ namespace VoxxWeatherPlugin.Weathers
         internal override void SetColdZoneState()
         {
             PlayerEffectsManager.isInColdZone = VFXManager.isUnderSnowPreviousFrame || isPlayerInBlizzard;
-        }
-
-        Vector3 GetNearestPointOnPlane(Vector3 point, Vector3 planePoint, Vector3 planeNormal)
-        {
-            float distance = Vector3.Dot(planeNormal, planePoint - point);
-            return point + planeNormal * distance;
         }
 
         internal bool IsWindAllowed(PlayerControllerB localPlayer)

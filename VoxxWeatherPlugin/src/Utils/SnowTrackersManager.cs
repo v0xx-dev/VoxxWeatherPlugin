@@ -21,8 +21,6 @@ namespace VoxxWeatherPlugin.Utils
         public static Dictionary<MonoBehaviour, VisualEffect> snowShovelDict = new Dictionary<MonoBehaviour, VisualEffect>();
         private static readonly int isTrackingID = Shader.PropertyToID("isTracking");
 
-        // write a docstring
-
         /// <summary>
         /// Registers a snow footprint tracker for the specified object.
         /// </summary>

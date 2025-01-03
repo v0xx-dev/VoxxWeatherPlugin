@@ -51,11 +51,5 @@ namespace VoxxWeatherPlugin.Utils
             }
             loadedBundles.Clear();
         }
-
-        private void OnDisable()
-        {
-            UnloadAllBundles();
-            Debug.Log("Unloaded assetbundles.");
-        }
     }
 }

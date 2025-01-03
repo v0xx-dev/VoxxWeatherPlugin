@@ -57,6 +57,10 @@ namespace VoxxWeatherPlugin.Utils
         #endregion
 
         #region Blizzard
+        public static ConfigEntry<float>  minSnowHeightBlizzard; //
+        public static ConfigEntry<float>  maxSnowHeightBlizzard; //
+        public static ConfigEntry<float>  minTimeToFullSnowBlizzard; //
+        public static ConfigEntry<float>  maxTimeToFullSnowBlizzard; //
         public static ConfigEntry<float>  minTimeUntilFrostbite; //
         public static ConfigEntry<float>  maxTimeUntilFrostbite; //
         public static ConfigEntry<float>  minWindForce; //
@@ -212,23 +216,23 @@ namespace VoxxWeatherPlugin.Utils
             minSnowHeight = Config.Bind("Snowfall",
                                         "minSnowHeight",
                                         1.7f,
-                                        new ConfigDescription("Minimum snow height at the end of the day in meters. For blizzard weather only 60% of this value is used.",
+                                        new ConfigDescription("Minimum snow height at the end of the day in meters.",
                                                             new AcceptableValueRange<float>(0, 10f)));
             maxSnowHeight = Config.Bind("Snowfall",
                                         "maxSnowHeight",
                                         3f,
-                                        new ConfigDescription("Maximum snow height at the end of the day in meters. For blizzard weather only 60% of this value is used. Actual snow height is random between min and max.",
+                                        new ConfigDescription("Maximum snow height at the end of the day in meters. Actual snow height is random between min and max.",
                                                             new AcceptableValueRange<float>(0, 10f)));  
 
             minTimeToFullSnow = Config.Bind("Snowfall",
                                             "minTimeToFullSnow",
                                             0.5f,
-                                            new ConfigDescription("Minimum fraction of the day until snow reaches max height. Actual time is random between min and max. Blizzard weather will only use 20% of this value.",
+                                            new ConfigDescription("Minimum fraction of the day until snow reaches max height. Actual time is random between min and max.",
                                                                 new AcceptableValueRange<float>(0, 1f)));
             maxTimeToFullSnow = Config.Bind("Snowfall",
                                             "maxTimeToFullSnow",
                                             0.8f,
-                                            new ConfigDescription("Maximum fraction of the day until snow reaches max height. Actual time is random between min and max. Blizzard weather will only use 20% of this value.",
+                                            new ConfigDescription("Maximum fraction of the day until snow reaches max height. Actual time is random between min and max.",
                                                                 new AcceptableValueRange<float>(0, 1f)));
             freezeWater = Config.Bind("Snowfall",
                                     "freezeWater",
@@ -271,10 +275,30 @@ namespace VoxxWeatherPlugin.Utils
             snowAffectsEnemies = Config.Bind("Snowfall",
                                             "snowAffectsEnemies",
                                             true,
-                                            "Allow snowfall weather to affect enemies. If disabled enemies will not be slowed down by snow.");
+                                            "HOST ONLY! Allow snowfall weather to affect enemies. If disabled enemies will not be slowed down by snow.");
             #endregion
 
             #region Blizzard
+            minSnowHeightBlizzard = Config.Bind("Blizzard",
+                                                "minSnowHeightBlizzard",
+                                                1.0f,
+                                                new ConfigDescription("Minimum snow height at the end of the day in meters during blizzard weather. Actual snow height is random between min and max.",
+                                                                    new AcceptableValueRange<float>(0, 10f)));
+            maxSnowHeightBlizzard = Config.Bind("Blizzard",
+                                                "maxSnowHeightBlizzard",
+                                                1.8f,
+                                                new ConfigDescription("Maximum snow height at the end of the day in meters during blizzard weather. Actual snow height is random between min and max.",
+                                                                    new AcceptableValueRange<float>(0, 10f)));
+            minTimeToFullSnowBlizzard = Config.Bind("Blizzard",
+                                                    "minTimeToFullSnowBlizzard",
+                                                    0.1f,
+                                                    new ConfigDescription("Minimum fraction of the day until snow reaches max height during blizzard weather. Actual time is random between min and max.",
+                                                                        new AcceptableValueRange<float>(0, 1f)));
+            maxTimeToFullSnowBlizzard = Config.Bind("Blizzard",
+                                                    "maxTimeToFullSnowBlizzard",
+                                                    0.2f,
+                                                    new ConfigDescription("Maximum fraction of the day until snow reaches max height during blizzard weather. Actual time is random between min and max.",
+                                                                        new AcceptableValueRange<float>(0, 1f)));
 
             minTimeUntilFrostbite = Config.Bind("Blizzard",
                                                 "minTimeUntilFrostbite",
@@ -378,9 +402,9 @@ namespace VoxxWeatherPlugin.Utils
                                                             new AcceptableValueRange<int>(1, 50)));
             BlurKernelSize = Config.Bind("Snow Graphics",
                                         "BlurKernelSize",
-                                        3,
+                                        10,
                                         new ConfigDescription("Kernel size for the depth buffer blur used for VSM 'shadow' mapping, that is used for snow overlay rendering (non fluffy snow). Higher values will produce smoother snow transitions under objects, but will lower accuracy of VFX collisions.",
-                                                            new AcceptableValueRange<int>(1, 32)));
+                                                            new AcceptableValueRange<int>(0, 32)));
             minTesselationFactor = Config.Bind("Snow Graphics",
                                                 "minTesselationFactor",
                                                 4,
@@ -412,7 +436,7 @@ namespace VoxxWeatherPlugin.Utils
             #region Mesh & Terrain processing
             meshProcessingBlacklist = Config.Bind("Mesh & Terrain Processing",
                                                 "meshProcessingBlacklist",
-                                                "Vow;Adamance;Summit",
+                                                "Vow;Adamance;Summit;Eden;Rockwell;Makron;Baykal;Mazon;Flicker",
                                                 "List of moons that will be excluded from additional mesh processing. Only put moons that have MESH terrains in this list. You can safely put any moon here that was created with the TerraMesh tool! Separate with a semicolon. Example: 'Summit;Vow;Adamance'");
             subdivideMesh = Config.Bind("Mesh & Terrain Processing",
                                         "subdivideMesh",

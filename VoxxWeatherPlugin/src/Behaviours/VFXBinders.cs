@@ -34,8 +34,10 @@ namespace VoxxWeatherPlugin.Behaviours
         ExposedProperty m_FarPlane;
         ExposedProperty m_AspectRatio;
         ExposedProperty m_Dimensions;
+        ExposedProperty m_ScaledDimensions;
         ExposedProperty m_DepthBuffer;
         ExposedProperty m_ColorBuffer;
+        ExposedProperty m_OrthographicSize;
 
         /// <summary>
         /// Set a camera property.
@@ -64,8 +66,10 @@ namespace VoxxWeatherPlugin.Behaviours
             m_FarPlane = CameraProperty + "_farPlane";
             m_AspectRatio = CameraProperty + "_aspectRatio";
             m_Dimensions = CameraProperty + "_pixelDimensions";
+            m_ScaledDimensions = CameraProperty + "_scaledPixelDimensions";
             m_DepthBuffer = CameraProperty + "_depthBuffer";
             m_ColorBuffer = CameraProperty + "_colorBuffer";
+            m_OrthographicSize = CameraProperty + "_orthographicSize";
         }
 
         void RequestHDRPBuffersAccess(ref HDAdditionalCameraData.BufferAccess access)
@@ -123,8 +127,10 @@ namespace VoxxWeatherPlugin.Behaviours
                 && component.HasFloat(m_FarPlane)
                 && component.HasFloat(m_AspectRatio)
                 && component.HasVector2(m_Dimensions)
+                && component.HasVector2(m_ScaledDimensions)
                 && component.HasTexture(m_DepthBuffer)
-                && component.HasTexture(m_ColorBuffer);
+                && component.HasTexture(m_ColorBuffer)
+                && component.HasFloat(m_OrthographicSize);
         }
 
         /// <summary>
@@ -167,20 +173,24 @@ namespace VoxxWeatherPlugin.Behaviours
             component.SetFloat(m_FieldOfView, Mathf.Deg2Rad * m_Camera.fieldOfView);
             component.SetFloat(m_NearPlane, m_Camera.nearClipPlane);
             component.SetFloat(m_FarPlane, m_Camera.farClipPlane);
+            component.SetFloat(m_OrthographicSize, m_Camera.orthographicSize);
             
             if (useDepthTexture)
             {
                 component.SetVector2(m_Dimensions, new Vector2(depthTexture!.width, depthTexture.height));
+                component.SetVector2(m_ScaledDimensions, new Vector2(depthTexture.width, depthTexture.height));
                 component.SetFloat(m_AspectRatio, (float)depthTexture.width / (float)depthTexture.height);
             }
             else if (useColorTexture)
             {
                 component.SetVector2(m_Dimensions, new Vector2(colorTexture!.width, colorTexture.height));
+                component.SetVector2(m_ScaledDimensions, new Vector2(colorTexture.width, colorTexture.height));
                 component.SetFloat(m_AspectRatio, (float)colorTexture.width / (float)colorTexture.height);
             }
             else if (depth != null)
             {
                 component.SetVector2(m_Dimensions, new Vector2(m_Camera.pixelWidth * depth.rtHandleProperties.rtHandleScale.x, m_Camera.pixelHeight * depth.rtHandleProperties.rtHandleScale.y));
+                component.SetVector2(m_ScaledDimensions, new Vector2(m_Camera.pixelWidth * depth.rtHandleProperties.rtHandleScale.x, m_Camera.pixelHeight * depth.rtHandleProperties.rtHandleScale.y));
                 component.SetFloat(m_AspectRatio, m_Camera.aspect);
             }
             

@@ -5,10 +5,12 @@ using UnityEngine.Rendering;
 
 namespace VoxxWeatherPlugin.Behaviours
 {
+    // TODO ADD PRIORITY
     // Must be used with a camera that has a target texture
     public class DepthVSMPass : CustomPass
     {
         public Material? depthMaterial;
+        public RenderTexture? depthUnblurred = null;
         public int blurRadius = 4; // The radius of the blur kernel for VSM averaging
 
         protected override bool executeInSceneView => true;
@@ -40,11 +42,14 @@ namespace VoxxWeatherPlugin.Behaviours
             RenderTexture tempTexture2 = RenderTexture.GetTemporary(width, height, 0, textureFormat);
             // Copy the depth map to a temporary texture
             ctx.cmd.Blit(ctx.cameraDepthBuffer, tempTexture1, depthMaterial, 0);
+            if (depthUnblurred != null)
+            {
+                // Store the unblurred depth map
+                ctx.cmd.Blit(ctx.cameraDepthBuffer, depthUnblurred, depthMaterial, 0);
+            }
             // Blur the depth map (Horizontal)
-            depthMaterial.SetTexture("_MainTex", tempTexture1);
             ctx.cmd.Blit(tempTexture1, tempTexture2, depthMaterial, 1);
             // Blur the depth map (Vertical)
-            depthMaterial.SetTexture("_MainTex", tempTexture2);
             ctx.cmd.Blit(tempTexture2, ctx.cameraColorBuffer, depthMaterial, 2);
 
             RenderTexture.ReleaseTemporary(tempTexture1);

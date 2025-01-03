@@ -6,6 +6,7 @@ using UnityEngine.Experimental.Rendering;
 
 namespace VoxxWeatherPlugin.Behaviours
 {
+    // TODO MAKE FULLSCREEN PASS
     [Serializable, VolumeComponentMenu("Post-processing/Custom/Glitch Effect")]
     public sealed class GlitchEffect : CustomPass
     {
@@ -64,7 +65,14 @@ namespace VoxxWeatherPlugin.Behaviours
                 return;
             }
 
+            // TODO THREAD BLOCKING: This is a blocking call, it will wait for the GPU to finish rendering
+            // Try to change to fullscreen pass
             HDUtils.BlitCameraTexture(ctx.cmd, ctx.cameraColorBuffer, tempColorBuffer);
+            //Async Blit
+            // CommandBuffer copyCmd = new CommandBuffer();
+            // copyCmd.CopyTexture(ctx.cameraColorBuffer, tempColorBuffer);
+            // Graphics.ExecuteCommandBufferAsync(copyCmd, ComputeQueueType.Background);
+            // Doesn't work
 
             float time = Time.time;
             float delta = time - m_PrevTime;

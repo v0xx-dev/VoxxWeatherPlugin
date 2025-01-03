@@ -6,6 +6,7 @@ using GameNetcodeStuff;
 using VoxxWeatherPlugin.Utils;
 using UnityEngine.Rendering;
 using Unity.Collections;
+using UnityEngine.VFX;
 
 namespace VoxxWeatherPlugin.Behaviours
 {
@@ -164,7 +165,7 @@ namespace VoxxWeatherPlugin.Behaviours
 
                 snowTrackerData = new SerializableDictionary<GameObject, SnowTrackerData>();
 
-                foreach (KeyValuePair<MonoBehaviour, VisualEffect> kvp in SnowPatches.snowTrackersDict)
+                foreach (KeyValuePair<MonoBehaviour, VisualEffect> kvp in SnowTrackersManager.snowTrackersDict)
                 {
                     if (kvp.Key == null)
                     {

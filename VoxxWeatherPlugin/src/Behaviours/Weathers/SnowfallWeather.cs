@@ -60,6 +60,8 @@ namespace VoxxWeatherPlugin.Weathers
         [SerializeField]
         internal RenderTexture? levelDepthmap;
         [SerializeField]
+        internal RenderTexture? levelDepthmapUnblurred;
+        [SerializeField]
         internal int DepthmapResolution => Configuration.depthBufferResolution.Value;
         [SerializeField]
         internal int PCFKernelSize => Configuration.PCFKernelSize.Value;
@@ -202,13 +204,29 @@ namespace VoxxWeatherPlugin.Weathers
             levelDepthmap.name = "Level Depthmap";
             levelDepthmap.Create();
             // Set the camera target texture
-            levelDepthmapCamera!.targetTexture = levelDepthmap;
+            levelDepthmapCamera!.targetTexture = levelDepthmapUnblurred;
             levelDepthmapCamera.aspect = 1.0f;
             levelDepthmapCamera.enabled = false;
+            // Create buffer for unblurred depthmap
+            levelDepthmapUnblurred = new RenderTexture(DepthmapResolution, 
+                                            DepthmapResolution,
+                                            0, // Depth bits
+                                            RenderTextureFormat.RFloat
+                                            );
+            
+            levelDepthmapUnblurred.dimension = TextureDimension.Tex2DArray; // Single layer array for compat with VFX Graph binding
+            levelDepthmapUnblurred.wrapMode = TextureWrapMode.Clamp;
+            levelDepthmapUnblurred.filterMode = FilterMode.Trilinear;
+            levelDepthmapUnblurred.useMipMap = false;
+            levelDepthmapUnblurred.enableRandomWrite = true;
+            levelDepthmapUnblurred.useDynamicScale = true;
+            levelDepthmapUnblurred.name = "Level Depthmap Unblurred";
+            levelDepthmapUnblurred.Create();
 
             CustomPassVolume customPassVolume = levelDepthmapCamera.GetComponent<CustomPassVolume>();
             DepthVSMPass? depthVSMPass = customPassVolume.customPasses[0] as DepthVSMPass;
             depthVSMPass!.blurRadius = BlurRadius;
+            depthVSMPass!.depthUnblurred = levelDepthmapUnblurred;
             // This is because Diversity fucks up injection priorities
             customPassVolume.injectionPoint = CustomPassInjectionPoint.BeforePostProcess;
 
@@ -337,6 +355,8 @@ namespace VoxxWeatherPlugin.Weathers
             Vector3 cameraPosition = new Vector3(levelBounds.center.x,
                                                 levelDepthmapCamera!.transform.position.y,
                                                 levelBounds.center.z);
+            // Set orthographic size to half of the level bounds
+            levelDepthmapCamera.orthographicSize = (int)Mathf.Max(levelBounds.size.x, levelBounds.size.z) / 2;
             levelDepthmapCamera.transform.position = cameraPosition;
             depthWorldToClipMatrix = levelDepthmapCamera.projectionMatrix * levelDepthmapCamera.worldToCameraMatrix;
             Debug.LogDebug($"Camera position: {levelDepthmapCamera.transform.position}, Barycenter: {levelBounds.center}");
@@ -360,7 +380,6 @@ namespace VoxxWeatherPlugin.Weathers
             yield return new WaitForEndOfFrame();
             yield return new WaitForEndOfFrame();
             
-            camera.targetTexture = null;
             camera.enabled = false;
 
             if (bakeSnowMaps)
@@ -567,7 +586,7 @@ namespace VoxxWeatherPlugin.Weathers
             GameObject snowGround = meshTerrain.Duplicate(disableShadows: !Configuration.snowCastsShadows.Value, removeCollider: true);
             MeshRenderer meshRenderer = snowGround.GetComponent<MeshRenderer>();
             // Duplicate the snow vertex material to allow SRP batching
-            Material? snowVertexCopy = Instantiate(CurrentSnowVertexMaterial);
+            Material snowVertexCopy = Instantiate(CurrentSnowVertexMaterial!);
             snowVertexCopy.SetFloat(SnowfallShaderIDs.TexIndex, texId);
             snowOverlayCustomPass!.snowVertexMaterials.Add(snowVertexCopy);
             meshRenderer.sharedMaterial = snowVertexCopy;
@@ -787,9 +806,9 @@ namespace VoxxWeatherPlugin.Weathers
             bakeMaterial?.SetFloat(SnowfallShaderIDs.SnowOcclusionBias, snowOcclusionBias);
             bakeMaterial?.SetVector(SnowfallShaderIDs.ShipPosition, shipPosition);
             
-            if (levelDepthmap != null)
+            if (levelDepthmapUnblurred != null)
             {
-                bakeMaterial?.SetTexture(SnowfallShaderIDs.DepthTex, levelDepthmap);
+                bakeMaterial?.SetTexture(SnowfallShaderIDs.DepthTex, levelDepthmapUnblurred);
             }
 
             // Set projection matrix from camera
@@ -978,7 +997,7 @@ namespace VoxxWeatherPlugin.Weathers
                 if (depthBinder != null)
                 {
                     Debug.LogDebug("Binding depth texture to snow VFX");
-                    depthBinder.depthTexture = SnowfallWeather.Instance!.levelDepthmap; // bind the baked depth texture
+                    depthBinder.depthTexture = SnowfallWeather.Instance!.levelDepthmapUnblurred; // bind the baked depth texture
                 }
             }
 

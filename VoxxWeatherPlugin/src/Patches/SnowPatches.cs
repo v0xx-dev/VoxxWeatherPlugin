@@ -139,7 +139,7 @@ namespace VoxxWeatherPlugin.Patches
         [HarmonyPriority(Priority.Low)]
         private static void FrostbiteLatePostfix(PlayerControllerB __instance)
         {
-            if (!(SnowfallWeather.Instance?.IsActive ?? false) || !__instance.IsOwner)
+            if (!(SnowfallWeather.Instance?.IsActive ?? false) || __instance != GameNetworkManager.Instance?.localPlayerController)
                 return;
 
             // Gradually reduce heat severity when not in heat zone
@@ -224,6 +224,7 @@ namespace VoxxWeatherPlugin.Patches
             SnowTrackersManager.AddFootprintTracker(__instance, 2.6f, 1f, 0.25f);
         }
 
+        //TODO MaskedPlayerEnemy doesn't work for some reason
         [HarmonyPatch(typeof(EnemyAI), "Start")]
         [HarmonyPrefix]
         private static void EnemySnowTracksPatch(EnemyAI __instance)
@@ -339,12 +340,13 @@ namespace VoxxWeatherPlugin.Patches
 
             if (SnowThicknessManager.Instance != null && isOnGround)
             {
+                // TODO for the local player update data in PlayerControllerB.CalculateGroundNormal
                 SnowThicknessManager.Instance.UpdateEntityData(playerScript, playerScript.hit);
 
                 // Override footstep sound if snow is thick enough
                 if (SnowfallVFXManager.snowFootstepIndex != -1 &&
                     SnowThicknessManager.Instance.isEntityOnNaturalGround(playerScript) &&
-                     SnowThicknessManager.Instance.GetSnowThickness(playerScript) > 0.1f // offset is not applied here for nonlocal player so they would produce normal footstep sounds
+                     SnowThicknessManager.Instance.GetSnowThickness(playerScript) > 0.1f // offset is not applied here for nonlocal player so they would produce normal footstep sounds at edge cases
                     )
                 {
                     snowOverride = true;
