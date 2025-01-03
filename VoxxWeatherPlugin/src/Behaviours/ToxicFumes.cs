@@ -6,7 +6,6 @@ namespace VoxxWeatherPlugin.Behaviours
 {
     internal class ToxicFumes : MonoBehaviour
     {   
-        private static float DrunknessPower => Configuration.ToxicPoisoningStrength.Value;
 
         protected virtual void OnTriggerStay(Collider other)
         {
@@ -17,10 +16,7 @@ namespace VoxxWeatherPlugin.Behaviours
                 if (playerController == GameNetworkManager.Instance.localPlayerController )
                 {
                     PlayerEffectsManager.isPoisoned = true;
-                    // We want to increase drunkness only when player is in the toxic fumes area
-                    playerController.drunknessInertia = Mathf.Clamp(playerController.drunknessInertia + Time.deltaTime / DrunknessPower * playerController.drunknessSpeed, 0.1f, 10f);
-                    playerController.increasingDrunknessThisFrame = true;
-                }
+                 }
             }
         }
 

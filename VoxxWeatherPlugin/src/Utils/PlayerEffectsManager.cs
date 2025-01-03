@@ -13,6 +13,7 @@ namespace VoxxWeatherPlugin.Utils
         public static bool isPoisoned = false;
         public static float heatTransferRate = 1f;
         public static float normalizedTemperature = 0f; // 0 - room temperature, 1 - heatstroke, -1 - hypothermia
+        public static float poisoningStrength = 0f;
         public static float HeatSeverity => Mathf.Clamp01(normalizedTemperature);
         public static float ColdSeverity => Mathf.Clamp01(-normalizedTemperature);
 
@@ -43,16 +44,18 @@ namespace VoxxWeatherPlugin.Utils
             SetPlayerTemperature(-Mathf.Sign(normalizedTemperature) * temperatureDelta);
         }
 
-        internal static void SetPoisoningEffect()
+        internal static void SetPoisoningEffect(float poisonDelta)
         {
+            // If poisonDelta is Time.deltaTime, then poisoningStrength will be increased by 0.2 per second, will reach 1 in 5 seconds
+            poisoningStrength = Mathf.Clamp(poisoningStrength + poisonDelta*0.2f, 0, 1f);
             PlayerControllerB localPlayerController = GameNetworkManager.Instance.localPlayerController;
-            float drunknessEffectPower = StartOfRound.Instance.drunknessSideEffect.Evaluate(localPlayerController.drunkness);
+            float currentDrunknessFilterWeight = HUDManager.Instance.drunknessFilter.weight;
+            float newDrunknessFilterWeight = Mathf.Max(currentDrunknessFilterWeight, poisoningStrength);
             // Set visual effect
-            HUDManager.Instance.drunknessFilter.weight = Mathf.Lerp(HUDManager.Instance.drunknessFilter.weight, drunknessEffectPower, 5f * Time.deltaTime);
+            HUDManager.Instance.drunknessFilter.weight = newDrunknessFilterWeight;
             HUDManager.Instance.gasImageAlpha.alpha = HUDManager.Instance.drunknessFilter.weight * 1.5f;
             // Set audio effect
-            SoundManager.Instance.playerVoicePitchTargets[localPlayerController.playerClientId] = drunknessEffectPower <= 0.15f ? 1f : 1f + drunknessEffectPower;
-      
+            SoundManager.Instance.playerVoicePitchTargets[localPlayerController.playerClientId] = newDrunknessFilterWeight <= 0.15f ? 1f : 1f + newDrunknessFilterWeight;
         }
         
     }

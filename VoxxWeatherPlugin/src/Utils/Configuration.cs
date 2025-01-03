@@ -111,7 +111,7 @@ namespace VoxxWeatherPlugin.Utils
         #region Toxic Smog
         public static ConfigEntry<float> ToxicDamageInterval; //
         public static ConfigEntry<int> ToxicDamageAmount; //
-        public static ConfigEntry<float> ToxicPoisoningStrength; //
+        public static ConfigEntry<float> PoisoningRemovalMultiplier; //
         public static ConfigEntry<float> MinFreePath; //
         public static ConfigEntry<float> MaxFreePath; //
         public static ConfigEntry<int> MinFumesAmount; //
@@ -498,11 +498,11 @@ namespace VoxxWeatherPlugin.Utils
                                             5,
                                             new ConfigDescription("Amount of damage dealt by toxic smog effect.",
                                                                 new AcceptableValueRange<int>(0, 100)));
-            ToxicPoisoningStrength = Config.Bind("Toxic Smog",
-                                                "ToxicPoisoningStrength",
-                                                1.0f,
-                                                new ConfigDescription("Strength of the toxic poisoning effect. Lower values make the effect more intense.",
-                                                                    new AcceptableValueRange<float>(1e-8f, 99f)));
+            PoisoningRemovalMultiplier = Config.Bind("Toxic Smog",
+                                                    "PoisoningRemovalMultiplier",
+                                                    0.5f,
+                                                    new ConfigDescription("Multiplier for the rate at which poisoning effect is removed. 1.0 is normal rate, 0.5 is half rate, 2.0 is double rate, 0 no removal. Values are in comparison to gain rate.",
+                                                                        new AcceptableValueRange<float>(0, 10)));
             MinFreePath = Config.Bind("Toxic Smog",
                                     "MinFreePath",
                                     8f,
