@@ -14,6 +14,7 @@ using System.Collections;
 using GameNetcodeStuff;
 using UnityEngine.AI;
 using Unity.AI.Navigation;
+using TerraMesh;
 
 namespace VoxxWeatherPlugin.Weathers
 {
@@ -101,45 +102,38 @@ namespace VoxxWeatherPlugin.Weathers
         internal Texture2DArray? snowMasks; // Texture2DArray to store the snow masks
         internal bool BakeMipmaps => Configuration.bakeSnowDepthMipmaps.Value;
 
-        [Header("Terrain Mesh Post-Processing")]
-        [SerializeField]
-        internal float baseEdgeLength = 5; // The target edge length for the mesh refinement
-        [SerializeField]
-        internal bool UseBounds => Configuration.useLevelBounds.Value; // Use the level bounds to filter out-of-bounds vertices
-        [SerializeField]
-        internal bool SubdivideMesh => Configuration.subdivideMesh.Value; // Will also force the algorithm to refine mesh to remove thin triangles
-        [SerializeField]
-        internal bool SmoothMesh => Configuration.smoothMesh.Value;
-        [SerializeField]
-        internal int smoothingIterations = 1;
-        [SerializeField]
-        internal bool replaceUvs = false;
-        [SerializeField]
-        internal bool constrainEdges = true;
-
         [Header("TerraMesh Parameters")]
-        [SerializeField]
-        internal Shader? terraMeshShader;
-        [SerializeField]
-        internal bool RefineMesh => Configuration.refineMesh.Value;
-        [SerializeField]
-        internal bool CarveHoles => Configuration.carveHoles.Value;
-        [SerializeField]
-        internal bool copyTrees = false;
-        [SerializeField]
-        internal bool copyDetail = false;
-        [SerializeField]
-        internal bool UseMeshCollider => Configuration.useMeshCollider.Value;
-        
-        [SerializeField]
-        internal int TargetVertexCount => Configuration.targetVertexCount.Value;
-        [SerializeField]
-        internal int MinMeshStep => Configuration.minMeshStep.Value;
-        [SerializeField]
-        internal int MaxMeshStep => Configuration.maxMeshStep.Value;
-        [SerializeField]
-        internal float FalloffSpeed => Configuration.falloffRatio.Value;
 
+        [SerializeField]
+        internal TerraMeshConfig terraMeshConfig = new TerraMeshConfig()
+        {
+            // Bounding box for target area
+            levelBounds = null,
+            useBounds = Configuration.useLevelBounds.Value, // Use the level bounds to filter out-of-bounds vertices
+            constrainEdges = true,
+            // Mesh subdivision
+            subdivideMesh = Configuration.subdivideMesh.Value, // Will also force the algorithm to refine mesh to remove thin triangles
+            baseEdgeLength = 5, // The target edge length for the mesh refinement
+            //Mesh smoothing
+            smoothMesh = Configuration.smoothMesh.Value,
+            smoothingIterations = 1,
+            // UVs
+            replaceUvs = false,
+            onlyUVs = false, //Will only update UV1 field on the mesh
+            // Renderer mask
+            renderingLayerMask = 0,
+            // Terrain conversion
+            minMeshStep = Configuration.minMeshStep.Value,
+            maxMeshStep = Configuration.maxMeshStep.Value,
+            falloffSpeed = Configuration.falloffRatio.Value,
+            targetVertexCount = Configuration.targetVertexCount.Value,
+            carveHoles = Configuration.carveHoles.Value,
+            refineMesh = Configuration.refineMesh.Value,
+            useMeshCollider = Configuration.useMeshCollider.Value,
+            copyTrees = false,
+            copyDetail = false,
+        };
+        
         [Header("General")]
         [SerializeField]
         internal Vector3 shipPosition;
@@ -188,6 +182,7 @@ namespace VoxxWeatherPlugin.Weathers
             //     snowOverlayMaterial.SetColor(SnowfallShaderIDs.SnowColor, new Color(0.1657f, 0.1670f, 0.2075f, 1f));
             //     snowOverlayMaterial.SetFloat(SnowfallShaderIDs.Metallic, 1f);
             // }
+            terraMeshConfig.renderingLayerMask = (uint)(snowOverlayCustomPass?.renderingLayers ?? 0);
 
             levelDepthmap = new RenderTexture(DepthmapResolution, 
                                             DepthmapResolution,
@@ -258,6 +253,7 @@ namespace VoxxWeatherPlugin.Weathers
             finalSnowHeight = seededRandom.NextDouble(MinSnowHeight, MaxSnowHeight);
             fullSnowNormalizedTime = seededRandom.NextDouble(MinSnowNormalizedTime, MaxSnowNormalizedTime);
             levelBounds = PlayableAreaCalculator.CalculateZoneSize(1.5f);
+            terraMeshConfig.levelBounds = levelBounds;
             ModifyRenderMasks();
             SetupGround();
             ModifyScrollingFog();
@@ -516,12 +512,13 @@ namespace VoxxWeatherPlugin.Weathers
                 }
             }
             // For Experimentation moon, UVs are broken and need to be replaced
-            replaceUvs = StartOfRound.Instance.currentLevel.name.CleanMoonName().Contains("experimentation");
+            terraMeshConfig.replaceUvs = StartOfRound.Instance.currentLevel.name.CleanMoonName().Contains("experimentation");
+            terraMeshConfig.onlyUVs = isMoonBlacklisted;
             if (isMoonBlacklisted)
             {
                 Debug.LogDebug($"Moon {StartOfRound.Instance.currentLevel.name} is blacklisted for mesh postprocessing! Skipping...");
             }
-            if (replaceUvs)
+            if (terraMeshConfig.replaceUvs)
             {
                 Debug.LogDebug($"Moon {StartOfRound.Instance.currentLevel.name} needs UV replacement for mesh postprocessing! Overriding...");
             }
@@ -531,7 +528,7 @@ namespace VoxxWeatherPlugin.Weathers
             foreach (GameObject meshTerrain in groundObjectCandidates)
             {
                 // Process the mesh to remove thin triangles and smooth the mesh
-                meshTerrain.PostprocessMeshTerrain(levelBounds, this, onlyUVs: isMoonBlacklisted);
+                meshTerrain.PostprocessMeshTerrain(terraMeshConfig);
                 // Setup the index in the material property block for the snow masks
                 PrepareMeshForSnow(meshTerrain, textureIndex);
                 // Add the terrain to the dictionary
@@ -550,16 +547,16 @@ namespace VoxxWeatherPlugin.Weathers
                     continue;
                 }
                 // Turn the terrain into a mesh
-                GameObject meshTerrain = terrain.Meshify(this, UseBounds ? levelBounds : null);
+                GameObject meshTerrain = terrain.Meshify(terraMeshConfig);
                 // Modify render mask to support overlay snow rendering
                 MeshRenderer meshRenderer = meshTerrain.GetComponent<MeshRenderer>();
-                meshRenderer.renderingLayerMask |= (uint)snowOverlayCustomPass!.renderingLayers;
+                meshRenderer.renderingLayerMask |= terraMeshConfig.renderingLayerMask;
                 // Setup the Lit terrain material
                 Material terrainMaterial = meshRenderer.sharedMaterial;
                 terrainMaterial.SetupMaterialFromTerrain(terrain);
                 // Setup the index in the material property block for the snow masks
                 PrepareMeshForSnow(meshTerrain, textureIndex);
-                if (UseMeshCollider)
+                if (terraMeshConfig.useMeshCollider)
                 {
                     // Use mesh terrain for snow thickness calculation
                     groundToIndex.Add(meshTerrain, textureIndex);
@@ -591,7 +588,7 @@ namespace VoxxWeatherPlugin.Weathers
             snowOverlayCustomPass!.snowVertexMaterials.Add(snowVertexCopy);
             meshRenderer.sharedMaterial = snowVertexCopy;
             // Deselect snow OVERLAY rendering layers from vertex snow objects
-            meshRenderer.renderingLayerMask &= ~(uint)snowOverlayCustomPass!.renderingLayers;
+            meshRenderer.renderingLayerMask &= ~terraMeshConfig.renderingLayerMask;
             // Upload the mesh to the GPU to save RAM. TODO: Prevents NavMesh baking
             // snowGround.GetComponent<MeshFilter>().sharedMesh.UploadMeshData(true);
             // Override the material property block to set the object ID to sample from a single Texture2DArray
@@ -643,7 +640,7 @@ namespace VoxxWeatherPlugin.Weathers
             {
                 if (obj.TryGetComponent<MeshRenderer>(out MeshRenderer meshRenderer))
                 {
-                    meshRenderer.renderingLayerMask |= (uint)snowOverlayCustomPass!.renderingLayers;
+                    meshRenderer.renderingLayerMask |= terraMeshConfig.renderingLayerMask;
                 }
             }
         }
