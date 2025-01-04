@@ -12,6 +12,7 @@ namespace VoxxWeatherPlugin
 {
     [BepInPlugin(PluginInfo.PLUGIN_GUID, PluginInfo.PLUGIN_NAME, PluginInfo.PLUGIN_VERSION)]
     [BepInDependency("mrov.WeatherRegistry", BepInDependency.DependencyFlags.HardDependency)]
+    [BepInDependency("voxx.TerraMesh", BepInDependency.DependencyFlags.HardDependency)]
     public class VoxxWeatherPlugin : BaseUnityPlugin
     {
         private Harmony harmony;

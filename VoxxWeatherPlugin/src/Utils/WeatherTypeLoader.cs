@@ -190,7 +190,6 @@ namespace VoxxWeatherPlugin.Utils
             blizzardWeatherController.snowOverlayMaterial!.shader = overlayShader;
             blizzardWeatherController.snowVertexMaterial!.shader = vertexSnowShader;
             blizzardWeatherController.snowVertexOpaqueMaterial!.shader = opaqueVertexSnowShader;
-            blizzardWeatherController.terraMeshShader = terrainLitShader;
             VisualEffect blizzardVFX = blizzardVFXManager.snowVFXContainer!.GetComponent<VisualEffect>();
             blizzardVFX.visualEffectAsset = blizzardVFXAsset;
             blizzardVFX.SetFloat("spawnRateMultiplier", Configuration.snowParticlesMultiplier.Value);
@@ -280,7 +279,6 @@ namespace VoxxWeatherPlugin.Utils
             snowfallWeatherController.snowOverlayMaterial!.shader = overlayShader;
             snowfallWeatherController.snowVertexMaterial!.shader = vertexSnowShader;
             snowfallWeatherController.snowVertexOpaqueMaterial!.shader = opaqueVertexSnowShader;
-            snowfallWeatherController.terraMeshShader = terrainLitShader;
             VisualEffect snowVFX = snowfallVFXManager.snowVFXContainer!.GetComponent<VisualEffect>();
             snowVFX.visualEffectAsset = snowVFXAsset;
             snowVFX.SetFloat("spawnRateMultiplier", Configuration.snowParticlesMultiplier.Value);
