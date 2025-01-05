@@ -149,8 +149,8 @@ namespace VoxxWeatherPlugin.Weathers
         internal List<GameObject> waterSurfaceObjects = [];
         [SerializeField]
         internal List<GameObject> groundObjectCandidates = [];
-        internal string currentSceneName => StartOfRound.Instance?.currentLevel.sceneName ?? "";
-        internal Bounds levelBounds;
+        internal string CurrentSceneName => StartOfRound.Instance?.currentLevel.sceneName ?? "";
+        internal Bounds LevelBounds => LevelManipulator.levelBounds;
         internal System.Random? seededRandom;
         private HDAdditionalLightData? sunLightData;
 
@@ -251,8 +251,8 @@ namespace VoxxWeatherPlugin.Weathers
             snowScale = seededRandom.NextDouble(0.7f, 1.3f); // Snow patchy-ness
             finalSnowHeight = seededRandom.NextDouble(MinSnowHeight, MaxSnowHeight);
             fullSnowNormalizedTime = seededRandom.NextDouble(MinSnowNormalizedTime, MaxSnowNormalizedTime);
-            levelBounds = PlayableAreaCalculator.CalculateZoneSize(1.5f);
-            terraMeshConfig.levelBounds = levelBounds;
+            LevelManipulator.CalculateLevelSize(1.5f);
+            terraMeshConfig.levelBounds = LevelBounds;
             ModifyRenderMasks();
             SetupGround();
             ModifyScrollingFog();
@@ -347,14 +347,14 @@ namespace VoxxWeatherPlugin.Weathers
         {
             Debug.LogDebug("Updating level depthmap");
 
-            Vector3 cameraPosition = new Vector3(levelBounds.center.x,
+            Vector3 cameraPosition = new Vector3(LevelBounds.center.x,
                                                 levelDepthmapCamera!.transform.position.y,
-                                                levelBounds.center.z);
+                                                LevelBounds.center.z);
             // Set orthographic size to half of the level bounds
-            levelDepthmapCamera.orthographicSize = (int)Mathf.Max(levelBounds.size.x, levelBounds.size.z) / 2;
+            levelDepthmapCamera.orthographicSize = (int)Mathf.Max(LevelBounds.size.x, LevelBounds.size.z) / 2;
             levelDepthmapCamera.transform.position = cameraPosition;
             depthWorldToClipMatrix = levelDepthmapCamera.projectionMatrix * levelDepthmapCamera.worldToCameraMatrix;
-            Debug.LogDebug($"Camera position: {levelDepthmapCamera.transform.position}, Barycenter: {levelBounds.center}");
+            Debug.LogDebug($"Camera position: {levelDepthmapCamera.transform.position}, Barycenter: {LevelBounds.center}");
             
             StartCoroutine(RefreshDepthmapCoroutine(levelDepthmapCamera, levelDepthmap!, bakeSnowMaps: true));
 
@@ -394,13 +394,13 @@ namespace VoxxWeatherPlugin.Weathers
             waterTriggerObjects = FindObjectsOfType<QuicksandTrigger>().Where(x => x.enabled &&
                                                                                 x.gameObject.activeInHierarchy &&
                                                                                 x.isWater &&
-                                                                                x.gameObject.scene.name == currentSceneName &&
+                                                                                x.gameObject.scene.name == CurrentSceneName &&
                                                                                 !x.isInsideWater).ToArray();
 
             HashSet<GameObject> iceObjects = new HashSet<GameObject>();
             stopwatch.Restart();
             NavMeshModifierVolume[] navMeshModifiers = FindObjectsOfType<NavMeshModifierVolume>().Where(x => x.gameObject.activeInHierarchy &&
-                                                                                    x.gameObject.scene.name == currentSceneName &&
+                                                                                    x.gameObject.scene.name == CurrentSceneName &&
                                                                                     x.transform.position.y > heightThreshold &&
                                                                                     x.enabled).ToArray();
             foreach (QuicksandTrigger waterObject in waterTriggerObjects)
@@ -476,7 +476,7 @@ namespace VoxxWeatherPlugin.Weathers
         {
             LocalVolumetricFog[] fogArray = FindObjectsOfType<LocalVolumetricFog>();
             fogArray = fogArray.Where(x => x.gameObject.activeSelf &&
-                                        x.gameObject.scene.name == currentSceneName &&
+                                        x.gameObject.scene.name == CurrentSceneName &&
                                         x.transform.position.y > heightThreshold).ToArray();
             float additionalMeanFreePath = seededRandom!.NextDouble(5f, 15f);
             foreach (LocalVolumetricFog fog in fogArray)
@@ -504,7 +504,7 @@ namespace VoxxWeatherPlugin.Weathers
             bool isMoonBlacklisted = false;
             foreach (string moon in moonProcessingBlacklist)
             {
-                if (currentSceneName.CleanMoonName().Contains(moon))
+                if (CurrentSceneName.CleanMoonName().Contains(moon))
                 {
                     isMoonBlacklisted = true;
                     break;
@@ -654,7 +654,7 @@ namespace VoxxWeatherPlugin.Weathers
             List<GameObject> objectsAboveThreshold = new List<GameObject>();
 
             // Get the target scene
-            Scene scene = SceneManager.GetSceneByName(currentSceneName);
+            Scene scene = SceneManager.GetSceneByName(CurrentSceneName);
 
             // Reset the list of ground objects to find possible mesh terrains to render snow on
             groundObjectCandidates = new List<GameObject>();
@@ -985,7 +985,7 @@ namespace VoxxWeatherPlugin.Weathers
             }
         }
 
-        internal override void PopulateLevelWithVFX(Bounds levelBounds = default, System.Random? seededRandom = null)
+        internal override void PopulateLevelWithVFX(System.Random? seededRandom = null)
         {
             if (!(SnowfallWeather.Instance is BlizzardWeather)) // to avoid setting the depth texture for blizzard
             {

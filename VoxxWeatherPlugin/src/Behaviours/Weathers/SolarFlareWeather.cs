@@ -92,7 +92,7 @@ namespace VoxxWeatherPlugin.Weathers
             }
             flareData = flareTypes?[(int)randomIntensity];
 
-            
+            LevelManipulator.CalculateLevelSize();
             VFXManager?.PopulateLevelWithVFX();
 
             if (glitchPass != null)
@@ -435,9 +435,10 @@ namespace VoxxWeatherPlugin.Weathers
 
         // Variables for emitter placement
 
-        internal override void PopulateLevelWithVFX(Bounds levelBounds = default, System.Random? seededRandom = null)
+        internal override void PopulateLevelWithVFX(System.Random? seededRandom = null)
         {
             sunTexture = null;
+            Bounds levelBounds = LevelManipulator.levelBounds;
             
             if (TimeOfDay.Instance.sunDirect == null)
             {

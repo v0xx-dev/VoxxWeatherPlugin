@@ -1,14 +1,25 @@
-using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UIElements;
 
 namespace VoxxWeatherPlugin.Utils
 {
-    public class PlayableAreaCalculator
+    public class LevelManipulator : MonoBehaviour
     {
-       public static Bounds CalculateZoneSize(float sizeMultiplier = 1.2f)
+        public static LevelManipulator Instance { get; private set; }
+        public static Bounds levelBounds; // Current level bounds
+
+        void Awake()
         {
-            Bounds levelBounds = new Bounds(Vector3.zero, Vector3.zero);
+            if (Instance != null)
+            {
+                Destroy(Instance);
+            }
+            
+            Instance = this;
+        }
+
+        public static Bounds CalculateLevelSize(float sizeMultiplier = 1.2f)
+        {
+            levelBounds = new Bounds(Vector3.zero, Vector3.zero);
             levelBounds.Encapsulate(StartOfRound.Instance.shipInnerRoomBounds.bounds);
 
             // Store positions of all the outside AI nodes in the scene

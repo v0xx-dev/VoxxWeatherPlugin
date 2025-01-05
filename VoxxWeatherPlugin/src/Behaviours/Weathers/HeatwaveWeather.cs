@@ -16,7 +16,7 @@ namespace VoxxWeatherPlugin.Weathers
         [SerializeField]
         internal Volume? exhaustionFilter; // Filter for visual effects
         private BoxCollider? heatwaveTrigger; // Trigger collider for the heatwave zone
-        private Bounds levelBounds; // Size of the playable area
+        private Bounds LevelBounds => LevelManipulator.levelBounds; // Size of the playable area
 
         private System.Random? seededRandom;
 
@@ -40,9 +40,9 @@ namespace VoxxWeatherPlugin.Weathers
         private void OnEnable()
         {
             seededRandom = new System.Random(StartOfRound.Instance.randomMapSeed);
-            levelBounds = PlayableAreaCalculator.CalculateZoneSize(1.3f);
-            Debug.LogDebug($"Heatwave zone size: {levelBounds.size}. Placed at {levelBounds.center}");
-            VFXManager?.PopulateLevelWithVFX(levelBounds, seededRandom);
+            LevelManipulator.CalculateLevelSize(1.3f);
+            Debug.LogDebug($"Heatwave zone size: {LevelBounds.size}. Placed at {LevelBounds.center}");
+            VFXManager?.PopulateLevelWithVFX(seededRandom);
             SetupHeatwaveWeather();
             timeOfDayFactor = VFXManager?.CooldownHeatwaveVFX() ?? 1f;
         }
@@ -56,8 +56,8 @@ namespace VoxxWeatherPlugin.Weathers
         private void SetupHeatwaveWeather()
         {
             // Set the size, position and rotation of the trigger zone
-            heatwaveTrigger!.size = levelBounds.size;
-            heatwaveTrigger.transform.position = levelBounds.center;
+            heatwaveTrigger!.size = LevelBounds.size;
+            heatwaveTrigger.transform.position = LevelBounds.center;
             heatwaveTrigger.transform.rotation = Quaternion.identity;
             VFXManager!.heatwaveVFXContainer!.transform.parent = transform; // Parent the container to the weather instance to make it stationary
 
@@ -140,8 +140,9 @@ namespace VoxxWeatherPlugin.Weathers
             emitterSize = Mathf.Max(transform.lossyScale.x, transform.lossyScale.z) * 5f;
         }
 
-        internal override void PopulateLevelWithVFX(Bounds levelBounds, System.Random? seededRandom)
+        internal override void PopulateLevelWithVFX(System.Random? seededRandom)
         {
+            Bounds levelBounds = LevelManipulator.levelBounds;
             sunLightData = TimeOfDay.Instance.sunDirect?.GetComponent<HDAdditionalLightData>();
 
             if (levelBounds == null || seededRandom == null || heatwaveParticlePrefab == null)

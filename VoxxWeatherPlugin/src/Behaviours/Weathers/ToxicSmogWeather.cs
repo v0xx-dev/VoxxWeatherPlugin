@@ -14,7 +14,6 @@ namespace VoxxWeatherPlugin.Weathers
         public static ToxicSmogWeather? Instance { get; private set; }
         [SerializeField]
         internal ToxicSmogVFXManager? VFXManager;
-        private Bounds levelBounds;
         private System.Random? seededRandom;
         void Awake()
         {
@@ -24,8 +23,8 @@ namespace VoxxWeatherPlugin.Weathers
         void OnEnable()
         {
             seededRandom = new System.Random(StartOfRound.Instance.randomMapSeed);
-            levelBounds = PlayableAreaCalculator.CalculateZoneSize(1.5f);
-            VFXManager?.PopulateLevelWithVFX(levelBounds, seededRandom);
+            LevelManipulator.CalculateLevelSize(1.5f);
+            VFXManager?.PopulateLevelWithVFX(seededRandom);
         }
 
         void OnDisable()
@@ -85,8 +84,10 @@ namespace VoxxWeatherPlugin.Weathers
             fumesContainerInside?.SetActive(true);
         }
 
-        internal override void PopulateLevelWithVFX(Bounds levelBounds = default, System.Random? seededRandom = null)
+        internal override void PopulateLevelWithVFX(System.Random? seededRandom = null)
         {
+            Bounds levelBounds = LevelManipulator.levelBounds;
+
             if (toxicVolumetricFog == null)
             {
                 GameObject toxicFogContainer = new GameObject("ToxicFog");

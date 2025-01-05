@@ -74,7 +74,7 @@ namespace VoxxWeatherPlugin.Weathers
             windForce = groundObjectCandidates.Count > 0 ? seededRandom.NextDouble(MinWindForce, MaxWindForce) : MaxWindForce;
             timeUntilFrostbite = seededRandom.NextDouble(MinTimeUntilFrostbite, MaxTimeUntilFrostbite);
             TimeOfDay.Instance.onTimeSync.AddListener(new UnityAction(OnGlobalTimeSync));     
-            VFXManager?.PopulateLevelWithVFX(levelBounds);
+            VFXManager?.PopulateLevelWithVFX();
         }
 
         internal override void OnDisable()
@@ -263,7 +263,7 @@ namespace VoxxWeatherPlugin.Weathers
         internal IEnumerator GenerateChillWaveCoroutine()
         {
             GameObject chillWaveContainer = VFXManager.blizzardWaveContainer!;
-            float levelRadius = levelBounds.size.magnitude; // Actually the diameter to make the wave go through the whole level
+            float levelRadius = LevelBounds.size.magnitude; // Actually the diameter to make the wave go through the whole level
             Debug.LogDebug($"Generating {numOfWaves} chill waves");
 
             for (int i = 0; i < numOfWaves; i++)
@@ -361,8 +361,9 @@ namespace VoxxWeatherPlugin.Weathers
             blizzardSFXPlayer?.PlayOneShot(sonicBoomSFX);
         }
 
-        internal override void PopulateLevelWithVFX(Bounds levelBounds = default, System.Random? seededRandom = null)
+        internal override void PopulateLevelWithVFX(System.Random? seededRandom = null)
         {
+            Bounds levelBounds = LevelManipulator.levelBounds;
             blizzardWaveContainer?.SetActive(false);
 
             ChillWaveTrigger? chillWaveTrigger = blizzardWaveContainer?.GetComponent<ChillWaveTrigger>();
@@ -373,7 +374,7 @@ namespace VoxxWeatherPlugin.Weathers
                 Debug.LogDebug("Chill wave trigger setup!");
             }
             
-            base.PopulateLevelWithVFX(levelBounds, seededRandom);
+            base.PopulateLevelWithVFX(seededRandom);
         }
 
     }
