@@ -25,8 +25,8 @@ namespace VoxxWeatherPlugin.Patches
         internal static HashSet<Type> unaffectedEnemyTypes = new HashSet<Type> {typeof(ForestGiantAI), typeof(RadMechAI), typeof(DoublewingAI),
                                                                                 typeof(ButlerBeesEnemyAI), typeof(DocileLocustBeesAI), typeof(RedLocustBees),
                                                                                 typeof(DressGirlAI), typeof(SandWormAI)};
-        public static HashSet<string> enemySpawnBlacklist = Configuration.enemySnowBlacklist.Value.ToLower().TrimEnd(';').Split(';').ToHashSet();
-        public static HashSet<SpawnableEnemyWithRarity> enemiesToRestore = new HashSet<SpawnableEnemyWithRarity>();
+        public static HashSet<string>? EnemySpawnBlacklist => LevelManipulator.Instance?.enemySnowBlacklist;
+        public static HashSet<SpawnableEnemyWithRarity> enemiesToRestore = [];
 
 
         [HarmonyPatch(typeof(PlayerControllerB), "Update")]
@@ -94,6 +94,36 @@ namespace VoxxWeatherPlugin.Patches
             return codeMatcher.InstructionEnumeration();
         }
 
+        [HarmonyPatch(typeof(PlayerControllerB), "CalculateGroundNormal")]
+        [HarmonyTranspiler]
+        [HarmonyDebug]
+        private static IEnumerable<CodeInstruction> GroundNormalTranspiler(IEnumerable<CodeInstruction> instructions)
+        {
+            var codeMatcher = new CodeMatcher(instructions);
+            codeMatcher.MatchForward(true,
+                new CodeMatch(OpCodes.Ldarg_0),
+                new CodeMatch(OpCodes.Ldarg_0),
+                new CodeMatch(OpCodes.Ldflda, AccessTools.Field(typeof(PlayerControllerB), "hit")),
+                new CodeMatch(OpCodes.Call, AccessTools.Method(typeof(RaycastHit), "get_normal")),
+                new CodeMatch(OpCodes.Stfld, AccessTools.Field(typeof(PlayerControllerB), "playerGroundNormal"))
+            );
+
+            if (!codeMatcher.IsValid)
+            {
+                Debug.LogError("Failed to match code in GroundNormalTranspiler");
+                return instructions;
+            }
+            codeMatcher.Advance(1);
+            codeMatcher.Insert(
+                new CodeInstruction(OpCodes.Ldarg_0),
+                new CodeInstruction(OpCodes.Ldloc_1),
+                new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(SnowPatches), nameof(LocalGroundUpdate)))
+            );
+
+            Debug.Log("Patched PlayerControllerB.CalculateGroundNormal to include snow thickness!");
+            return codeMatcher.InstructionEnumeration();
+        }
+
         [HarmonyPatch(typeof(RoundManager), "SpawnOutsideHazards")]
         [HarmonyTranspiler]
         private static IEnumerable<CodeInstruction> IceRebakeTranspiler(IEnumerable<CodeInstruction> instructions, ILGenerator generator)
@@ -152,6 +182,15 @@ namespace VoxxWeatherPlugin.Patches
             else
             {
                 PlayerEffectsManager.SetPlayerTemperature(-Time.deltaTime / SnowfallWeather.Instance!.timeUntilFrostbite);
+            }
+
+            if (PlayerEffectsManager.isUnderSnow)
+            {
+                PlayerEffectsManager.SetUnderSnowEffect(Time.deltaTime);
+            }
+            else
+            {
+                PlayerEffectsManager.SetUnderSnowEffect(-Time.deltaTime);
             }
 
             float severity = PlayerEffectsManager.ColdSeverity;
@@ -235,10 +274,10 @@ namespace VoxxWeatherPlugin.Patches
             switch (__instance)
             {
                 case ForestGiantAI:
-                    SnowTrackersManager.AddFootprintTracker(__instance, 10f, 0.167f, 0.2f);
+                    SnowTrackersManager.AddFootprintTracker(__instance, 10f, 0.167f, 0.35f);
                     break;
                 case RadMechAI:
-                    SnowTrackersManager.AddFootprintTracker(__instance, 8f, 0.167f, 0.2f);
+                    SnowTrackersManager.AddFootprintTracker(__instance, 8f, 0.167f, 0.35f);
                     break;
                 case SandWormAI:
                     SnowTrackersManager.AddFootprintTracker(__instance, 25f, 0.167f, 1f);
@@ -246,7 +285,7 @@ namespace VoxxWeatherPlugin.Patches
                 default:
                     if (!unaffectedEnemyTypes.Contains(__instance.GetType()))
                     {
-                        SnowTrackersManager.AddFootprintTracker(__instance, 2f, 0.167f, 0.2f);
+                        SnowTrackersManager.AddFootprintTracker(__instance, 2f, 0.167f, 0.35f);
                     }
                     break;
             }
@@ -331,11 +370,11 @@ namespace VoxxWeatherPlugin.Patches
         }
 
         [HarmonyPatch(typeof(StartOfRound), "StartGame")]
-        [HarmonyPostfix]
+        [HarmonyPrefix]
         [HarmonyPriority(Priority.Last)]
         private static void RemoveEnemiesSnowPatch(StartOfRound __instance)
         {
-            if (!__instance.IsHost || !(BlizzardWeather.Instance?.IsActive ?? false))
+            if (!__instance.IsHost || !IsSnowActive() || EnemySpawnBlacklist == null)
             {
                 enemiesToRestore.Clear();
                 return;
@@ -343,7 +382,7 @@ namespace VoxxWeatherPlugin.Patches
 
             foreach (SpawnableEnemyWithRarity enemy in RoundManager.Instance.currentLevel.DaytimeEnemies)
             {
-                if (enemySpawnBlacklist.Contains(enemy.enemyType.enemyName.ToLower()))
+                if (EnemySpawnBlacklist!.Contains(enemy.enemyType.enemyName.ToLower()))
                 {
                     if (!enemy.enemyType.spawningDisabled)
                     {
@@ -356,7 +395,7 @@ namespace VoxxWeatherPlugin.Patches
 
             foreach (SpawnableEnemyWithRarity enemy in RoundManager.Instance.currentLevel.OutsideEnemies)
             {
-                if (enemySpawnBlacklist.Contains(enemy.enemyType.enemyName.ToLower()))
+                if (EnemySpawnBlacklist!.Contains(enemy.enemyType.enemyName.ToLower()))
                 {
                     if (!enemy.enemyType.spawningDisabled)
                     {
@@ -375,7 +414,7 @@ namespace VoxxWeatherPlugin.Patches
         [HarmonyPriority(Priority.First)]
         private static void RestoreBeesSnowPatch(StartOfRound __instance)
         {
-            if (!__instance.IsHost || !(BlizzardWeather.Instance?.IsActive ?? false))
+            if (!__instance.IsHost || !IsSnowActive() || enemiesToRestore.Count == 0)
                 return;
             
             foreach (SpawnableEnemyWithRarity enemy in RoundManager.Instance.currentLevel.DaytimeEnemies)
@@ -425,6 +464,14 @@ namespace VoxxWeatherPlugin.Patches
             }
 
             return !isOnGround || isSameSurface || snowOverride;
+        }
+
+        private static void LocalGroundUpdate(PlayerControllerB playerScript, int index)
+        {
+            if (IsSnowActive() && index == 0)
+            {
+                SnowThicknessManager.Instance?.UpdateEntityData(playerScript, playerScript.hit);
+            }
         }
 
         // Patch for ice rebake condition

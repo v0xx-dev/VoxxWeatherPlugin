@@ -3,6 +3,8 @@ using System.Linq;
 using UnityEngine.VFX;
 using WeatherRegistry;
 using VoxxWeatherPlugin.Weathers;
+using VoxxWeatherPlugin.Behaviours;
+using UnityEngine.Rendering;
 
 namespace VoxxWeatherPlugin.Utils
 {
@@ -173,23 +175,15 @@ namespace VoxxWeatherPlugin.Utils
 
             // Fix broken references (WHY, UNITY, WHY)
 
-            Shader? overlayShader = WeatherAssetLoader.LoadAsset<Shader>(bundleName, "SnowLitPass");
-            Shader? vertexSnowShader = WeatherAssetLoader.LoadAsset<Shader>(bundleName, "SnowLitVertBakedPass");
-            Shader? opaqueVertexSnowShader = WeatherAssetLoader.LoadAsset<Shader>(bundleName, "SnowLitVertBakedOpaquePass");
-            Shader? terrainLitShader = WeatherAssetLoader.LoadAsset<Shader>(bundleName, "MeshTerrainLit");
             VisualEffectAsset? blizzardVFXAsset = WeatherAssetLoader.LoadAsset<VisualEffectAsset>(bundleName, "BlizzardVFX");
             VisualEffectAsset? blizzardWaveVFXAsset = WeatherAssetLoader.LoadAsset<VisualEffectAsset>(bundleName, "BlizzardWaveVFX");
 
-            if (overlayShader == null || blizzardVFXAsset == null || blizzardWaveVFXAsset == null ||
-                    vertexSnowShader == null || terrainLitShader == null || opaqueVertexSnowShader == null)
+            if (blizzardVFXAsset == null || blizzardWaveVFXAsset == null)
             {
                 Debug.LogError("Failed to load Blizzard Weather visual assets. Weather registration failed.");
                 return;
             }
 
-            // blizzardWeatherController.snowOverlayMaterial!.shader = overlayShader;
-            // blizzardWeatherController.snowVertexMaterial!.shader = vertexSnowShader;
-            // blizzardWeatherController.snowVertexOpaqueMaterial!.shader = opaqueVertexSnowShader;
             VisualEffect blizzardVFX = blizzardVFXManager.snowVFXContainer!.GetComponent<VisualEffect>();
             blizzardVFX.visualEffectAsset = blizzardVFXAsset;
             blizzardVFX.SetFloat("spawnRateMultiplier", Configuration.snowParticlesMultiplier.Value);
@@ -202,7 +196,10 @@ namespace VoxxWeatherPlugin.Utils
             chillWaveVFX.SetBool("isCollisionEnabled", Configuration.enableVFXCollisions.Value);
             Camera chillWaveCamera = blizzardVFXManager.blizzardWaveContainer!.GetComponentInChildren<Camera>(true);
             chillWaveCamera.enabled = Configuration.enableVFXCollisions.Value;
-            // TODO add vfx configs
+            AudioSource blizzardAudio = blizzardVFXManager.GetComponent<AudioSource>();
+            blizzardAudio.volume = Configuration.blizzardAmbientVolume.Value;
+            AudioSource waveAudio = blizzardVFXManager.blizzardWaveContainer.GetComponentInChildren<AudioSource>(true);
+            waveAudio.volume = Configuration.blizzardWaveVolume.Value;
 
             blizzardContainer.SetActive(true);
 
@@ -261,29 +258,18 @@ namespace VoxxWeatherPlugin.Utils
                                                             (k, v) => new { k, v })
                                                             .ToDictionary(x => x.k, x => x.v);         
 
-            // Fix broken references (WHY, UNITY, WHY)
-
-            Shader? overlayShader = WeatherAssetLoader.LoadAsset<Shader>(bundleName, "SnowLitPass");
-            Shader? vertexSnowShader = WeatherAssetLoader.LoadAsset<Shader>(bundleName, "SnowLitVertBakedPass");
-            Shader? opaqueVertexSnowShader = WeatherAssetLoader.LoadAsset<Shader>(bundleName, "SnowLitVertBakedOpaquePass");
-            
-            Shader? terrainLitShader = WeatherAssetLoader.LoadAsset<Shader>(bundleName, "MeshTerrainLit");
             VisualEffectAsset? snowVFXAsset = WeatherAssetLoader.LoadAsset<VisualEffectAsset>(bundleName, "SnowVFX");
 
-            if (overlayShader == null || snowVFXAsset == null || vertexSnowShader == null || terrainLitShader == null || opaqueVertexSnowShader == null)
+            if (snowVFXAsset == null)
             {
                 Debug.LogError("Failed to load Snowfall Weather visual assets. Weather registration failed.");
                 return;
             }
 
-            // snowfallWeatherController.snowOverlayMaterial!.shader = overlayShader;
-            // snowfallWeatherController.snowVertexMaterial!.shader = vertexSnowShader;
-            // snowfallWeatherController.snowVertexOpaqueMaterial!.shader = opaqueVertexSnowShader;
+            
             VisualEffect snowVFX = snowfallVFXManager.snowVFXContainer!.GetComponent<VisualEffect>();
             snowVFX.visualEffectAsset = snowVFXAsset;
             snowVFX.SetFloat("spawnRateMultiplier", Configuration.snowParticlesMultiplier.Value);
-
-            // TODO add vfx configs
 
             snowfallContainer.SetActive(true);
 
@@ -313,20 +299,54 @@ namespace VoxxWeatherPlugin.Utils
 
         }
 
-        public static bool LoadSnowManager()
+        public static bool LoadLevelManipulator()
         {
-            GameObject? snowThicknessManagerPrefab = WeatherAssetLoader.LoadAsset<GameObject>(bundleName, "SnowThicknessManager");
-            if (snowThicknessManagerPrefab == null)
+            GameObject? levelManipulatorPrefab = WeatherAssetLoader.LoadAsset<GameObject>(bundleName, "LevelManipulatorContainer");
+            if (levelManipulatorPrefab == null)
             {
-                Debug.LogError("Failed to load Snow Thickness Manager assets. Weather registration failed.");
+                Debug.LogError("Failed to load Level Manipulator assets. Disabling weather effects.");
                 return false;
             }
 
-            snowThicknessManagerPrefab.SetActive(true);
-            GameObject snowThicknessManager = GameObject.Instantiate(snowThicknessManagerPrefab);
-            GameObject.DontDestroyOnLoad(snowThicknessManager);
-            snowThicknessManager.hideFlags = HideFlags.HideAndDontSave;
+            levelManipulatorPrefab.SetActive(true);
+            GameObject levelManipulator = GameObject.Instantiate(levelManipulatorPrefab);
+            GameObject.DontDestroyOnLoad(levelManipulator);
+            levelManipulator.hideFlags = HideFlags.HideAndDontSave;
 
+            LevelManipulator levelManipulatorController = levelManipulator.GetComponent<LevelManipulator>();
+            
+            // Assign the snow effects to the PlayerEffectsManager
+            foreach (Transform child in levelManipulatorController.snowVolume.transform.parent)
+            {
+                if (child.name == "FrostbiteFilter")
+                {
+                    PlayerEffectsManager.freezeEffectVolume = child.gameObject.GetComponent<Volume>();
+                    continue;
+                }
+                
+                if (child.name == "UnderSnowFilter")
+                {
+                    PlayerEffectsManager.underSnowVolume = child.gameObject.GetComponent<Volume>();
+                    continue;
+                }
+            }
+
+            // Fix broken references (WHY, UNITY, WHY)
+
+            Shader? overlayShader = WeatherAssetLoader.LoadAsset<Shader>(bundleName, "SnowLitPass");
+            Shader? vertexSnowShader = WeatherAssetLoader.LoadAsset<Shader>(bundleName, "SnowLitVertBakedPass");
+            Shader? opaqueVertexSnowShader = WeatherAssetLoader.LoadAsset<Shader>(bundleName, "SnowLitVertBakedOpaquePass");
+
+            if (overlayShader == null || vertexSnowShader == null || opaqueVertexSnowShader == null)
+            {
+                Debug.LogError("Failed to restore Snow visual assets. Visual effects may not work correctly.");
+                return false;
+            }
+
+            levelManipulatorController.snowOverlayMaterial!.shader = overlayShader;
+            levelManipulatorController.snowVertexMaterial!.shader = vertexSnowShader;
+            levelManipulatorController.snowVertexOpaqueMaterial!.shader = opaqueVertexSnowShader;
+            
             return true;   
         }
 
@@ -365,8 +385,6 @@ namespace VoxxWeatherPlugin.Utils
 
             VisualEffect? toxicFumesVFX = toxicSmogVFXManager.hazardPrefab?.GetComponent<VisualEffect>();
             toxicFumesVFX.visualEffectAsset = toxicFumesVFXAsset;
-
-            // TODO add vfx configs
 
             toxicSmogContainer.SetActive(true);
 

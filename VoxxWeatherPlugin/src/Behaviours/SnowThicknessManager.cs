@@ -21,7 +21,7 @@ namespace VoxxWeatherPlugin.Behaviours
         [SerializeField]
         internal int MaxEntityCount => Configuration.trackedEntityNumber.Value;
         [SerializeField]
-        internal SnowfallWeather? snowfallData => SnowfallWeather.Instance;
+        internal LevelManipulator? snowfallData => LevelManipulator.Instance;
         private int kernelHandle;
         [SerializeField]
         internal bool inputNeedsUpdate = false;
@@ -275,7 +275,7 @@ namespace VoxxWeatherPlugin.Behaviours
             }
             if (entity == GameNetworkManager.Instance.localPlayerController)
             {
-                return Mathf.Clamp(data.Value.snowThickness - snowThicknessOffset, 0, 2*SnowfallWeather.Instance?.finalSnowHeight ?? 0f);
+                return Mathf.Clamp(data.Value.snowThickness - snowThicknessOffset, 0, 2*LevelManipulator.Instance?.finalSnowHeight ?? 0f);
             }
             return data.Value.snowThickness;
         }
@@ -327,7 +327,7 @@ namespace VoxxWeatherPlugin.Behaviours
                 SnowfallWeather.Instance != null)
             {
                 // For players, check the objects below the first hit object because snow might protrude through it due to precision errors in the depth buffer
-                RaycastHit[] hits = Physics.RaycastAll(hit.point - 0.05f * Vector3.up, Vector3.down, SnowfallWeather.Instance.finalSnowHeight);
+                RaycastHit[] hits = Physics.RaycastAll(hit.point - 0.05f * Vector3.up, Vector3.down, LevelManipulator.Instance.finalSnowHeight);
                 foreach (RaycastHit hitBelow in hits)
                 {
                     if (groundToIndex.ContainsKey(hitBelow.collider.gameObject))
@@ -336,7 +336,7 @@ namespace VoxxWeatherPlugin.Behaviours
                         if (player == GameNetworkManager.Instance.localPlayerController) 
                         {
                             // For the local player, calculate the snow thickness offset based on the difference between the player's feet position and the hit point
-                            snowThicknessOffset = Mathf.Clamp(feetPositionY - hitBelow.point.y, 0f, SnowfallWeather.Instance?.finalSnowHeight ?? 0f);
+                            snowThicknessOffset = Mathf.Clamp(feetPositionY - hitBelow.point.y, 0f, LevelManipulator.Instance?.finalSnowHeight ?? 0f);
                         }
                         break;
                     }

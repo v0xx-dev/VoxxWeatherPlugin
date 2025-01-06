@@ -138,7 +138,7 @@ namespace VoxxWeatherPlugin.Behaviours
                 return;
             }
 
-            if (SnowfallWeather.Instance.levelDepthmap == null || SnowfallWeather.Instance.snowTracksMap == null)
+            if (LevelManipulator.Instance.levelDepthmap == null || LevelManipulator.Instance.snowTracksMap == null)
             {
                 Debug.LogWarning(" Attempt to call with uninitialized textures. Skipping the call to avoid errors");
             }
@@ -200,10 +200,10 @@ namespace VoxxWeatherPlugin.Behaviours
             {
                 return;
             }
-            material.SetFloat(SnowfallShaderIDs.PCFKernelSize, SnowfallWeather.Instance!.PCFKernelSize);
-            material.SetFloat(SnowfallShaderIDs.BaseTessellationFactor, SnowfallWeather.Instance!.BaseTessellationFactor);
-            material.SetFloat(SnowfallShaderIDs.MaxTessellationFactor, SnowfallWeather.Instance!.MaxTessellationFactor);
-            material.SetInt(SnowfallShaderIDs.isAdaptiveTessellation, SnowfallWeather.Instance!.IsAdaptiveTessellation);
+            material.SetFloat(SnowfallShaderIDs.PCFKernelSize, LevelManipulator.Instance!.PCFKernelSize);
+            material.SetFloat(SnowfallShaderIDs.BaseTessellationFactor, LevelManipulator.Instance!.BaseTessellationFactor);
+            material.SetFloat(SnowfallShaderIDs.MaxTessellationFactor, LevelManipulator.Instance!.MaxTessellationFactor);
+            material.SetInt(SnowfallShaderIDs.isAdaptiveTessellation, LevelManipulator.Instance!.IsAdaptiveTessellation);
             // material.SetFloat(SnowfallShaderIDs.ShadowBias, SnowfallWeather.Instance!.shadowBias);
             // material.SetFloat(SnowfallShaderIDs.SnowOcclusionBias, SnowfallWeather.Instance!.snowOcclusionBias);
 
@@ -217,20 +217,20 @@ namespace VoxxWeatherPlugin.Behaviours
                 return;
             }
             // material.SetFloat(SnowfallShaderIDs.FadeValue, fadeValue);
-            material.SetTexture(SnowfallShaderIDs.DepthTex, SnowfallWeather.Instance!.levelDepthmap);
-            material.SetTexture(SnowfallShaderIDs.FootprintsTex, SnowfallWeather.Instance.snowTracksMap);
-            material.SetMatrix(SnowfallShaderIDs.FootprintsViewProjection, SnowfallWeather.Instance.tracksWorldToClipMatrix ?? Matrix4x4.identity);
-            material.SetMatrix(SnowfallShaderIDs.LightViewProjection, SnowfallWeather.Instance.depthWorldToClipMatrix ?? Matrix4x4.identity);
-            material.SetFloat(SnowfallShaderIDs.SnowNoisePower, SnowfallWeather.Instance.snowIntensity);
-            material.SetFloat(SnowfallShaderIDs.SnowNoiseScale, SnowfallWeather.Instance.snowScale);
-            material.SetFloat(SnowfallShaderIDs.MaxSnowHeight, SnowfallWeather.Instance.finalSnowHeight);
-            material.SetVector(SnowfallShaderIDs.ShipPosition, SnowfallWeather.Instance.shipPosition);
-            material.SetFloat(SnowfallShaderIDs.Emission, SnowfallWeather.Instance.emissionMultiplier);
+            material.SetTexture(SnowfallShaderIDs.DepthTex, LevelManipulator.Instance!.levelDepthmap);
+            material.SetTexture(SnowfallShaderIDs.FootprintsTex, LevelManipulator.Instance.snowTracksMap);
+            material.SetMatrix(SnowfallShaderIDs.FootprintsViewProjection, LevelManipulator.Instance.tracksWorldToClipMatrix ?? Matrix4x4.identity);
+            material.SetMatrix(SnowfallShaderIDs.LightViewProjection, LevelManipulator.Instance.depthWorldToClipMatrix ?? Matrix4x4.identity);
+            material.SetFloat(SnowfallShaderIDs.SnowNoisePower, LevelManipulator.Instance.snowIntensity);
+            material.SetFloat(SnowfallShaderIDs.SnowNoiseScale, LevelManipulator.Instance.snowScale);
+            material.SetFloat(SnowfallShaderIDs.MaxSnowHeight, LevelManipulator.Instance.finalSnowHeight);
+            material.SetVector(SnowfallShaderIDs.ShipPosition, LevelManipulator.Instance.shipPosition);
+            material.SetFloat(SnowfallShaderIDs.Emission, LevelManipulator.Instance.emissionMultiplier);
 
             // Opaque objects should have higher snow noise scale to produce 'patches' of snow
             // Opaque alpha tested objects should have lower snow noise scale to appear more uniformly covered
             float snowNoiseScaleBias = renderQueueType == RenderQueueType.OpaqueNoAlphaTest ? 10f : -0.5f;
-            material.SetFloat(SnowfallShaderIDs.SnowNoiseScaleOverlay, SnowfallWeather.Instance.snowScale + snowNoiseScaleBias);
+            material.SetFloat(SnowfallShaderIDs.SnowNoiseScaleOverlay, LevelManipulator.Instance.snowScale + snowNoiseScaleBias);
         }
 
         internal void RefreshSnowMaterial(List<Material>? materials)

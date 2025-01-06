@@ -71,6 +71,8 @@ namespace VoxxWeatherPlugin.Utils
         public static ConfigEntry<int>    minWaveCount; //
         public static ConfigEntry<int>    maxWaveCount; //
         public static ConfigEntry<int>  chillingWaveDamage; //
+        public static ConfigEntry<float>  blizzardAmbientVolume; //
+        public static ConfigEntry<float>  blizzardWaveVolume; //
         #endregion
 
         #region Snow & Blizzard Graphics
@@ -352,6 +354,16 @@ namespace VoxxWeatherPlugin.Utils
                                             20,
                                             new ConfigDescription("Damage dealt by each chilling wave of frost if you get caught in one.",
                                                                 new AcceptableValueRange<int>(0, 99)));
+            blizzardAmbientVolume = Config.Bind("Blizzard",
+                                                "blizzardAmbientVolume",
+                                                1f,
+                                                new ConfigDescription("Volume of the blizzard ambient sound. 0 is silent, 1 is full volume.",
+                                                                    new AcceptableValueRange<float>(0, 1f)));
+            blizzardWaveVolume = Config.Bind("Blizzard",
+                                            "blizzardWaveVolume",
+                                            1f,
+                                            new ConfigDescription("Volume of the blizzard wave sound. 0 is silent, 1 is full volume.",
+                                                                new AcceptableValueRange<float>(0, 1f)));
             #endregion
 
             #region Snow & Blizzard Graphics
@@ -409,7 +421,7 @@ namespace VoxxWeatherPlugin.Utils
                                                             new AcceptableValueRange<int>(1, 50)));
             BlurKernelSize = Config.Bind("Snow Graphics",
                                         "BlurKernelSize",
-                                        10,
+                                        4,
                                         new ConfigDescription("Kernel size for the depth buffer blur used for VSM 'shadow' mapping, that is used for snow overlay rendering (non fluffy snow). Higher values will produce smoother snow transitions under objects, but will lower accuracy of VFX collisions.",
                                                             new AcceptableValueRange<int>(0, 32)));
             minTesselationFactor = Config.Bind("Snow Graphics",

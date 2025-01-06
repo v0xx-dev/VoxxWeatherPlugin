@@ -9,6 +9,7 @@ using VoxxWeatherPlugin.Behaviours;
 using VoxxWeatherPlugin.Patches;
 using VoxxWeatherPlugin.Utils;
 using GameNetcodeStuff;
+using UnityEngine.Rendering.HighDefinition;
 
 namespace VoxxWeatherPlugin.Weathers
 {
@@ -16,7 +17,6 @@ namespace VoxxWeatherPlugin.Weathers
     {
         public static SnowfallWeather? Instance { get; protected set;}
         internal override string WeatherName => "Snowfall";
-        
         internal float MinSnowHeight => Configuration.minSnowHeight.Value;
         internal float MaxSnowHeight => Configuration.maxSnowHeight.Value;
         internal float MinSnowNormalizedTime => Configuration.minTimeToFullSnow.Value;
@@ -32,7 +32,6 @@ namespace VoxxWeatherPlugin.Weathers
         {   
             Instance = this;
 
-            LevelManipulator.Instance.InitializeSnowVariables();
         }
 
         internal void OnFinish()
@@ -68,7 +67,7 @@ namespace VoxxWeatherPlugin.Weathers
 
         internal virtual void SetColdZoneState()
         {
-            PlayerEffectsManager.isInColdZone = VFXManager!.isUnderSnowPreviousFrame;
+            PlayerEffectsManager.isInColdZone = PlayerEffectsManager.isUnderSnow;
         }
 
     }
@@ -82,24 +81,10 @@ namespace VoxxWeatherPlugin.Weathers
         [SerializeField]
         internal GameObject? snowVFXContainer;
 
-        [SerializeField]
-        internal Volume? frostbiteFilter;
-        [SerializeField]
-        internal Volume? frostyFilter;
-        [SerializeField]
-        internal Volume? underSnowFilter;
-
         internal static float snowMovementHindranceMultiplier = 1f;
         internal static int snowFootstepIndex = -1;
-
-        private float targetWeight = 0f;
-        private float currentWeight = 0f;
-        private float UnderSnowVisualMultiplier => Configuration.underSnowFilterMultiplier.Value;
-        private readonly float fadeSpeed = 2f; // Units per second
-        private bool isFading = false;
-        internal bool isUnderSnowPreviousFrame = false;
         [SerializeField]
-        internal float eyeBias = 0.43f;
+        internal float eyeBias = 0.2f;
 
         [Header("Snow Tracker VFX")]
         
@@ -123,34 +108,26 @@ namespace VoxxWeatherPlugin.Weathers
         internal virtual void OnEnable()
         {
             snowVFXContainer?.SetActive(true);
-            PlayerEffectsManager.freezeEffectVolume = frostbiteFilter;
-            
-            frostbiteFilter!.enabled = true;
-            frostyFilter!.enabled = true;
-            underSnowFilter!.enabled = true;
+
+            PlayerEffectsManager.freezeEffectVolume.enabled = true;
+            PlayerEffectsManager.underSnowVolume.enabled = true;
             
             if (SnowfallWeather.Instance != null)
             {
                 LevelManipulator.Instance.snowVolume!.enabled = true;
                 LevelManipulator.Instance.snowTrackerCameraContainer?.SetActive(true);
             }
-            // if (sunLightData != null)
-            // {
-            //     sunLightData.lightUnit = LightUnit.Lux;
-            // }
         }
 
         internal virtual void OnDisable()
         {
             snowVFXContainer?.SetActive(false);
-            // frostbiteFilter!.enabled = false;
-            frostyFilter!.enabled = false;
-            underSnowFilter!.enabled = false;
             LevelManipulator.Instance!.snowVolume!.enabled = false;
             LevelManipulator.Instance.snowTrackerCameraContainer?.SetActive(false);
             snowMovementHindranceMultiplier = 1f;
             PlayerEffectsManager.isInColdZone = false;
-            isUnderSnowPreviousFrame = false;
+            PlayerEffectsManager.underSnowVolume.enabled = false;
+            PlayerEffectsManager.isUnderSnow = false;
         }
 
         internal override void Reset()
@@ -175,34 +152,18 @@ namespace VoxxWeatherPlugin.Weathers
                 float snowThickness = SnowThicknessManager.Instance.GetSnowThickness(localPlayer);
                 // White out the screen if the player is under snow
                 float localPlayerEyeY = localPlayer.gameplayCamera.transform.position.y;
-                bool isUnderSnow = SnowThicknessManager.Instance.feetPositionY + snowThickness >= localPlayerEyeY - eyeBias;
-
-                if (isUnderSnow != isUnderSnowPreviousFrame)
-                {
-                    StartFade(isUnderSnow ? 1f : 0f);
-                }
-
-                isUnderSnowPreviousFrame = isUnderSnow;
-                UpdateFade();
+                PlayerEffectsManager.isUnderSnow = SnowThicknessManager.Instance.feetPositionY + snowThickness >= localPlayerEyeY - eyeBias;
 
                 // If the user decreases frostbite damage from the default value (10), add additional slowdown
                 float metaSnowThickness = Mathf.Clamp01(1 - SnowPatches.FrostbiteDamage/10f) * PlayerEffectsManager.ColdSeverity;
 
                 // Slow down the player if they are in snow (only if snow thickness is above 0.4, caps at 2.5 height)
                 snowMovementHindranceMultiplier = 1 + 5*Mathf.Clamp01((snowThickness + metaSnowThickness - 0.4f)/2.1f);
-
-                // Debug.LogDebug($"Hindrance multiplier: {snowMovementHindranceMultiplier}, isUnderSnow: {isUnderSnow}, snowThickness: {snowThickness}");
             }
             else
             {
-                if (currentWeight > 0f)
-                {
-                    StartFade(0f);  // Fade to 0 if not on natural ground
-                }
-                UpdateFade(); // Continue updating the fade
-                isUnderSnowPreviousFrame = false;
+                PlayerEffectsManager.isUnderSnow = false;
                 snowMovementHindranceMultiplier = 1f;
-                // Debug.LogDebug("Not on natural ground");
             }
 
             // If normalized snow timer is at 30% of fullSnowNormalizedTime, turn on vanilla footprints
@@ -216,33 +177,6 @@ namespace VoxxWeatherPlugin.Weathers
             }
         }
 
-        private void StartFade(float target)
-        {
-            targetWeight = target;
-            isFading = true;
-        }
-
-        private void UpdateFade()
-        {
-            if (isFading)
-            {
-                float weightDifference = targetWeight - currentWeight;
-                float changeThisFrame = fadeSpeed * Time.deltaTime;
-
-                if (Mathf.Abs(weightDifference) <= changeThisFrame)
-                {
-                    currentWeight = targetWeight;
-                    isFading = false;
-                }
-                else
-                {
-                    currentWeight += Mathf.Sign(weightDifference) * changeThisFrame;
-                }
-
-                underSnowFilter!.weight = currentWeight * UnderSnowVisualMultiplier;
-            }
-        }
-
         internal override void PopulateLevelWithVFX()
         {
             if (!(SnowfallWeather.Instance is BlizzardWeather)) // to avoid setting the depth texture for blizzard
@@ -252,6 +186,8 @@ namespace VoxxWeatherPlugin.Weathers
                 {
                     Debug.LogDebug("Binding depth texture to snow VFX");
                     depthBinder.depthTexture = LevelManipulator.Instance!.levelDepthmapUnblurred; // bind the baked depth texture
+                    depthBinder.AdditionalData = LevelManipulator.Instance.levelDepthmapCamera!.GetComponent<HDAdditionalCameraData>(); // bind the camera data
+                    depthBinder.SetCameraProperty("DepthCamera");
                 }
             }
 

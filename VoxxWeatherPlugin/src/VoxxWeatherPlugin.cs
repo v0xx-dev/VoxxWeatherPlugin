@@ -31,6 +31,8 @@ namespace VoxxWeatherPlugin
             
             harmony = new Harmony(PluginInfo.PLUGIN_GUID);
 
+            WeatherTypeLoader.LoadLevelManipulator();
+
             if (Configuration.EnableSolarFlareWeather.Value)    
             {
                 WeatherTypeLoader.RegisterFlareWeather();
@@ -59,29 +61,25 @@ namespace VoxxWeatherPlugin
 
             if (Configuration.EnableBlizzardWeather.Value || Configuration.EnableSnowfallWeather.Value)
             {
-                bool snowManagerLoaded = WeatherTypeLoader.LoadSnowManager();
-                if (snowManagerLoaded)
+                harmony.PatchAll(typeof(SnowPatches));
+                Logger.LogInfo($"{PluginInfo.PLUGIN_GUID} snow patches successfully applied!");
+
+                if (Configuration.EnableSnowfallWeather.Value)
                 {
-                    harmony.PatchAll(typeof(SnowPatches));
-                    Logger.LogInfo($"{PluginInfo.PLUGIN_GUID} snow patches successfully applied!");
-
-                    if (Configuration.EnableSnowfallWeather.Value)
-                    {
-                        WeatherTypeLoader.RegisterSnowfallWeather();
-                    }
-
-                    if (Configuration.EnableBlizzardWeather.Value)
-                    {
-                        harmony.PatchAll(typeof(BlizzardPatches));
-                        Logger.LogInfo($"{PluginInfo.PLUGIN_GUID} blizzard patches successfully applied!");
-                        WeatherTypeLoader.RegisterBlizzardWeather();
-                    }
-
-                    MethodInfo patchMethod = typeof(SnowPatches).GetMethod("EnemySnowHindrancePatch", BindingFlags.NonPublic | BindingFlags.Static);
-                    DynamicHarmonyPatcher.PatchAllTypes(typeof(EnemyAI), "Update", patchMethod, PatchType.Postfix, harmony, SnowPatches.unaffectedEnemyTypes); 
-                    Logger.LogInfo($"{PluginInfo.PLUGIN_GUID} enemy snow hindrance patches successfully applied!");
-
+                    WeatherTypeLoader.RegisterSnowfallWeather();
                 }
+
+                if (Configuration.EnableBlizzardWeather.Value)
+                {
+                    harmony.PatchAll(typeof(BlizzardPatches));
+                    Logger.LogInfo($"{PluginInfo.PLUGIN_GUID} blizzard patches successfully applied!");
+                    WeatherTypeLoader.RegisterBlizzardWeather();
+                }
+
+                MethodInfo patchMethod = typeof(SnowPatches).GetMethod("EnemySnowHindrancePatch", BindingFlags.NonPublic | BindingFlags.Static);
+                DynamicHarmonyPatcher.PatchAllTypes(typeof(EnemyAI), "Update", patchMethod, PatchType.Postfix, harmony, SnowPatches.unaffectedEnemyTypes); 
+                Logger.LogInfo($"{PluginInfo.PLUGIN_GUID} enemy snow hindrance patches successfully applied!");
+
             }
 
             Logger.LogInfo($"Plugin {PluginInfo.PLUGIN_GUID} is loaded!");

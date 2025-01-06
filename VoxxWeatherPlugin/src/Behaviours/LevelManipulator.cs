@@ -19,7 +19,7 @@ namespace VoxxWeatherPlugin.Behaviours
         public static LevelManipulator Instance { get; private set; }
         
         #region Snowy Weather Configuration
-        public bool isSnowInitialized = false;
+        public GameObject? snowModule;
         [Header("Snow Overlay Volume")]
         [SerializeField]
         internal CustomPassVolume? snowVolume;
@@ -101,33 +101,19 @@ namespace VoxxWeatherPlugin.Behaviours
         [Header("TerraMesh Parameters")]
 
         [SerializeField]
-        internal TerraMeshConfig terraMeshConfig = new TerraMeshConfig(
-            // Bounding box for target area
-            levelBounds : null,
-            useBounds : Configuration.useLevelBounds.Value, // Use the level bounds to filter out-of-bounds vertices
-            constrainEdges : true,
-            // Mesh subdivision
-            subdivideMesh : Configuration.subdivideMesh.Value, // Will also force the algorithm to refine mesh to remove thin triangles
-            baseEdgeLength : 5, // The target edge length for the mesh refinement
-            //Mesh smoothing
-            smoothMesh : Configuration.smoothMesh.Value,
-            smoothingIterations : 1,
-            // UVs
-            replaceUvs : false,
-            onlyUVs : false, //Will only update UV1 field on the mesh
-            // Renderer mask
-            renderingLayerMask : 0,
-            // Terrain conversion
-            minMeshStep : Configuration.minMeshStep.Value,
-            maxMeshStep : Configuration.maxMeshStep.Value,
-            falloffSpeed : Configuration.falloffRatio.Value,
-            targetVertexCount : Configuration.targetVertexCount.Value,
-            carveHoles : Configuration.carveHoles.Value,
-            refineMesh : Configuration.refineMesh.Value,
-            useMeshCollider : Configuration.useMeshCollider.Value,
-            copyTrees : false,
-            copyDetail : false
-        );
+        internal TerraMeshConfig terraMeshConfig;
+        string[] moonProcessingBlacklist = [];
+        [SerializeField]
+        internal float heightThreshold = -100f; // Under this y coordinate, objects will not be considered for snow rendering
+        [SerializeField]
+        internal QuicksandTrigger[]? waterTriggerObjects;
+        [SerializeField]
+        internal List<GameObject> waterSurfaceObjects = [];
+        [SerializeField]
+        internal List<GameObject> groundObjectCandidates = [];
+
+        [Header("Enemies")]
+        internal HashSet<string>? enemySnowBlacklist;
 
         #endregion
 
@@ -135,18 +121,9 @@ namespace VoxxWeatherPlugin.Behaviours
 
         [Header("General")]
         [SerializeField]
-        internal Vector3 shipPosition;
+        internal Vector3 shipPosition ;
         internal System.Random? seededRandom;
         internal HDAdditionalLightData? sunLightData;
-        [SerializeField]
-        internal float heightThreshold = -100f; // Under this y coordinate, objects will not be considered for snow rendering
-        string[] moonProcessingBlacklist = [];
-        [SerializeField]
-        internal QuicksandTrigger[]? waterTriggerObjects;
-        [SerializeField]
-        internal List<GameObject> waterSurfaceObjects = [];
-        [SerializeField]
-        internal List<GameObject> groundObjectCandidates = [];
         internal string CurrentSceneName => StartOfRound.Instance?.currentLevel.sceneName ?? "";
 
         #endregion
@@ -166,6 +143,18 @@ namespace VoxxWeatherPlugin.Behaviours
             }
             
             Instance = this;
+
+            if (Configuration.EnableBlizzardWeather.Value || Configuration.EnableSnowfallWeather.Value)
+            {
+                Debug.LogDebug("Initializing snow variables...");
+                snowModule?.SetActive(true);
+                InitializeSnowVariables();
+            }
+            else
+            {
+                Debug.LogDebug("Snow weather is disabled! Destroying snow module...");
+                Destroy(snowModule);
+            }
         }
 
         internal void OnDestroy()
@@ -208,8 +197,8 @@ namespace VoxxWeatherPlugin.Behaviours
             Vector3 cameraPosition = new Vector3(levelBounds.center.x,
                                                 levelDepthmapCamera!.transform.position.y,
                                                 levelBounds.center.z);
-            // Set orthographic size to match the level bounds
-            levelDepthmapCamera.orthographicSize = (int)Mathf.Max(levelBounds.size.x, levelBounds.size.z) / 2;
+            // Set orthographic size to match the level bounds (max is 300)
+            levelDepthmapCamera.orthographicSize = (int)Mathf.Clamp(Mathf.Max(levelBounds.size.x, levelBounds.size.z) / 2, 0, 300f);
             levelDepthmapCamera.transform.position = cameraPosition;
             depthWorldToClipMatrix = levelDepthmapCamera.projectionMatrix * levelDepthmapCamera.worldToCameraMatrix;
             Debug.LogDebug($"Camera position: {levelDepthmapCamera.transform.position}, Barycenter: {levelBounds.center}");
@@ -499,6 +488,9 @@ namespace VoxxWeatherPlugin.Behaviours
                 return;
             }
 
+            //Activate snow module
+            snowVolume.transform.parent.gameObject.SetActive(true);
+
             snowScale = seededRandom.NextDouble(snowScaleRange.Item1, snowScaleRange.Item2); // Snow patchy-ness
             finalSnowHeight = seededRandom.NextDouble(snowHeightRange.Item1, snowHeightRange.Item2);
             fullSnowNormalizedTime = seededRandom.NextDouble(snowNormalizedTimeRange.Item1, snowNormalizedTimeRange.Item2);
@@ -516,12 +508,6 @@ namespace VoxxWeatherPlugin.Behaviours
 
         internal void InitializeSnowVariables()
         {
-            if (isSnowInitialized)
-            {
-                Debug.LogDebug("Snow variables are already initialized!");
-                return;
-            }
-
             // Alpha test pass
             snowOverlayCustomPass = snowVolume!.customPasses[1] as SnowOverlayCustomPass;
             snowOverlayCustomPass!.snowOverlayMaterial = Instantiate(snowOverlayMaterial);
@@ -538,7 +524,33 @@ namespace VoxxWeatherPlugin.Behaviours
             //     snowOverlayMaterial.SetColor(SnowfallShaderIDs.SnowColor, new Color(0.1657f, 0.1670f, 0.2075f, 1f));
             //     snowOverlayMaterial.SetFloat(SnowfallShaderIDs.Metallic, 1f);
             // }
-            terraMeshConfig.renderingLayerMask = (uint)(snowOverlayCustomPass?.renderingLayers ?? 0);
+            terraMeshConfig = new TerraMeshConfig(
+                            // Bounding box for target area
+                            levelBounds : null,
+                            useBounds : Configuration.useLevelBounds.Value, // Use the level bounds to filter out-of-bounds vertices
+                            constrainEdges : true,
+                            // Mesh subdivision
+                            subdivideMesh : Configuration.subdivideMesh.Value, // Will also force the algorithm to refine mesh to remove thin triangles
+                            baseEdgeLength : 5, // The target edge length for the mesh refinement
+                            //Mesh smoothing
+                            smoothMesh : Configuration.smoothMesh.Value,
+                            smoothingIterations : 1,
+                            // UVs
+                            replaceUvs : false,
+                            onlyUVs : false, //Will only update UV1 field on the mesh
+                            // Renderer mask
+                            renderingLayerMask : (uint)(snowOverlayCustomPass?.renderingLayers ?? 0),
+                            // Terrain conversion
+                            minMeshStep : Configuration.minMeshStep.Value,
+                            maxMeshStep : Configuration.maxMeshStep.Value,
+                            falloffSpeed : Configuration.falloffRatio.Value,
+                            targetVertexCount : Configuration.targetVertexCount.Value,
+                            carveHoles : Configuration.carveHoles.Value,
+                            refineMesh : Configuration.refineMesh.Value,
+                            useMeshCollider : Configuration.useMeshCollider.Value,
+                            copyTrees : Configuration.useMeshCollider.Value,
+                            copyDetail : false
+                            );
 
             levelDepthmap = new RenderTexture(DepthmapResolution, 
                                             DepthmapResolution,
@@ -598,6 +610,8 @@ namespace VoxxWeatherPlugin.Behaviours
             snowTracksCamera.aspect = 1.0f;
 
             moonProcessingBlacklist = Configuration.meshProcessingBlacklist.Value.CleanMoonName().TrimEnd(';').Split(';');
+            enemySnowBlacklist = Configuration.enemySnowBlacklist.Value.ToLower().TrimEnd(';').Split(';').ToHashSet();
+
         }
 
         internal void UpdateSnowVariables()
@@ -626,6 +640,8 @@ namespace VoxxWeatherPlugin.Behaviours
 
         internal void ResetSnowVariables()
         {
+            //Dectivate snow module
+            snowVolume.transform.parent.gameObject.SetActive(false);
             Destroy(snowMasks);
             groundObjectCandidates.Clear();
             waterSurfaceObjects.Clear();

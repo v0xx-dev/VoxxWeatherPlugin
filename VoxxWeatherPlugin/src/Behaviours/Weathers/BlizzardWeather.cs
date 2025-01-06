@@ -63,7 +63,6 @@ namespace VoxxWeatherPlugin.Weathers
         // Used to implicitly sync the time between the server and the client via TimeOfDay
         private float timeAtStart = -1f;
 
-
         internal override void OnEnable()
         {
             Instance = this; // Change the global reference to this instance (for patches)
@@ -184,7 +183,7 @@ namespace VoxxWeatherPlugin.Weathers
             
         internal override void SetColdZoneState()
         {
-            PlayerEffectsManager.isInColdZone = VFXManager.isUnderSnowPreviousFrame || isPlayerInBlizzard;
+            PlayerEffectsManager.isInColdZone = PlayerEffectsManager.isUnderSnow || isPlayerInBlizzard;
         }
 
         internal bool IsWindAllowed(PlayerControllerB localPlayer)
