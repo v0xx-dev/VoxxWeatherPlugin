@@ -3,7 +3,6 @@ using GameNetcodeStuff;
 using VoxxWeatherPlugin.Utils;
 using System.Collections;
 using VoxxWeatherPlugin.Weathers;
-using UnityEngine.UIElements;
 
 namespace VoxxWeatherPlugin.Behaviours
 {
@@ -38,7 +37,7 @@ namespace VoxxWeatherPlugin.Behaviours
                         playerController.DamagePlayer(WaveDamage, causeOfDeath: CauseOfDeath.Unknown);
                     }
                     playerController.externalForceAutoFade += transform.forward * waveForce;
-                    BlizzardVFXManager? blizzardVFX = SnowfallWeather.Instance?.VFXManager as BlizzardVFXManager; // TODO: super cursed, but ok for now
+                    BlizzardVFXManager? blizzardVFX = BlizzardWeather.Instance?.VFXManager;
                     blizzardVFX?.PlayWavePassSFX();
                     collidedWithLocalPlayer = true;
                 }
@@ -95,8 +94,8 @@ namespace VoxxWeatherPlugin.Behaviours
             BoxCollider waveCollider = gameObject.GetComponent<BoxCollider>();
 
             //Change the center and scale y size so the lower edge is at SnowfallWeather.Instance.heightThreshold level, but current top edge is preserved
-            float newHeightSpan = levelBounds.extents.y - SnowfallWeather.Instance!.heightThreshold;
-            waveCollider.center = new Vector3(0f, SnowfallWeather.Instance.heightThreshold + newHeightSpan / 2, waveCollider.center.z);
+            float newHeightSpan = levelBounds.extents.y - LevelManipulator.Instance!.heightThreshold;
+            waveCollider.center = new Vector3(0f, LevelManipulator.Instance.heightThreshold + newHeightSpan / 2, waveCollider.center.z);
             waveCollider.size = new Vector3(levelBounds.size.x, newHeightSpan, waveCollider.size.z);
 
             float maxLength = Mathf.Max(waveCollider.size.x, waveCollider.size.y, waveCollider.size.z) / 2f;

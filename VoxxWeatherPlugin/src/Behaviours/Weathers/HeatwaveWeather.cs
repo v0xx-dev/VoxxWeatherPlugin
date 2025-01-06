@@ -4,28 +4,26 @@ using UnityEngine;
 using VoxxWeatherPlugin.Utils;
 using UnityEngine.AI;
 using UnityEngine.VFX;
-using UnityEngine.Rendering.HighDefinition;
+using System.Collections.Generic;
+using VoxxWeatherPlugin.Behaviours;
 
 namespace VoxxWeatherPlugin.Weathers
 {
     internal class HeatwaveWeather: BaseWeather
     {
         internal static HeatwaveWeather? Instance { get; private set; }
-        [SerializeField]
-        internal HeatwaveVFXManager? VFXManager; // Manager for heatwave visual effects
+        internal override string WeatherName => "Heatwave"; // Name of the weather
         [SerializeField]
         internal Volume? exhaustionFilter; // Filter for visual effects
         private BoxCollider? heatwaveTrigger; // Trigger collider for the heatwave zone
-        private Bounds LevelBounds => LevelManipulator.levelBounds; // Size of the playable area
-
-        private System.Random? seededRandom;
-
         private float timeUntilStrokeMin => Configuration.TimeUntilStrokeMin.Value; // Minimum time until a heatstroke occurs
         private float timeUntilStrokeMax => Configuration.TimeUntilStrokeMax.Value; // Maximum time until a heatstroke occurs
         [SerializeField]
         internal float timeInHeatZoneMax = 50f; // Time before maximum effects are applied
         [SerializeField]
         internal float timeOfDayFactor = 1f; // Factor for the time of day
+        [SerializeField]
+        internal HeatwaveVFXManager? VFXManager; // Manager for heatwave visual effects
 
         private void Awake()
         {
@@ -39,16 +37,15 @@ namespace VoxxWeatherPlugin.Weathers
 
         private void OnEnable()
         {
-            seededRandom = new System.Random(StartOfRound.Instance.randomMapSeed);
-            LevelManipulator.CalculateLevelSize(1.3f);
-            Debug.LogDebug($"Heatwave zone size: {LevelBounds.size}. Placed at {LevelBounds.center}");
-            VFXManager?.PopulateLevelWithVFX(seededRandom);
-            SetupHeatwaveWeather();
+            LevelManipulator.Instance.InitializeLevelProperties(1.3f);
+            VFXManager?.PopulateLevelWithVFX();
             timeOfDayFactor = VFXManager?.CooldownHeatwaveVFX() ?? 1f;
+            SetupHeatwaveWeather();
         }
 
         private void OnDisable()
         {
+            LevelManipulator.Instance.ResetLevelProperties();
             VFXManager?.Reset();
             PlayerEffectsManager.normalizedTemperature = 0f;
         }
@@ -61,10 +58,10 @@ namespace VoxxWeatherPlugin.Weathers
             heatwaveTrigger.transform.rotation = Quaternion.identity;
             VFXManager!.heatwaveVFXContainer!.transform.parent = transform; // Parent the container to the weather instance to make it stationary
 
-            Debug.LogDebug($"Heatwave zone placed!");
+            Debug.LogDebug($"Heatwave zone size: {LevelBounds.size}. Placed at {LevelBounds.center}");
 
             // Set exhaustion time for the player
-            timeInHeatZoneMax = seededRandom!.NextDouble(timeUntilStrokeMin, timeUntilStrokeMax);
+            timeInHeatZoneMax = SeededRandom!.NextDouble(timeUntilStrokeMin, timeUntilStrokeMax);
             Debug.LogDebug($"Set time until heatstroke: {timeInHeatZoneMax} seconds");
         }
 
@@ -126,12 +123,10 @@ namespace VoxxWeatherPlugin.Weathers
         public GameObject? heatwaveVFXContainer; // GameObject for the particles
         [SerializeField]
         internal AnimationCurve? heatwaveIntensityCurve; // Curve for the intensity of the heatwave
+        private List<VisualEffect> cachedVFX = new List<VisualEffect>(); // Cached VFX for the heatwave particles
 
         // Variables for emitter placement
         private float emitterSize;
-        private float raycastHeight = 500f; // Height from which to cast rays
-        private float maxSunLuminosity = 20f; // Sun luminosity in lux when the heatwave is at its peak
-        private HDAdditionalLightData? sunLightData; // Light data for the sun
         private readonly int spawnRatePropertyID = Shader.PropertyToID("particleSpawnRate"); // Property ID for the spawn rate of the particles
 
         internal void CalculateEmitterRadius()
@@ -140,12 +135,9 @@ namespace VoxxWeatherPlugin.Weathers
             emitterSize = Mathf.Max(transform.lossyScale.x, transform.lossyScale.z) * 5f;
         }
 
-        internal override void PopulateLevelWithVFX(System.Random? seededRandom)
+        internal override void PopulateLevelWithVFX()
         {
-            Bounds levelBounds = LevelManipulator.levelBounds;
-            sunLightData = TimeOfDay.Instance.sunDirect?.GetComponent<HDAdditionalLightData>();
-
-            if (levelBounds == null || seededRandom == null || heatwaveParticlePrefab == null)
+            if (LevelBounds == null || SeededRandom == null || heatwaveParticlePrefab == null)
             {
                 Debug.LogError("Level bounds, random seed or heatwave particle prefab not set!");
                 return;
@@ -158,11 +150,12 @@ namespace VoxxWeatherPlugin.Weathers
 
             int placedEmittersNum = 0;
 
-            int xCount = Mathf.CeilToInt(levelBounds.size.x / emitterSize);
-            int zCount = Mathf.CeilToInt(levelBounds.size.z / emitterSize);
+            int xCount = Mathf.CeilToInt(LevelBounds.size.x / emitterSize);
+            int zCount = Mathf.CeilToInt(LevelBounds.size.z / emitterSize);
             Debug.LogDebug($"Placing {xCount * zCount} emitters...");
 
-            Vector3 startPoint = levelBounds.center - levelBounds.size * 0.5f;
+            Vector3 startPoint = LevelBounds.center - LevelBounds.size * 0.5f;
+            float raycastHeight = 500f; // Height from which to cast rays
 
             float minY = -1f;
             float maxY = 1f;
@@ -172,8 +165,8 @@ namespace VoxxWeatherPlugin.Weathers
                 for (int z = 0; z < zCount; z++)
                 {
                     // Randomize the position of the emitter within the grid cell
-                    float dx = (float)seededRandom.NextDouble() - 0.5f;
-                    float dz = (float)seededRandom.NextDouble() - 0.5f;
+                    float dx = (float)SeededRandom.NextDouble() - 0.5f;
+                    float dz = (float)SeededRandom.NextDouble() - 0.5f;
                     Vector3 rayOrigin = startPoint + new Vector3((x + dx) * emitterSize, raycastHeight, (z + dz) * emitterSize);
                     //Debug.LogDebug($"Raycast origin: {rayOrigin}");
                     (Vector3 position, Vector3 normal) = CastRayAndSampleNavMesh(rayOrigin);
@@ -181,10 +174,12 @@ namespace VoxxWeatherPlugin.Weathers
 
                     if (position != Vector3.zero)
                     {
-                        float randomRotation = (float)seededRandom.NextDouble() * 360f;
+                        float randomRotation = (float)SeededRandom.NextDouble() * 360f;
                         Quaternion rotation = Quaternion.AngleAxis(randomRotation, normal) * Quaternion.LookRotation(normal);
                         //position.y -= 0.5f; // Offset the emitter slightly below the ground
                         GameObject emitter = Instantiate(heatwaveParticlePrefab, position, rotation);
+                        VisualEffect vfx = emitter.GetComponent<VisualEffect>();
+                        cachedVFX.Add(vfx);
                         emitter.SetActive(true);
                         emitter.transform.parent = heatwaveVFXContainer.transform; // Parent the emitter to the VFX container
                         placedEmittersNum++;
@@ -199,8 +194,11 @@ namespace VoxxWeatherPlugin.Weathers
             float newHeight = (maxY - minY) * 1.1f;
             float newYPos = (minY + maxY) / 2;
 
-            levelBounds.size = new Vector3(levelBounds.size.x, newHeight, levelBounds.size.z);
-            levelBounds.center = new Vector3(levelBounds.center.x, newYPos, levelBounds.center.z);
+            // Adjust the level bounds to fit the heatwave zone
+            Bounds adjustedBounds = new Bounds(LevelBounds.center, LevelBounds.size);
+            adjustedBounds.size = new Vector3(LevelBounds.size.x, newHeight, LevelBounds.size.z);
+            adjustedBounds.center = new Vector3(LevelBounds.center.x, newYPos, LevelBounds.center.z);
+            LevelManipulator.Instance.levelBounds = adjustedBounds;
 
             Debug.LogDebug($"Placed {placedEmittersNum} emitters.");
         }
@@ -232,6 +230,8 @@ namespace VoxxWeatherPlugin.Weathers
             }
             heatwaveVFXContainer = null;
             Debug.LogDebug("Heatwave VFX container destroyed.");
+
+            cachedVFX.Clear();
             
             PlayerEffectsManager.isInHeatZone = false;
             PlayerEffectsManager.heatTransferRate = 1f;
@@ -255,16 +255,16 @@ namespace VoxxWeatherPlugin.Weathers
         internal float CooldownHeatwaveVFX()
         {
             float reductionFactor = 1f;
-            if (heatwaveVFXContainer != null && sunLightData != null)
+            
+            float maxSunLuminosity = 20f; // Sun luminosity in lux when the heatwave is at its peak
+
+            if (heatwaveVFXContainer != null)
             {
-                reductionFactor = Mathf.Clamp01(sunLightData.intensity / maxSunLuminosity);
+                reductionFactor = Mathf.Clamp01((LevelManipulator.Instance.sunLightData?.intensity ?? 0f) / maxSunLuminosity);
                 reductionFactor = heatwaveIntensityCurve!.Evaluate(reductionFactor); // Min value in curve is 0.001 to avoid division by zero
-                foreach (Transform child in heatwaveVFXContainer.transform)
+                foreach (VisualEffect vfx in cachedVFX)
                 {
-                    if (child.TryGetComponent(out VisualEffect vfx))
-                    {
-                        vfx.SetFloat(spawnRatePropertyID, Configuration.HeatwaveParticlesSpawnRate.Value * reductionFactor); 
-                    }
+                    vfx?.SetFloat(spawnRatePropertyID, Configuration.HeatwaveParticlesSpawnRate.Value * reductionFactor);
                 }
             }
             

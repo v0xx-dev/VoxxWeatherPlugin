@@ -7,6 +7,7 @@ using GameNetcodeStuff;
 using VoxxWeatherPlugin.Utils;
 using VoxxWeatherPlugin.Behaviours;
 using System;
+using System.Linq;
 
 
 
@@ -24,8 +25,9 @@ namespace VoxxWeatherPlugin.Patches
         internal static HashSet<Type> unaffectedEnemyTypes = new HashSet<Type> {typeof(ForestGiantAI), typeof(RadMechAI), typeof(DoublewingAI),
                                                                                 typeof(ButlerBeesEnemyAI), typeof(DocileLocustBeesAI), typeof(RedLocustBees),
                                                                                 typeof(DressGirlAI), typeof(SandWormAI)};
+        public static HashSet<string> enemySpawnBlacklist = Configuration.enemySnowBlacklist.Value.ToLower().TrimEnd(';').Split(';').ToHashSet();
+        public static HashSet<SpawnableEnemyWithRarity> enemiesToRestore = new HashSet<SpawnableEnemyWithRarity>();
 
-        
 
         [HarmonyPatch(typeof(PlayerControllerB), "Update")]
         [HarmonyTranspiler]
@@ -139,7 +141,7 @@ namespace VoxxWeatherPlugin.Patches
         [HarmonyPriority(Priority.Low)]
         private static void FrostbiteLatePostfix(PlayerControllerB __instance)
         {
-            if (!(SnowfallWeather.Instance?.IsActive ?? false) || __instance != GameNetworkManager.Instance?.localPlayerController)
+            if (!IsSnowActive() || __instance != GameNetworkManager.Instance?.localPlayerController)
                 return;
 
             // Gradually reduce heat severity when not in heat zone
@@ -176,7 +178,7 @@ namespace VoxxWeatherPlugin.Patches
         [HarmonyPostfix]
         private static void PlayerFeetPositionPatch(ControllerColliderHit hit)
         {
-            if (SnowfallWeather.Instance?.IsActive ?? false && SnowThicknessManager.Instance != null)
+            if (IsSnowActive() && SnowThicknessManager.Instance != null)
             {
                 SnowThicknessManager.Instance!.feetPositionY = hit.point.y;
             }
@@ -188,7 +190,7 @@ namespace VoxxWeatherPlugin.Patches
         {
             if (SnowAffectsEnemies &&
                 GameNetworkManager.Instance.isHostingGame &&
-                (SnowfallWeather.Instance?.IsActive ?? false) &&
+                IsSnowActive() &&
                 __instance.isOutside)
             {
                 // Check if enemy is affected by snow hindrance
@@ -207,7 +209,8 @@ namespace VoxxWeatherPlugin.Patches
         {
             if (SnowAffectsEnemies &&
                 GameNetworkManager.Instance.isHostingGame &&
-                (SnowfallWeather.Instance?.IsActive ?? false) && __instance.isOutside)
+                IsSnowActive() && 
+                __instance.isOutside)
             {
                 float snowThickness = SnowThicknessManager.Instance!.GetSnowThickness(__instance);
                 // Slow down if the entity in snow (only if snow thickness is above 0.4, caps at 2.5 height)
@@ -267,7 +270,7 @@ namespace VoxxWeatherPlugin.Patches
         [HarmonyPrefix]
         private static void PlayerSnowTracksUpdatePatch(PlayerControllerB __instance)
         {
-            bool enableTracker = (SnowfallWeather.Instance?.IsActive ?? false) &&
+            bool enableTracker = IsSnowActive() &&
                                     !__instance.isInsideFactory &&
                                     (SnowThicknessManager.Instance?.isEntityOnNaturalGround(__instance) ?? false);
             // We need this check to prevent updating tracker's position after player death, as players get moved out of bounds on their death, causing VFX to be culled
@@ -283,7 +286,7 @@ namespace VoxxWeatherPlugin.Patches
         private static void EnemySnowTracksUpdatePatch(EnemyAI __instance)
         {
             // __instance.isOutside is a simplified check for clients, may cause incorrect behaviour in some cases
-            bool enableTracker = (SnowfallWeather.Instance?.IsActive ?? false) &&
+            bool enableTracker = IsSnowActive() &&
                                     (__instance.isOutside ||
                                     (SnowThicknessManager.Instance?.isEntityOnNaturalGround(__instance) ?? false));
             if (__instance is SandWormAI worm)
@@ -297,7 +300,7 @@ namespace VoxxWeatherPlugin.Patches
         [HarmonyPrefix]
         private static void GrabbableSnowTracksUpdatePatch(GrabbableObject __instance)
         {
-            bool enableTracker = (SnowfallWeather.Instance?.IsActive ?? false) && !__instance.isInFactory;
+            bool enableTracker = IsSnowActive() && !__instance.isInFactory;
             SnowTrackersManager.UpdateFootprintTracker(__instance, enableTracker);
         }
 
@@ -305,7 +308,7 @@ namespace VoxxWeatherPlugin.Patches
         [HarmonyPrefix]
         private static void VehicleSnowTracksUpdatePatch(VehicleController __instance)
         {
-            bool enableTracker = (SnowfallWeather.Instance?.IsActive ?? false) &&
+            bool enableTracker = IsSnowActive() &&
                                     (__instance.FrontLeftWheel.isGrounded ||
                                     __instance.FrontRightWheel.isGrounded ||
                                     __instance.BackLeftWheel.isGrounded ||
@@ -327,13 +330,80 @@ namespace VoxxWeatherPlugin.Patches
             SnowTrackersManager.PlayFootprintTracker(__instance, TrackerType.Shovel, !__instance.isInFactory);
         }
 
+        [HarmonyPatch(typeof(StartOfRound), "StartGame")]
+        [HarmonyPostfix]
+        [HarmonyPriority(Priority.Last)]
+        private static void RemoveEnemiesSnowPatch(StartOfRound __instance)
+        {
+            if (!__instance.IsHost || !(BlizzardWeather.Instance?.IsActive ?? false))
+            {
+                enemiesToRestore.Clear();
+                return;
+            }
+
+            foreach (SpawnableEnemyWithRarity enemy in RoundManager.Instance.currentLevel.DaytimeEnemies)
+            {
+                if (enemySpawnBlacklist.Contains(enemy.enemyType.enemyName.ToLower()))
+                {
+                    if (!enemy.enemyType.spawningDisabled)
+                    {
+                        Debug.LogDebug($"Removing {enemy.enemyType.enemyName} due to blizzard.");
+                        enemiesToRestore.Add(enemy);
+                        enemy.enemyType.spawningDisabled = true;
+                    }
+                }
+            }
+
+            foreach (SpawnableEnemyWithRarity enemy in RoundManager.Instance.currentLevel.OutsideEnemies)
+            {
+                if (enemySpawnBlacklist.Contains(enemy.enemyType.enemyName.ToLower()))
+                {
+                    if (!enemy.enemyType.spawningDisabled)
+                    {
+                        Debug.LogDebug($"Removing {enemy.enemyType.enemyName} due to blizzard.");
+                        enemiesToRestore.Add(enemy);
+                        enemy.enemyType.spawningDisabled = true;
+                    }
+                }
+            }
+
+            enemiesToRestore.Clear();
+        }
+
+        [HarmonyPatch(typeof(StartOfRound), "EndOfGame")]
+        [HarmonyPrefix]
+        [HarmonyPriority(Priority.First)]
+        private static void RestoreBeesSnowPatch(StartOfRound __instance)
+        {
+            if (!__instance.IsHost || !(BlizzardWeather.Instance?.IsActive ?? false))
+                return;
+            
+            foreach (SpawnableEnemyWithRarity enemy in RoundManager.Instance.currentLevel.DaytimeEnemies)
+            {
+                if (enemiesToRestore.Contains(enemy))
+                {
+                    enemy.enemyType.spawningDisabled = false;
+                    Debug.LogDebug($"Restoring {enemy.enemyType.enemyName} after blizzard.");
+                }
+            }
+
+            foreach (SpawnableEnemyWithRarity enemy in RoundManager.Instance.currentLevel.OutsideEnemies)
+            {
+                if (enemiesToRestore.Contains(enemy))
+                {
+                    enemy.enemyType.spawningDisabled = false;
+                    Debug.LogDebug($"Restoring {enemy.enemyType.enemyName} after blizzard.");
+                }
+            }
+        }
+
         private static bool SurfaceSamplingOverride(PlayerControllerB playerScript)
         {
             bool isOnGround = Physics.Raycast(playerScript.interactRay, out playerScript.hit, 6f, StartOfRound.Instance.walkableSurfacesMask, QueryTriggerInteraction.Ignore);
             bool isSameSurface = isOnGround ? playerScript.hit.collider.CompareTag(StartOfRound.Instance.footstepSurfaces[playerScript.currentFootstepSurfaceIndex].surfaceTag) : true;
             bool snowOverride = false;
 
-            if (!(SnowfallWeather.Instance?.IsActive ?? false))
+            if (!IsSnowActive())
             {
                 return !isOnGround || isSameSurface;
             }
@@ -361,11 +431,15 @@ namespace VoxxWeatherPlugin.Patches
         // true if we should NOT delay rebaking navmesh for ice
         public static bool DelayRebakeForIce()
         {
-            string currentWeather = WeatherRegistry.WeatherManager.GetCurrentLevelWeather().Name;
-            bool delayRebake = (currentWeather == "Snowfall" || currentWeather == "Blizzard") &&
+            bool delayRebake = IsSnowActive() &&
                                 Configuration.freezeWater.Value;
             Debug.LogDebug($"Should we delay NavMesh rebaking for ice: {delayRebake}");
             return !delayRebake;
+        }
+
+        public static bool IsSnowActive()
+        {
+            return (SnowfallWeather.Instance?.IsActive ?? false) || (BlizzardWeather.Instance?.IsActive ?? false);
         }
         
     }

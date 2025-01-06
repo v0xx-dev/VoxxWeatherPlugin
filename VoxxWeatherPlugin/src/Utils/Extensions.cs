@@ -3,6 +3,7 @@ using UnityEngine;
 using VoxxWeatherPlugin.Weathers;
 using UnityEngine.Rendering;
 using Unity.Netcode;
+using UnityEngine.UI;
 
 namespace VoxxWeatherPlugin.Utils
 {
@@ -28,7 +29,13 @@ namespace VoxxWeatherPlugin.Utils
         /// <param name="snowfallData"></param> The SnowfallData object containing the bake material, resolution, etc.
         /// <param name="submeshIndex"></param> The index of the submesh to bake the mask for.
         /// <returns></returns> The baked mask texture.
-        internal static Texture2D? BakeMask(this GameObject objectToBake, SnowfallWeather snowfallData, int textureIndex = -1, int submeshIndex = 0)
+        internal static Texture2D? BakeMask(this GameObject objectToBake,
+                                            Material bakeMaterial,
+                                            Texture2DArray snowMasks,
+                                            int bakeResolution = 1024,
+                                            int textureIndex = -1,
+                                            int submeshIndex = 0
+                                            )
         {
             Mesh mesh = objectToBake.GetComponent<MeshFilter>().sharedMesh;
 
@@ -40,9 +47,7 @@ namespace VoxxWeatherPlugin.Utils
 
             Debug.LogDebug("Baking mask for " + objectToBake.name + " with texture index " + textureIndex + " and submesh index " + submeshIndex);
 
-            snowfallData.RefreshBakeMaterial();
-
-            RenderTexture tempRT = RenderTexture.GetTemporary(snowfallData.BakeResolution, snowfallData.BakeResolution, 0, RenderTextureFormat.ARGBFloat);
+            RenderTexture tempRT = RenderTexture.GetTemporary(bakeResolution, bakeResolution, 0, RenderTextureFormat.ARGBFloat);
             tempRT.wrapMode = TextureWrapMode.Clamp;
             tempRT.filterMode = FilterMode.Trilinear;
 
@@ -52,27 +57,27 @@ namespace VoxxWeatherPlugin.Utils
             
             var matrix = objectToBake.transform.localToWorldMatrix;
             // UV1 is used for baking here (see shader implementation)
-            if (snowfallData.bakeMaterial?.SetPass(0) ?? false)
+            if (bakeMaterial?.SetPass(0) ?? false)
                 Graphics.DrawMeshNow(mesh, matrix, submeshIndex);
 
-            RenderTexture blurRT1 = RenderTexture.GetTemporary(snowfallData.BakeResolution, snowfallData.BakeResolution, 0, RenderTextureFormat.ARGBFloat);
+            RenderTexture blurRT1 = RenderTexture.GetTemporary(bakeResolution, bakeResolution, 0, RenderTextureFormat.ARGBFloat);
             blurRT1.wrapMode = TextureWrapMode.Clamp;
             blurRT1.filterMode = FilterMode.Trilinear;
 
-            RenderTexture blurRT2 = RenderTexture.GetTemporary(snowfallData.BakeResolution, snowfallData.BakeResolution, 0, RenderTextureFormat.ARGBFloat);
+            RenderTexture blurRT2 = RenderTexture.GetTemporary(bakeResolution, bakeResolution, 0, RenderTextureFormat.ARGBFloat);
             blurRT2.wrapMode = TextureWrapMode.Clamp;
             blurRT2.filterMode = FilterMode.Trilinear;
 
             // Blur the normal map horizontally
-            Graphics.Blit(tempRT, blurRT1, snowfallData.bakeMaterial, 1);
+            Graphics.Blit(tempRT, blurRT1, bakeMaterial, 1);
             // Blur the normal map vertically
-            Graphics.Blit(blurRT1, blurRT2, snowfallData.bakeMaterial, 2);
+            Graphics.Blit(blurRT1, blurRT2, bakeMaterial, 2);
 
             RenderTexture.active = blurRT2;
-            Texture2D maskTexture = new Texture2D(snowfallData.BakeResolution, snowfallData.BakeResolution, TextureFormat.RGBAFloat, false);
+            Texture2D maskTexture = new Texture2D(bakeResolution, bakeResolution, TextureFormat.RGBAFloat, false);
             maskTexture.wrapMode = TextureWrapMode.Clamp;
             maskTexture.filterMode = FilterMode.Trilinear;
-            maskTexture.ReadPixels(new Rect(0, 0, snowfallData.BakeResolution, snowfallData.BakeResolution), 0, 0);
+            maskTexture.ReadPixels(new Rect(0, 0, bakeResolution, bakeResolution), 0, 0);
 
  #if DEBUG
 
@@ -107,7 +112,7 @@ namespace VoxxWeatherPlugin.Utils
 
             if (textureIndex != -1) // Copy the texture to the specified index in the masks texture array
             {
-                Graphics.CopyTexture(maskTexture, 0, 0, snowfallData.snowMasks, textureIndex, 0);
+                Graphics.CopyTexture(maskTexture, 0, 0, snowMasks, textureIndex, 0);
                 Object.Destroy(maskTexture);
             }
             else

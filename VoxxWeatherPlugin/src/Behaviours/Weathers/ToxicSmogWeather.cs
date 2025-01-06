@@ -1,20 +1,20 @@
 using UnityEngine;
-using DunGen;
 using UnityEngine.Rendering.HighDefinition;
-using VoxxWeatherPlugin.Utils;
-using System.Collections.Generic;
 using UnityEngine.AI;
+using System.Collections.Generic;
 using System.Linq;
-
+using VoxxWeatherPlugin.Behaviours;
+using VoxxWeatherPlugin.Utils;
 
 namespace VoxxWeatherPlugin.Weathers
 {
     internal class ToxicSmogWeather: BaseWeather
     {
         public static ToxicSmogWeather? Instance { get; private set; }
+        internal override string WeatherName => "Toxic Smog";
         [SerializeField]
         internal ToxicSmogVFXManager? VFXManager;
-        private System.Random? seededRandom;
+
         void Awake()
         {
             Instance = this;
@@ -22,13 +22,13 @@ namespace VoxxWeatherPlugin.Weathers
         
         void OnEnable()
         {
-            seededRandom = new System.Random(StartOfRound.Instance.randomMapSeed);
-            LevelManipulator.CalculateLevelSize(1.5f);
-            VFXManager?.PopulateLevelWithVFX(seededRandom);
+            LevelManipulator.Instance.InitializeLevelProperties(1.4f);
+            VFXManager?.PopulateLevelWithVFX();
         }
 
         void OnDisable()
         {
+            LevelManipulator.Instance.ResetLevelProperties();
             VFXManager?.Reset();
         }
 
@@ -84,9 +84,8 @@ namespace VoxxWeatherPlugin.Weathers
             fumesContainerInside?.SetActive(true);
         }
 
-        internal override void PopulateLevelWithVFX(System.Random? seededRandom = null)
+        internal override void PopulateLevelWithVFX()
         {
-            Bounds levelBounds = LevelManipulator.levelBounds;
 
             if (toxicVolumetricFog == null)
             {
@@ -102,24 +101,19 @@ namespace VoxxWeatherPlugin.Weathers
                 toxicVolumetricFog.gameObject.SetActive(true);
             }
 
-            if (seededRandom == null)
-            {
-                seededRandom = new System.Random(StartOfRound.Instance.randomMapSeed);
-            }
-
             // Find the dungeon scale
             float dungeonSize = StartOfRound.Instance.currentLevel.factorySizeMultiplier;
 
             // Randomly select density
-            smogFreePath = seededRandom.NextDouble(MinFreePath, MaxFreePath);
+            smogFreePath = SeededRandom.NextDouble(MinFreePath, MaxFreePath);
             toxicVolumetricFog.parameters.meanFreePath = smogFreePath;
             // Position in the center of the level
-            toxicVolumetricFog.parameters.size = levelBounds.size;
-            toxicVolumetricFog.transform.position = levelBounds.center;
-            toxicVolumetricFog.parameters.distanceFadeStart = levelBounds.size.x*0.9f;
-            toxicVolumetricFog.parameters.distanceFadeEnd = levelBounds.size.x;
+            toxicVolumetricFog.parameters.size = LevelBounds.size;
+            toxicVolumetricFog.transform.position = LevelBounds.center;
+            toxicVolumetricFog.parameters.distanceFadeStart = LevelBounds.size.x*0.9f;
+            toxicVolumetricFog.parameters.distanceFadeEnd = LevelBounds.size.x;
 
-            fumesAmount = seededRandom.Next(MinFumesAmount, MaxFumesAmount);
+            fumesAmount = SeededRandom.Next(MinFumesAmount, MaxFumesAmount);
             factoryFumesAmount = Mathf.CeilToInt(fumesAmount * factoryAmountMultiplier * dungeonSize);
 
             // Cache entrance positions and map objects
@@ -139,7 +133,7 @@ namespace VoxxWeatherPlugin.Weathers
             ///Add ship bounds to the list of blockers
             blockersPositions.AddRange([StartOfRound.Instance.shipBounds.transform.position, Vector3.zero]);
             Debug.LogDebug($"Outdoor fumes: Anchor positions: {anchorPositions.Count}, Blockers positions: {blockersPositions.Count}");
-            SpawnFumes(anchorPositions, blockersPositions, fumesAmount, fumesContainerOutside!, seededRandom);
+            SpawnFumes(anchorPositions, blockersPositions, fumesAmount, fumesContainerOutside!, SeededRandom);
 
             if (fumesContainerInside == null)
             {
@@ -153,7 +147,7 @@ namespace VoxxWeatherPlugin.Weathers
             // Use entrances as blockers
             blockersPositions = entrances.Where(entrance => entrance.isEntranceToBuilding).Select(entrance => entrance.transform.position).ToList();
             Debug.LogDebug($"Indoor fumes: Anchor positions: {anchorPositions.Count}, Blockers positions: {blockersPositions.Count}");
-            SpawnFumes(anchorPositions, blockersPositions, factoryFumesAmount, fumesContainerInside!, seededRandom);
+            SpawnFumes(anchorPositions, blockersPositions, factoryFumesAmount, fumesContainerInside!, SeededRandom);
         }
 
         private void SpawnFumes(List<Vector3> anchors, List<Vector3> blockedPositions, int amount, GameObject container, System.Random random)

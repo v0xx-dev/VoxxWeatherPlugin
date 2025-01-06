@@ -2,7 +2,6 @@ using UnityEngine;
 using VoxxWeatherPlugin.Utils;
 using System.Collections;
 using GameNetcodeStuff;
-using UnityEngine.Rendering;
 using UnityEngine.Events;
 using VoxxWeatherPlugin.Behaviours;
 
@@ -10,11 +9,13 @@ namespace VoxxWeatherPlugin.Weathers
 {
     internal class BlizzardWeather: SnowfallWeather
     {
+        internal static BlizzardWeather? Instance { get; private set; }
+        internal override string WeatherName => "Blizzard";
         // Overrides   
-        internal new float MinSnowHeight => 0.6f*Configuration.minSnowHeightBlizzard.Value;
-        internal new float MaxSnowHeight => 0.6f*Configuration.maxSnowHeightBlizzard.Value;
-        internal new float MinSnowNormalizedTime => 0.3f*Configuration.minTimeToFullSnowBlizzard.Value;
-        internal new float MaxSnowNormalizedTime => 0.3f*Configuration.maxTimeToFullSnowBlizzard.Value;
+        internal new float MinSnowHeight => Configuration.minSnowHeightBlizzard.Value;
+        internal new float MaxSnowHeight => Configuration.maxSnowHeightBlizzard.Value;
+        internal new float MinSnowNormalizedTime => Configuration.minTimeToFullSnowBlizzard.Value;
+        internal new float MaxSnowNormalizedTime => Configuration.maxTimeToFullSnowBlizzard.Value;
 
         [Header("Visuals")]
         [SerializeField]
@@ -65,14 +66,18 @@ namespace VoxxWeatherPlugin.Weathers
 
         internal override void OnEnable()
         {
-            OnStart();
-            finalSnowHeight = seededRandom.NextDouble(MinSnowHeight, MaxSnowHeight);
-            fullSnowNormalizedTime = seededRandom.NextDouble(MinSnowNormalizedTime, MaxSnowNormalizedTime);
-            waveInterval = seededRandom.NextDouble(MinWaveInterval, MaxWaveInterval);
-            numOfWaves = seededRandom.Next(MinWaveCount, MaxWaveCount);
+            Instance = this; // Change the global reference to this instance (for patches)
+            LevelManipulator.Instance.InitializeLevelProperties(1.5f);
+            LevelManipulator.Instance.SetupLevelForSnow(snowHeightRange: (MinSnowHeight, MaxSnowHeight),
+                                                        snowNormalizedTimeRange: (MinSnowNormalizedTime, MaxSnowNormalizedTime),
+                                                        snowScaleRange: (0.7f, 1.3f),
+                                                        fogStrengthRange: (0f, 5f));
+
+            waveInterval = SeededRandom.NextDouble(MinWaveInterval, MaxWaveInterval);
+            numOfWaves = SeededRandom.Next(MinWaveCount, MaxWaveCount);
             // If no ground objects are found, the wind force will be set to the maximum
-            windForce = groundObjectCandidates.Count > 0 ? seededRandom.NextDouble(MinWindForce, MaxWindForce) : MaxWindForce;
-            timeUntilFrostbite = seededRandom.NextDouble(MinTimeUntilFrostbite, MaxTimeUntilFrostbite);
+            windForce = LevelManipulator.Instance.groundObjectCandidates.Count > 0 ? SeededRandom.NextDouble(MinWindForce, MaxWindForce) : MaxWindForce;
+            timeUntilFrostbite = SeededRandom.NextDouble(MinTimeUntilFrostbite, MaxTimeUntilFrostbite);
             TimeOfDay.Instance.onTimeSync.AddListener(new UnityAction(OnGlobalTimeSync));     
             VFXManager?.PopulateLevelWithVFX();
         }
@@ -102,7 +107,7 @@ namespace VoxxWeatherPlugin.Weathers
             }
 
             // To keep the chill waves less frequent than the wind changes
-            if (timeSinceWave >= waveInterval && seededRandom!.NextDouble() < 0.5f)
+            if (timeSinceWave >= waveInterval && SeededRandom!.NextDouble() < 0.5f)
             {
                 isChillWaveActive = true;
                 chillWaveCoroutine = StartCoroutine(GenerateChillWaveCoroutine());
@@ -226,7 +231,7 @@ namespace VoxxWeatherPlugin.Weathers
             GameObject chillWaveContainer = VFXManager.blizzardWaveContainer;
 
             // Generate a random angle
-            float randomAngle = seededRandom.NextDouble(-5f, 20f); // So it would tend to change direction clockwise
+            float randomAngle = SeededRandom.NextDouble(-5f, 20f); // So it would tend to change direction clockwise
             
             Debug.LogDebug("Changing wind direction by " + randomAngle + " degrees");
             
@@ -255,7 +260,7 @@ namespace VoxxWeatherPlugin.Weathers
 
             windDirection = Quaternion.Euler(0f, randomAngle, 0f) * windDirection;
             windDirection.Normalize();
-            windForce = seededRandom.NextDouble(MinWindForce, MaxWindForce);
+            windForce = SeededRandom.NextDouble(MinWindForce, MaxWindForce);
             timeSinceWindChange = 0;
             isWindChangeActive = false;
         }
@@ -306,8 +311,8 @@ namespace VoxxWeatherPlugin.Weathers
                 
             }
 
-            waveInterval = seededRandom.NextDouble(MinWaveInterval, MaxWaveInterval);
-            numOfWaves = seededRandom.Next(MinWaveCount, MaxWaveCount);
+            waveInterval = SeededRandom.NextDouble(MinWaveInterval, MaxWaveInterval);
+            numOfWaves = SeededRandom.Next(MinWaveCount, MaxWaveCount);
             timeSinceWave = 0;
             chillWaveContainer.SetActive(false);
             isChillWaveActive = false;
@@ -361,20 +366,19 @@ namespace VoxxWeatherPlugin.Weathers
             blizzardSFXPlayer?.PlayOneShot(sonicBoomSFX);
         }
 
-        internal override void PopulateLevelWithVFX(System.Random? seededRandom = null)
+        internal override void PopulateLevelWithVFX()
         {
-            Bounds levelBounds = LevelManipulator.levelBounds;
             blizzardWaveContainer?.SetActive(false);
 
             ChillWaveTrigger? chillWaveTrigger = blizzardWaveContainer?.GetComponent<ChillWaveTrigger>();
 
             if (chillWaveTrigger != null)
             {
-                chillWaveTrigger.SetupChillWave(levelBounds);
+                chillWaveTrigger.SetupChillWave(LevelBounds);
                 Debug.LogDebug("Chill wave trigger setup!");
             }
             
-            base.PopulateLevelWithVFX(seededRandom);
+            base.PopulateLevelWithVFX();
         }
 
     }

@@ -59,7 +59,7 @@ namespace VoxxWeatherPlugin.Utils
                 SunAnimatorBool = "",
                 };
 
-            Weather HeatwaveWeather = new Weather("Heatwave", heatwaveEffect)
+            Weather HeatwaveWeather = new Weather(heatwaveWeatherController.WeatherName, heatwaveEffect)
             {
                 DefaultLevelFilters = new[] {"Experimentation", "Assurance", "Offense", "Embrion", "Artifice",
                                             "EGypt", "Aquatis", "Affliction", "Penumbra", "EchoReach", "Harloth",
@@ -131,7 +131,7 @@ namespace VoxxWeatherPlugin.Utils
                 SunAnimatorBool = "",
             };
 
-            Weather FlareWeather = new Weather("Solar Flare", flareWeatherEffect)
+            Weather FlareWeather = new Weather(flareWeatherController.WeatherName, flareWeatherEffect)
             {
                 DefaultLevelFilters = new[] {"Gordion"},
                 LevelFilteringOption = FilteringOption.Exclude,
@@ -187,9 +187,9 @@ namespace VoxxWeatherPlugin.Utils
                 return;
             }
 
-            blizzardWeatherController.snowOverlayMaterial!.shader = overlayShader;
-            blizzardWeatherController.snowVertexMaterial!.shader = vertexSnowShader;
-            blizzardWeatherController.snowVertexOpaqueMaterial!.shader = opaqueVertexSnowShader;
+            // blizzardWeatherController.snowOverlayMaterial!.shader = overlayShader;
+            // blizzardWeatherController.snowVertexMaterial!.shader = vertexSnowShader;
+            // blizzardWeatherController.snowVertexOpaqueMaterial!.shader = opaqueVertexSnowShader;
             VisualEffect blizzardVFX = blizzardVFXManager.snowVFXContainer!.GetComponent<VisualEffect>();
             blizzardVFX.visualEffectAsset = blizzardVFXAsset;
             blizzardVFX.SetFloat("spawnRateMultiplier", Configuration.snowParticlesMultiplier.Value);
@@ -211,7 +211,7 @@ namespace VoxxWeatherPlugin.Utils
                 SunAnimatorBool = "overcast",
             };
 
-            Weather BlizzardWeather = new Weather("Blizzard", blizzardWeatherEffect)
+            Weather BlizzardWeather = new Weather(blizzardWeatherController.WeatherName, blizzardWeatherEffect)
             {
                 DefaultLevelFilters = ["Gordion", "Experimentation", "Assurance", "Offense", "Embrion",
                                             "EGypt", "Penumbra", "EchoReach", "Infernis", "Atlantica",
@@ -276,9 +276,9 @@ namespace VoxxWeatherPlugin.Utils
                 return;
             }
 
-            snowfallWeatherController.snowOverlayMaterial!.shader = overlayShader;
-            snowfallWeatherController.snowVertexMaterial!.shader = vertexSnowShader;
-            snowfallWeatherController.snowVertexOpaqueMaterial!.shader = opaqueVertexSnowShader;
+            // snowfallWeatherController.snowOverlayMaterial!.shader = overlayShader;
+            // snowfallWeatherController.snowVertexMaterial!.shader = vertexSnowShader;
+            // snowfallWeatherController.snowVertexOpaqueMaterial!.shader = opaqueVertexSnowShader;
             VisualEffect snowVFX = snowfallVFXManager.snowVFXContainer!.GetComponent<VisualEffect>();
             snowVFX.visualEffectAsset = snowVFXAsset;
             snowVFX.SetFloat("spawnRateMultiplier", Configuration.snowParticlesMultiplier.Value);
@@ -292,7 +292,7 @@ namespace VoxxWeatherPlugin.Utils
                 SunAnimatorBool = "overcast",
             };
 
-            Weather SnowfallWeatherEffect = new Weather("Snowfall", snowyWeatherEffect)
+            Weather SnowfallWeatherEffect = new Weather(snowfallWeatherController.WeatherName, snowyWeatherEffect)
             {
                 DefaultLevelFilters = ["Gordion", "Assurance", "Embrion", "Sierra",
                                         "EGypt", "Penumbra", "EchoReach", "Infernis", "Atlantica",
@@ -375,7 +375,7 @@ namespace VoxxWeatherPlugin.Utils
                 SunAnimatorBool = "",
             };
 
-            Weather ToxicSmogWeatherEffect = new Weather("Toxic Smog", toxicWeatherEffect)
+            Weather ToxicSmogWeatherEffect = new Weather(toxicSmogWeatherController.WeatherName, toxicWeatherEffect)
             {
                 DefaultLevelFilters = ["Gordion", "Derelict"],
                 LevelFilteringOption = FilteringOption.Exclude,

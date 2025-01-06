@@ -34,19 +34,20 @@ namespace VoxxWeatherPlugin.Weathers
     internal class SolarFlareWeather : BaseWeather
     {
         public static SolarFlareWeather? Instance { get; private set; }
+        internal override string WeatherName => "Solar Flare";
         [SerializeField]
         internal Material? glitchMaterial;
         [SerializeField]
         internal CustomPassVolume? glitchVolume;
         internal GlitchEffect? glitchPass;
-        // [SerializeField]
-        // internal  AudioClip staticElectricitySound;
         [SerializeField]
         internal FlareData[]? flareTypes;
         internal FlareData? flareData;
         internal TerminalAccessibleObject[]? bigDoors;
         [SerializeField]
         internal SolarFlareVFXManager? VFXManager;
+        // [SerializeField]
+        // internal  AudioClip staticElectricitySound;
         // internal Turret[] turrets;
         // internal EnemyAINestSpawnObject[] radMechNests;
         // internal float turretMalfunctionDelay = 1f;
@@ -66,6 +67,9 @@ namespace VoxxWeatherPlugin.Weathers
 
         private void OnEnable()
         {
+
+            LevelManipulator.Instance?.InitializeLevelProperties(1.2f);
+
             if (glitchVolume == null)
             {
                 GlitchRadarMap();
@@ -81,19 +85,14 @@ namespace VoxxWeatherPlugin.Weathers
             //         .clip;
             // }
 
-            System.Random seededRandom = new System.Random(StartOfRound.Instance.randomMapSeed);
-
             FlareIntensity[] flareIntensities = (FlareIntensity[])Enum.GetValues(typeof(FlareIntensity));
-            FlareIntensity randomIntensity = flareIntensities[seededRandom.Next(flareIntensities.Length)];
+            FlareIntensity randomIntensity = flareIntensities[SeededRandom.Next(flareIntensities.Length)];
             if (flareTypes == null)
             {
                 Debug.LogWarning("Flare types not set up correctly! Likely FixPluginTypesSerialization is not installed!");
                 return;
             }
             flareData = flareTypes?[(int)randomIntensity];
-
-            LevelManipulator.CalculateLevelSize();
-            VFXManager?.PopulateLevelWithVFX();
 
             if (glitchPass != null)
             {
@@ -103,6 +102,7 @@ namespace VoxxWeatherPlugin.Weathers
             TerminalAccessibleObject[] terminalObjects = FindObjectsOfType<TerminalAccessibleObject>();
             bigDoors = terminalObjects.Where(obj => obj.isBigDoor).ToArray();
 
+            VFXManager?.PopulateLevelWithVFX();
             // turrets = FindObjectsOfType<Turret>();
             // foreach (Turret turret in turrets)
             // {
@@ -118,6 +118,8 @@ namespace VoxxWeatherPlugin.Weathers
 
         private void OnDisable()
         {
+            LevelManipulator.Instance?.ResetLevelProperties();
+
             if (glitchPass != null)
             {
                 glitchPass.enabled = false;
@@ -156,12 +158,14 @@ namespace VoxxWeatherPlugin.Weathers
             }
             if (TimeOfDay.Instance.normalizedTimeOfDay % 0.07f < 1e-4)
             {
-                if ((flareData?.IsDoorMalfunction ?? false) && bigDoors != null && GameNetworkManager.Instance.isHostingGame && isDoorMalfunctionEnabled)
+                if ((flareData?.IsDoorMalfunction ?? false) &&
+                    bigDoors != null &&
+                    isDoorMalfunctionEnabled)
                 {
                     foreach (TerminalAccessibleObject door in bigDoors)
                     {
-                        bool open = UnityEngine.Random.value < doorMalfunctionChance;
-                        door.SetDoorLocalClient(open);
+                        bool open = SeededRandom.NextDouble() < doorMalfunctionChance;
+                        door.SetDoorOpen(open);
                     }
                 }
 
@@ -428,17 +432,15 @@ namespace VoxxWeatherPlugin.Weathers
         [SerializeField]
         internal GameObject? auroraObject; // GameObject for the particles
         private GameObject? sunTexture; // GameObject for the sun texture
-        internal HDAdditionalLightData? sunLightData;
         
         // Threshold for sun luminosity in lux to enable aurora
         internal float auroraSunThreshold => Configuration.AuroraVisibilityThreshold.Value; 
 
         // Variables for emitter placement
 
-        internal override void PopulateLevelWithVFX(System.Random? seededRandom = null)
+        internal override void PopulateLevelWithVFX()
         {
             sunTexture = null;
-            Bounds levelBounds = LevelManipulator.levelBounds;
             
             if (TimeOfDay.Instance.sunDirect == null)
             {
@@ -465,7 +467,7 @@ namespace VoxxWeatherPlugin.Weathers
             if (SolarFlareWeather.Instance?.flareData != null)
             {
                 auroraObject.transform.parent = SolarFlareWeather.Instance.transform; // to stop it from moving with the player
-                auroraObject.transform.position = new Vector3(levelBounds.center.x, StartOfRound.Instance.shipBounds.bounds.center.y, levelBounds.center.z);
+                auroraObject.transform.position = new Vector3(LevelBounds.center.x, StartOfRound.Instance.shipBounds.bounds.center.y, LevelBounds.center.z);
                 auroraObject.transform.rotation = Quaternion.identity;
                 auroraVFX.SetVector4("auroraColor", SolarFlareWeather.Instance.flareData.AuroraColor1);
                 auroraVFX.SetVector4("auroraColor2", SolarFlareWeather.Instance.flareData.AuroraColor2);
@@ -508,7 +510,7 @@ namespace VoxxWeatherPlugin.Weathers
 
         internal void Update()
         {
-            float sunLuminosity = sunLightData != null ? sunLightData.intensity: 0;
+            float sunLuminosity = LevelManipulator.Instance.sunLightData?.intensity ?? 0f;
 
             // Sync flare objects position, rotation and scale with the sun texture absolute values relative to the world
             if (sunTexture != null)
@@ -574,18 +576,12 @@ namespace VoxxWeatherPlugin.Weathers
 
         internal override void Reset()
         {
-            sunLightData = null;
             flareObject?.SetActive(false);
             auroraObject?.SetActive(false);
         }
 
         private void OnEnable()
         {
-            if (TimeOfDay.Instance.sunDirect != null)
-            {
-                sunLightData = TimeOfDay.Instance.sunDirect.GetComponent<HDAdditionalLightData>();
-            }
-            
             if (sunTexture != null)
             {
                 flareObject?.SetActive(true);

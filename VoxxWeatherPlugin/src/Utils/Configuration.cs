@@ -54,6 +54,7 @@ namespace VoxxWeatherPlugin.Utils
         public static ConfigEntry<bool>  enableEasterEgg; //
         public static ConfigEntry<bool>  patchModdedEnemies; //
         public static ConfigEntry<bool>  snowAffectsEnemies; //
+        public static ConfigEntry<string>  enemySnowBlacklist; //
         #endregion
 
         #region Blizzard
@@ -276,6 +277,12 @@ namespace VoxxWeatherPlugin.Utils
                                             "snowAffectsEnemies",
                                             true,
                                             "HOST ONLY! Allow snowfall weather to affect enemies. If disabled enemies will not be slowed down by snow.");
+            
+            enemySnowBlacklist = Config.Bind("Snowfall",
+                                            "enemySpawnBlacklist",
+                                            "Docile Locust Bees;Red Locust Bees;Tulip Snake",
+                                            "List of OUTSIDE enemies that will be blocked from spawning during snowfall AND blizzard. Separate with a semicolon, exact match (including spaces, but not case sensitive).");
+
             #endregion
 
             #region Blizzard
