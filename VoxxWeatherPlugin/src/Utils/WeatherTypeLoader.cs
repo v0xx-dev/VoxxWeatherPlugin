@@ -163,6 +163,7 @@ namespace VoxxWeatherPlugin.Utils
             GameObject.DontDestroyOnLoad(blizzardContainer);
 
             BlizzardWeather blizzardWeatherController = blizzardContainer.GetComponentInChildren<BlizzardWeather>(true);
+            BlizzardWeather.Instance = blizzardWeatherController;
             GameObject effectPermanentObject = blizzardWeatherController.gameObject;
             effectPermanentObject.SetActive(false);
 
@@ -208,7 +209,7 @@ namespace VoxxWeatherPlugin.Utils
                 SunAnimatorBool = "overcast",
             };
 
-            Weather BlizzardWeather = new Weather(blizzardWeatherController.WeatherName, blizzardWeatherEffect)
+            Weather BlizzardWeatherType = new Weather(blizzardWeatherController.WeatherName, blizzardWeatherEffect)
             {
                 DefaultLevelFilters = ["Gordion", "Experimentation", "Assurance", "Offense", "Embrion",
                                             "EGypt", "Penumbra", "EchoReach", "Infernis", "Atlantica",
@@ -224,7 +225,7 @@ namespace VoxxWeatherPlugin.Utils
                 DefaultWeight = 75
             };
 
-            WeatherManager.RegisterWeather(BlizzardWeather);
+            WeatherManager.RegisterWeather(BlizzardWeatherType);
             Debug.Log($"{PluginInfo.PLUGIN_GUID}: Blizzard weather registered!");
 
         }
@@ -243,11 +244,12 @@ namespace VoxxWeatherPlugin.Utils
             GameObject.DontDestroyOnLoad(snowfallContainer);
 
             SnowfallWeather snowfallWeatherController = snowfallContainer.GetComponentInChildren<SnowfallWeather>(true);
+            SnowfallWeather.Instance = snowfallWeatherController;
             GameObject effectPermanentObject = snowfallWeatherController.gameObject;
             effectPermanentObject.SetActive(false);
 
             SnowfallVFXManager snowfallVFXManager = snowfallContainer.GetComponentInChildren<SnowfallVFXManager>(true);
-            //Possibly setup vfx configuration here
+            
             GameObject effectObject = snowfallVFXManager.gameObject;
             effectObject.SetActive(false);
 

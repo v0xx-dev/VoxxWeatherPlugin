@@ -8,6 +8,7 @@ using VoxxWeatherPlugin.Utils;
 using VoxxWeatherPlugin.Behaviours;
 using System;
 using System.Linq;
+using WeatherRegistry;
 
 
 
@@ -369,14 +370,20 @@ namespace VoxxWeatherPlugin.Patches
             SnowTrackersManager.PlayFootprintTracker(__instance, TrackerType.Shovel, !__instance.isInFactory);
         }
 
+        //TODO BUSTED
         [HarmonyPatch(typeof(StartOfRound), "StartGame")]
-        [HarmonyPrefix]
+        [HarmonyPostfix]
         [HarmonyPriority(Priority.Last)]
         private static void RemoveEnemiesSnowPatch(StartOfRound __instance)
         {
-            if (!__instance.IsHost || !IsSnowActive() || EnemySpawnBlacklist == null)
+            // Some enemies might not have been restored due to going to menu
+            if (enemiesToRestore.Count > 0)
             {
-                enemiesToRestore.Clear();
+                RestoreEnemies();
+            }
+
+            if (!__instance.IsHost || !IsSnowActive())
+            {
                 return;
             }
 
@@ -386,7 +393,7 @@ namespace VoxxWeatherPlugin.Patches
                 {
                     if (!enemy.enemyType.spawningDisabled)
                     {
-                        Debug.LogDebug($"Removing {enemy.enemyType.enemyName} due to blizzard.");
+                        Debug.LogDebug($"Removing {enemy.enemyType.enemyName} due to cold conditions.");
                         enemiesToRestore.Add(enemy);
                         enemy.enemyType.spawningDisabled = true;
                     }
@@ -399,14 +406,12 @@ namespace VoxxWeatherPlugin.Patches
                 {
                     if (!enemy.enemyType.spawningDisabled)
                     {
-                        Debug.LogDebug($"Removing {enemy.enemyType.enemyName} due to blizzard.");
+                        Debug.LogDebug($"Removing {enemy.enemyType.enemyName} due to cold conditions.");
                         enemiesToRestore.Add(enemy);
                         enemy.enemyType.spawningDisabled = true;
                     }
                 }
             }
-
-            enemiesToRestore.Clear();
         }
 
         [HarmonyPatch(typeof(StartOfRound), "EndOfGame")]
@@ -417,23 +422,18 @@ namespace VoxxWeatherPlugin.Patches
             if (!__instance.IsHost || !IsSnowActive() || enemiesToRestore.Count == 0)
                 return;
             
-            foreach (SpawnableEnemyWithRarity enemy in RoundManager.Instance.currentLevel.DaytimeEnemies)
+            RestoreEnemies();
+        }
+
+        private static void RestoreEnemies()
+        {
+            foreach (SpawnableEnemyWithRarity enemy in enemiesToRestore)
             {
-                if (enemiesToRestore.Contains(enemy))
-                {
-                    enemy.enemyType.spawningDisabled = false;
-                    Debug.LogDebug($"Restoring {enemy.enemyType.enemyName} after blizzard.");
-                }
+                enemy.enemyType.spawningDisabled = false;
+                Debug.LogDebug($"Restoring {enemy.enemyType.enemyName} after cold.");
             }
 
-            foreach (SpawnableEnemyWithRarity enemy in RoundManager.Instance.currentLevel.OutsideEnemies)
-            {
-                if (enemiesToRestore.Contains(enemy))
-                {
-                    enemy.enemyType.spawningDisabled = false;
-                    Debug.LogDebug($"Restoring {enemy.enemyType.enemyName} after blizzard.");
-                }
-            }
+            enemiesToRestore.Clear();
         }
 
         private static bool SurfaceSamplingOverride(PlayerControllerB playerScript)
@@ -477,17 +477,33 @@ namespace VoxxWeatherPlugin.Patches
         // Patch for ice rebake condition
         // true if we should NOT delay rebaking navmesh for ice
         public static bool DelayRebakeForIce()
-        {
+        {   
             bool delayRebake = IsSnowActive() &&
                                 Configuration.freezeWater.Value;
             Debug.LogDebug($"Should we delay NavMesh rebaking for ice: {delayRebake}");
             return !delayRebake;
         }
 
+        // TODO Check if this is working
         public static bool IsSnowActive()
         {
             return (SnowfallWeather.Instance?.IsActive ?? false) || (BlizzardWeather.Instance?.IsActive ?? false);
         }
+
+        // public static void DebugSnowCheck()
+        // {
+        //     bool snowActive = SnowfallWeather.Instance?.gameObject.activeInHierarchy ?? false;
+        //     bool blizzardActive = BlizzardWeather.Instance?.gameObject.activeInHierarchy ?? false;
+
+        //     bool snowNameMatch = SnowfallWeather.Instance?.WeatherName.ToLower() == WeatherManager.GetCurrentLevelWeather().Name.ToLower();
+        //     bool blizzardNameMatch = BlizzardWeather.Instance?.WeatherName.ToLower() == WeatherManager.GetCurrentLevelWeather().Name.ToLower();
+
+        //     bool isLanding = !(StartOfRound.Instance?.inShipPhase ?? false);
+
+        //     Debug.LogDebug($"SnowActive: {snowActive}, BlizzardActive: {blizzardActive}, SnowNameMatch: {snowNameMatch}, BlizzardNameMatch: {blizzardNameMatch}, InOrbit: {isLanding}");
+        //     //Inspect names of the current weather and the weather in the level
+        //     Debug.LogDebug($"Current weather: '{WeatherManager.GetCurrentLevelWeather().Name}', SnowfallWeather: '{SnowfallWeather.Instance?.WeatherName}', BlizzardWeather: '{BlizzardWeather.Instance?.WeatherName}'");
+        // }
         
     }
 

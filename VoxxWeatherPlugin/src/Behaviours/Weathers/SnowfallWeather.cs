@@ -15,12 +15,12 @@ namespace VoxxWeatherPlugin.Weathers
 {
     internal class SnowfallWeather: BaseWeather
     {
-        public static SnowfallWeather? Instance { get; protected set;}
+        internal static SnowfallWeather? Instance;
         internal override string WeatherName => "Snowfall";
-        internal float MinSnowHeight => Configuration.minSnowHeight.Value;
-        internal float MaxSnowHeight => Configuration.maxSnowHeight.Value;
-        internal float MinSnowNormalizedTime => Configuration.minTimeToFullSnow.Value;
-        internal float MaxSnowNormalizedTime => Configuration.maxTimeToFullSnow.Value;
+        internal virtual float MinSnowHeight => Configuration.minSnowHeight.Value;
+        internal virtual float MaxSnowHeight => Configuration.maxSnowHeight.Value;
+        internal virtual float MinSnowNormalizedTime => Configuration.minTimeToFullSnow.Value;
+        internal virtual float MaxSnowNormalizedTime => Configuration.maxTimeToFullSnow.Value;
         
         [Header("General")]
         [SerializeField]
@@ -28,10 +28,9 @@ namespace VoxxWeatherPlugin.Weathers
         [SerializeField]
         internal SnowfallVFXManager? VFXManager;
 
-        internal void Awake()
+        internal virtual void Awake()
         {   
             Instance = this;
-
         }
 
         internal void OnFinish()
@@ -43,7 +42,6 @@ namespace VoxxWeatherPlugin.Weathers
 
         internal virtual void OnEnable()
         {
-            Instance = this; // Change the global reference to this instance (for patches)
             LevelManipulator.Instance.InitializeLevelProperties(1.5f);
             LevelManipulator.Instance.SetupLevelForSnow(snowHeightRange: (MinSnowHeight, MaxSnowHeight),
                                                         snowNormalizedTimeRange: (MinSnowNormalizedTime, MaxSnowNormalizedTime),
@@ -62,6 +60,11 @@ namespace VoxxWeatherPlugin.Weathers
         {
             LevelManipulator.Instance.UpdateLevelProperties();
             LevelManipulator.Instance.UpdateSnowVariables();
+            // Update the snow thickness (host must constantly update for enemies, clients only when not in factory)
+            if (GameNetworkManager.Instance.isHostingGame || !GameNetworkManager.Instance.localPlayerController.isInsideFactory)
+            {
+                SnowThicknessManager.Instance!.CalculateThickness(); // TODO Could be moved to FixedUpdate to save performance?
+            }
             SetColdZoneState();
         }
 
@@ -83,8 +86,7 @@ namespace VoxxWeatherPlugin.Weathers
 
         internal static float snowMovementHindranceMultiplier = 1f;
         internal static int snowFootstepIndex = -1;
-        [SerializeField]
-        internal float eyeBias = 0.2f;
+        internal static float eyeBias = 0.2f;
 
         [Header("Snow Tracker VFX")]
         
@@ -152,6 +154,7 @@ namespace VoxxWeatherPlugin.Weathers
                 float snowThickness = SnowThicknessManager.Instance.GetSnowThickness(localPlayer);
                 // White out the screen if the player is under snow
                 float localPlayerEyeY = localPlayer.gameplayCamera.transform.position.y;
+                // TODO Possible to block visibility of ForestGiants based on this, need to calculate for all players
                 PlayerEffectsManager.isUnderSnow = SnowThicknessManager.Instance.feetPositionY + snowThickness >= localPlayerEyeY - eyeBias;
 
                 // If the user decreases frostbite damage from the default value (10), add additional slowdown

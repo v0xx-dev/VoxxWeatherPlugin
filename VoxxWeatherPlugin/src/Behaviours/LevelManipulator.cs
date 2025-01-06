@@ -205,7 +205,6 @@ namespace VoxxWeatherPlugin.Behaviours
             
             StartCoroutine(RefreshDepthmapCoroutine(bakeSnowMaps, waitForLanding));
 
-            Debug.LogDebug("Masks and level depthmap rendered!");
         }
 
         internal IEnumerator RefreshDepthmapCoroutine(bool bakeSnowMaps = false, bool waitForLanding = false)
@@ -229,11 +228,15 @@ namespace VoxxWeatherPlugin.Behaviours
             yield return new WaitForEndOfFrame();
             
             levelDepthmapCamera.enabled = false;
+            
+            Debug.LogDebug("Level depthmap rendered!");
 
             if (bakeSnowMaps)
             {
                 RefreshBakeMaterial();
-                BakeSnowMasks();
+                yield return StartCoroutine(BakeSnowMasksCoroutine());
+
+                Debug.LogDebug("Snow masks baked!");
             }
 
             SnowThicknessManager.Instance!.inputNeedsUpdate = true;
@@ -611,7 +614,6 @@ namespace VoxxWeatherPlugin.Behaviours
 
             moonProcessingBlacklist = Configuration.meshProcessingBlacklist.Value.CleanMoonName().TrimEnd(';').Split(';');
             enemySnowBlacklist = Configuration.enemySnowBlacklist.Value.ToLower().TrimEnd(';').Split(';').ToHashSet();
-
         }
 
         internal void UpdateSnowVariables()
@@ -624,11 +626,6 @@ namespace VoxxWeatherPlugin.Behaviours
             emissionMultiplier = Mathf.Clamp01(sunIntensity/40f)*0.3f;
             // Update tracking camera position
             UpdateCameraPosition(snowTrackerCameraContainer, snowTracksCamera);
-            // Update the snow thickness (host must constantly update for enemies, clients only when not in factory)
-            if (GameNetworkManager.Instance.isHostingGame || !GameNetworkManager.Instance.localPlayerController.isInsideFactory)
-            {
-                SnowThicknessManager.Instance!.CalculateThickness(); // Could be moved to FixedUpdate to save performance?
-            }
 #if DEBUG
             if (rebakeMaps)
             {
@@ -851,14 +848,14 @@ namespace VoxxWeatherPlugin.Behaviours
             }
         }
 
-        internal void BakeSnowMasks()
+        internal IEnumerator BakeSnowMasksCoroutine()
         {
             //TODO Make async
 
             if (groundObjectCandidates.Count == 0)
             {
                 Debug.LogDebug("No ground objects to bake snow masks for!");
-                return;
+                yield break;
             }
 
             // Bake the snow masks into a Texture2DArray
@@ -872,13 +869,8 @@ namespace VoxxWeatherPlugin.Behaviours
             snowMasks.filterMode = FilterMode.Trilinear;
             snowMasks.wrapMode = TextureWrapMode.Clamp;
             
-            for (int texIndex = 0; texIndex < groundObjectCandidates.Count; texIndex++)
-            {
-                groundObjectCandidates[texIndex].BakeMask(bakeMaterial,
-                                                            snowMasks,
-                                                            BakeResolution,
-                                                            texIndex);
-            }
+            // Start the bake masks coroutine and wait for it to finish
+            yield return StartCoroutine(snowMasks.BakeMasks(groundObjectCandidates, bakeMaterial!, BakeResolution));
 
             snowMasks.Apply(updateMipmaps: BakeMipmaps, makeNoLongerReadable: true); // Move to the GPU
 

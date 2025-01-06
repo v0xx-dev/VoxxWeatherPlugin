@@ -9,13 +9,13 @@ namespace VoxxWeatherPlugin.Weathers
 {
     internal class BlizzardWeather: SnowfallWeather
     {
-        internal static BlizzardWeather? Instance { get; private set; }
+        internal new static BlizzardWeather? Instance;
         internal override string WeatherName => "Blizzard";
         // Overrides   
-        internal new float MinSnowHeight => Configuration.minSnowHeightBlizzard.Value;
-        internal new float MaxSnowHeight => Configuration.maxSnowHeightBlizzard.Value;
-        internal new float MinSnowNormalizedTime => Configuration.minTimeToFullSnowBlizzard.Value;
-        internal new float MaxSnowNormalizedTime => Configuration.maxTimeToFullSnowBlizzard.Value;
+        internal override float MinSnowHeight => Configuration.minSnowHeightBlizzard.Value;
+        internal override float MaxSnowHeight => Configuration.maxSnowHeightBlizzard.Value;
+        internal override float MinSnowNormalizedTime => Configuration.minTimeToFullSnowBlizzard.Value;
+        internal override float MaxSnowNormalizedTime => Configuration.maxTimeToFullSnowBlizzard.Value;
 
         [Header("Visuals")]
         [SerializeField]
@@ -63,9 +63,13 @@ namespace VoxxWeatherPlugin.Weathers
         // Used to implicitly sync the time between the server and the client via TimeOfDay
         private float timeAtStart = -1f;
 
+        internal override void Awake()
+        {
+            Instance = this;
+        }
+
         internal override void OnEnable()
         {
-            Instance = this; // Change the global reference to this instance (for patches)
             LevelManipulator.Instance.InitializeLevelProperties(1.5f);
             LevelManipulator.Instance.SetupLevelForSnow(snowHeightRange: (MinSnowHeight, MaxSnowHeight),
                                                         snowNormalizedTimeRange: (MinSnowNormalizedTime, MaxSnowNormalizedTime),
