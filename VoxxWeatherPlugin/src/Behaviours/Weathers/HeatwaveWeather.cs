@@ -256,7 +256,7 @@ namespace VoxxWeatherPlugin.Weathers
         {
             float reductionFactor = 1f;
             
-            float maxSunLuminosity = 20f; // Sun luminosity in lux when the heatwave is at its peak
+            float maxSunLuminosity = 10f; // Sun luminosity in lux when the heatwave is at its peak
 
             if (heatwaveVFXContainer != null)
             {

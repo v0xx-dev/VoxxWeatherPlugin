@@ -455,7 +455,7 @@ namespace VoxxWeatherPlugin.Utils
             #region Mesh & Terrain processing
             meshProcessingBlacklist = Config.Bind("Mesh & Terrain Processing",
                                                 "meshProcessingBlacklist",
-                                                "Vow;Adamance;Summit;Eden;Rockwell;Makron;Baykal;Mazon;Flicker",
+                                                "Vow;Adamance;Affliction;Summit;Eden;Feign;Haul;Ichor;Idiosyn;Soreal;Tunere;Espira;Mazon;Praetor;Rockwell;Calypso;Makron;Flicker;Ultimatum;Baykal",
                                                 "List of moons that will be excluded from additional mesh processing. Only put moons that have MESH terrains in this list. You can safely put any moon here that was created with the TerraMesh tool! Separate with a semicolon. Example: 'Summit;Vow;Adamance'");
             subdivideMesh = Config.Bind("Mesh & Terrain Processing",
                                         "subdivideMesh",

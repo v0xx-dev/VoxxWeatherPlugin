@@ -5,6 +5,7 @@ using System.Linq;
 using DunGen;
 using GameNetcodeStuff;
 using TerraMesh;
+using TerraMesh.Utils;
 using Unity.AI.Navigation;
 using UnityEngine;
 using UnityEngine.Rendering;

@@ -5,6 +5,7 @@ using UnityEngine.Rendering.HighDefinition;
 using VoxxWeatherPlugin.Utils;
 using VoxxWeatherPlugin.Behaviours;
 using System.Linq;
+using System.Collections;
 
 namespace VoxxWeatherPlugin.Weathers
 {
@@ -44,6 +45,8 @@ namespace VoxxWeatherPlugin.Weathers
         internal FlareData[]? flareTypes;
         internal FlareData? flareData;
         internal TerminalAccessibleObject[]? bigDoors;
+        private Coroutine? electricMalfunctionCoroutine = null;
+        private Coroutine? doorMalfunctionCoroutine = null;
         [SerializeField]
         internal SolarFlareVFXManager? VFXManager;
         // [SerializeField]
@@ -134,6 +137,7 @@ namespace VoxxWeatherPlugin.Weathers
 
         private void Update()
         {
+            // TODO Make compat for RestoreMapper too
             if (glitchPass != null && flareData != null)
             {
                 glitchPass.intensity.value = flareData.ScreenDistortionIntensity;
@@ -141,50 +145,74 @@ namespace VoxxWeatherPlugin.Weathers
 
             if (TimeOfDay.Instance.normalizedTimeOfDay % 0.03f < 1e-4)
             {
-                // EnemyAI[] radMechs = RoundManager.Instance.SpawnedEnemies.Where(enemy => enemy is RadMechAI).ToArray();
-                // foreach (RadMechAI radMech in radMechs)
-                // {
-                //     if (UnityEngine.Random.value < radMechMalfunctionChance && radMech != null)
-                //     {
-                //         StartCoroutine(ElectricMalfunctionCoroutine(radMech));
-                //     }
-                // }
-
-                foreach (Animator poweredLight in RoundManager.Instance.allPoweredLightsAnimators)
+                if (electricMalfunctionCoroutine != null)
                 {
-                    poweredLight?.SetTrigger("Flicker");
+                    StopCoroutine(electricMalfunctionCoroutine);
                 }
-
+                electricMalfunctionCoroutine = StartCoroutine(ElectricalMalfunctionCoroutine());
             }
+            
             if (TimeOfDay.Instance.normalizedTimeOfDay % 0.07f < 1e-4)
             {
-                if ((flareData?.IsDoorMalfunction ?? false) &&
+               if (doorMalfunctionCoroutine != null)
+                {
+                    StopCoroutine(doorMalfunctionCoroutine);
+                }
+                doorMalfunctionCoroutine = StartCoroutine(DoorMalfunctionCoroutine()); 
+            }
+        }
+
+        private IEnumerator ElectricalMalfunctionCoroutine()
+        {
+            // EnemyAI[] radMechs = RoundManager.Instance.SpawnedEnemies.Where(enemy => enemy is RadMechAI).ToArray();
+            // foreach (RadMechAI radMech in radMechs)
+            // {
+            //     if (UnityEngine.Random.value < radMechMalfunctionChance && radMech != null)
+            //     {
+            //         StartCoroutine(ElectricMalfunctionCoroutine(radMech));
+            //     }
+            // }
+
+            foreach (Animator poweredLight in RoundManager.Instance.allPoweredLightsAnimators)
+            {
+                poweredLight?.SetTrigger("Flicker");
+                yield return null;
+            }
+
+            electricMalfunctionCoroutine = null;
+        }
+
+        private IEnumerator DoorMalfunctionCoroutine()
+        {
+            if ((flareData?.IsDoorMalfunction ?? false) &&
                     bigDoors != null &&
                     isDoorMalfunctionEnabled)
+            {
+                foreach (TerminalAccessibleObject door in bigDoors)
                 {
-                    foreach (TerminalAccessibleObject door in bigDoors)
-                    {
-                        bool open = SeededRandom.NextDouble() < doorMalfunctionChance;
-                        door.SetDoorOpen(open);
-                    }
+                    bool open = SeededRandom.NextDouble() < doorMalfunctionChance;
+                    door.SetDoorOpen(open);
+                    yield return null;
                 }
-
-                // foreach (Turret turret in turrets)
-                // {
-                //     if (UnityEngine.Random.value < turretMalfunctionChance && turret != null)
-                //     {
-                //         StartCoroutine(ElectricMalfunctionCoroutine(turret));
-                //     }
-                // }
-
-                // foreach (EnemyAINestSpawnObject radMechNest in radMechNests)
-                // {
-                //     if (UnityEngine.Random.value < radMechReactivationChance && radMechNest != null)
-                //     {
-                //         StartCoroutine(ElectricMalfunctionCoroutine(radMechNest));
-                //     }
-                // }
             }
+
+            // foreach (Turret turret in turrets)
+            // {
+            //     if (UnityEngine.Random.value < turretMalfunctionChance && turret != null)
+            //     {
+            //         StartCoroutine(ElectricMalfunctionCoroutine(turret));
+            //     }
+            // }
+
+            // foreach (EnemyAINestSpawnObject radMechNest in radMechNests)
+            // {
+            //     if (UnityEngine.Random.value < radMechReactivationChance && radMechNest != null)
+            //     {
+            //         StartCoroutine(ElectricMalfunctionCoroutine(radMechNest));
+            //     }
+            // }
+
+            doorMalfunctionCoroutine = null;
         }
 
         // TODO: Add compatibility for OpenCams
