@@ -97,7 +97,7 @@ namespace VoxxWeatherPlugin.Utils
         #endregion
 
         #region Snow & Blizzard Mesh and Terrain Processing
-        public static ConfigEntry<string>  meshProcessingBlacklist; //
+        public static ConfigEntry<string>  meshProcessingWhitelist; //
         public static ConfigEntry<bool> subdivideMesh; //
         public static ConfigEntry<bool> smoothMesh; //
         public static ConfigEntry<bool> useLevelBounds; //
@@ -453,10 +453,10 @@ namespace VoxxWeatherPlugin.Utils
             #endregion
 
             #region Mesh & Terrain processing
-            meshProcessingBlacklist = Config.Bind("Mesh & Terrain Processing",
-                                                "meshProcessingBlacklist",
-                                                "Vow;Adamance;Affliction;Summit;Eden;Feign;Haul;Ichor;Idiosyn;Soreal;Tunere;Espira;Mazon;Praetor;Rockwell;Calypso;Makron;Flicker;Ultimatum;Baykal",
-                                                "List of moons that will be excluded from additional mesh processing. Only put moons that have MESH terrains in this list. You can safely put any moon here that was created with the TerraMesh tool! Separate with a semicolon. Example: 'Summit;Vow;Adamance'");
+            meshProcessingWhitelist = Config.Bind("Mesh & Terrain Processing",
+                                                "meshProcessingWhitelist",
+                                                "Offense;Assurance;Artifice;Experimentation",
+                                                "List of moons that will be included for additional mesh processing. Only put moons that have MESH terrains in this list and you see visual artifacts with snow on them (like thin triangles or spikes)");
             subdivideMesh = Config.Bind("Mesh & Terrain Processing",
                                         "subdivideMesh",
                                         true,
@@ -509,7 +509,7 @@ namespace VoxxWeatherPlugin.Utils
             #region Toxic Smog
             ToxicDamageInterval = Config.Bind("Toxic Smog",
                                             "ToxicDamageInterval",
-                                            1f,
+                                            1.7f,
                                             new ConfigDescription("Time in seconds between toxic smog damage ticks.",
                                                                 new AcceptableValueRange<float>(0, 9999f)));
             ToxicDamageAmount = Config.Bind("Toxic Smog",

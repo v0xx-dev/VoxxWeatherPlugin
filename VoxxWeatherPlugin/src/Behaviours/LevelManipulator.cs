@@ -8,6 +8,7 @@ using TerraMesh;
 using TerraMesh.Utils;
 using Unity.AI.Navigation;
 using UnityEngine;
+using UnityEngine.AI;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.HighDefinition;
 using UnityEngine.SceneManagement;
@@ -37,6 +38,7 @@ namespace VoxxWeatherPlugin.Behaviours
         internal Material? iceMaterial;
         [SerializeField]
         internal float emissionMultiplier;
+        private List<GameObject> snowGroundObjects = [];
 
         [Header("Base Snow Thickness")]
         [SerializeField]
@@ -103,7 +105,7 @@ namespace VoxxWeatherPlugin.Behaviours
 
         [SerializeField]
         internal TerraMeshConfig terraMeshConfig;
-        string[] moonProcessingBlacklist = [];
+        string[] moonProcessingWhitelist = [];
         [SerializeField]
         internal float heightThreshold = -100f; // Under this y coordinate, objects will not be considered for snow rendering
         [SerializeField]
@@ -500,8 +502,8 @@ namespace VoxxWeatherPlugin.Behaviours
             fullSnowNormalizedTime = seededRandom.NextDouble(snowNormalizedTimeRange.Item1, snowNormalizedTimeRange.Item2);
             List<GameObject> surfaceObjects = GetSurfaceObjects();
             ModifyRenderMasks(surfaceObjects, terraMeshConfig.renderingLayerMask);
-            SetupGroundForSnow();
             ModifyScrollingFog(fogStrengthRange.Item1, fogStrengthRange.Item2);
+            SetupGroundForSnow();
             if (Configuration.freezeWater.Value)
             {
                 FreezeWater();
@@ -613,13 +615,13 @@ namespace VoxxWeatherPlugin.Behaviours
             snowTracksCamera!.targetTexture = snowTracksMap;
             snowTracksCamera.aspect = 1.0f;
 
-            moonProcessingBlacklist = Configuration.meshProcessingBlacklist.Value.CleanMoonName().TrimEnd(';').Split(';');
+            moonProcessingWhitelist = Configuration.meshProcessingWhitelist.Value.CleanMoonName().TrimEnd(';').Split(';');
             enemySnowBlacklist = Configuration.enemySnowBlacklist.Value.ToLower().TrimEnd(';').Split(';').ToHashSet();
         }
 
         internal void UpdateSnowVariables()
         {
-            // Accumulate snow on the ground
+            // Accumulate snow on the ground (0 is full snow)
             float normalizedSnowTimer =  Mathf.Clamp01(fullSnowNormalizedTime - TimeOfDay.Instance.normalizedTimeOfDay);
             snowIntensity = 10f * normalizedSnowTimer;
             // Update the snow glow based on the sun intensity
@@ -638,16 +640,51 @@ namespace VoxxWeatherPlugin.Behaviours
 
         internal void ResetSnowVariables()
         {
-            //Dectivate snow module
+            //Deactivate snow module
             snowVolume.transform.parent.gameObject.SetActive(false);
-            Destroy(snowMasks);
+            // Reset snow intensity
+            StartCoroutine(SnowMeltCoroutine());
             groundObjectCandidates.Clear();
             waterSurfaceObjects.Clear();
-            foreach (Material snowMaterial in snowOverlayCustomPass?.snowVertexMaterials ?? new List<Material>())
+        }
+
+        internal IEnumerator SnowMeltCoroutine()
+        {
+            // Melt snow on the ground gradually when the weather changes mid-round
+            float meltSpeed = 0.1f;
+            while (snowIntensity < 10f)
+            {
+                if (StartOfRound.Instance?.inShipPhase ?? true)
+                {
+                    break;
+                }
+
+                snowIntensity += Time.deltaTime * meltSpeed;
+
+                snowOverlayCustomPass?.RefreshAllSnowMaterials();
+
+                yield return null;
+            }
+
+            foreach (GameObject snowGround in snowGroundObjects)
+            {
+                // Remove the terrain copy (check for null if the coroutine is running after departure from the level)
+                if (snowGround != null)
+                {
+                    Destroy(snowGround);
+                }
+            }
+            
+            snowGroundObjects.Clear();
+            
+            foreach (Material snowMaterial in snowOverlayCustomPass?.snowVertexMaterials ?? [])
             {
                 Destroy(snowMaterial);
             }
+
             snowOverlayCustomPass?.snowVertexMaterials?.Clear();
+
+            Destroy(snowMasks);
         }
 
         internal void SetupGroundForSnow()
@@ -657,21 +694,21 @@ namespace VoxxWeatherPlugin.Behaviours
             // Stores mesh terrains and actual Unity terrains to keep track of of walkable ground objects and their texture index in the baked masks
             Dictionary <GameObject, int> groundToIndex = new Dictionary<GameObject, int>();
             // Some moons used TerraMesh package and already have good mesh terrains, skip them
-            bool isMoonBlacklisted = false;
-            foreach (string moon in moonProcessingBlacklist)
+            bool skipMoonProcessing = true;
+            foreach (string moon in moonProcessingWhitelist)
             {
                 if (CurrentSceneName.CleanMoonName().Contains(moon))
                 {
-                    isMoonBlacklisted = true;
+                    skipMoonProcessing = false;
                     break;
                 }
             }
             // For Experimentation moon, UVs are broken and need to be replaced
             terraMeshConfig.replaceUvs = StartOfRound.Instance.currentLevel.name.CleanMoonName().Contains("experimentation");
-            terraMeshConfig.onlyUVs = isMoonBlacklisted;
-            if (isMoonBlacklisted)
+            terraMeshConfig.onlyUVs = skipMoonProcessing;
+            if (!skipMoonProcessing)
             {
-                Debug.LogDebug($"Moon {StartOfRound.Instance.currentLevel.name} is blacklisted for mesh postprocessing! Skipping...");
+                Debug.LogDebug($"Moon {StartOfRound.Instance.currentLevel.name} will have its mesh terrain processed to improve topology for snow rendering!");
             }
             if (terraMeshConfig.replaceUvs)
             {
@@ -746,6 +783,7 @@ namespace VoxxWeatherPlugin.Behaviours
             meshRenderer.renderingLayerMask &= ~terraMeshConfig.renderingLayerMask;
             // Upload the mesh to the GPU to save RAM. TODO: Prevents NavMesh baking
             // snowGround.GetComponent<MeshFilter>().sharedMesh.UploadMeshData(true);
+            snowGroundObjects.Add(snowGround);
         }
 
         internal void FreezeWater()
@@ -765,7 +803,8 @@ namespace VoxxWeatherPlugin.Behaviours
             NavMeshModifierVolume[] navMeshModifiers = FindObjectsOfType<NavMeshModifierVolume>().Where(x => x.gameObject.activeInHierarchy &&
                                                                                     x.gameObject.scene.name == CurrentSceneName &&
                                                                                     x.transform.position.y > heightThreshold &&
-                                                                                    x.enabled).ToArray();
+                                                                                    x.enabled &&
+                                                                                    x.area == 1 << 1).ToArray(); // Layer 1 is not walkable
             foreach (QuicksandTrigger waterObject in waterTriggerObjects)
             {
                 // Disable sinking
@@ -801,7 +840,7 @@ namespace VoxxWeatherPlugin.Behaviours
                         Bounds bounds = new Bounds(navMeshModifier.center + navMeshModifier.transform.position, navMeshModifier.size);
                         Bounds waterBounds = renderer.bounds;
                         // Enlarge along y axis since water surfaces are thin
-                        waterBounds.size = new Vector3(waterBounds.size.x, 2f, waterBounds.size.z);
+                        waterBounds.size = new Vector3(waterBounds.size.x, 3f, waterBounds.size.z);
                         if (bounds.Intersects(waterBounds))
                         {
                             Debug.LogDebug($"Disabling NavMeshModifierVolume {navMeshModifier.name} intersecting with water surface {waterSurface.name}");
@@ -841,11 +880,11 @@ namespace VoxxWeatherPlugin.Behaviours
             fogArray = fogArray.Where(x => x.gameObject.activeSelf &&
                                         x.gameObject.scene.name == CurrentSceneName &&
                                         x.transform.position.y > heightThreshold).ToArray();
-            float additionalMeanFreePath = seededRandom!.NextDouble(fogStrengthMin, fogStrengthMax);
+            float additionalMeanFreePath = seededRandom!.NextDouble(fogStrengthMin, fogStrengthMax); // Could be negative
             foreach (LocalVolumetricFog fog in fogArray)
             {
                 fog.parameters.textureScrollingSpeed = Vector3.zero;
-                fog.parameters.meanFreePath += additionalMeanFreePath; 
+                fog.parameters.meanFreePath = Mathf.Max(5f, fog.parameters.meanFreePath + additionalMeanFreePath); 
             }
         }
 

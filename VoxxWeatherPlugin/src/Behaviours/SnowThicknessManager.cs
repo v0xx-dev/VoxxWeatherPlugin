@@ -7,6 +7,7 @@ using VoxxWeatherPlugin.Utils;
 using UnityEngine.Rendering;
 using Unity.Collections;
 using UnityEngine.VFX;
+using VoxxWeatherPlugin.Patches;
 
 namespace VoxxWeatherPlugin.Behaviours
 {
@@ -324,7 +325,7 @@ namespace VoxxWeatherPlugin.Behaviours
             if (!hitGround &&
                 entity is PlayerControllerB player &&
                 !player.isInsideFactory &&
-                SnowfallWeather.Instance != null)
+                SnowPatches.IsSnowActive())
             {
                 // For players, check the objects below the first hit object because snow might protrude through it due to precision errors in the depth buffer
                 RaycastHit[] hits = Physics.RaycastAll(hit.point - 0.05f * Vector3.up, Vector3.down, LevelManipulator.Instance.finalSnowHeight);

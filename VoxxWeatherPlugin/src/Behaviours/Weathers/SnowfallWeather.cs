@@ -33,13 +33,6 @@ namespace VoxxWeatherPlugin.Weathers
             Instance = this;
         }
 
-        internal void OnFinish()
-        {
-            LevelManipulator.Instance.ResetLevelProperties();
-            LevelManipulator.Instance.ResetSnowVariables();
-            PlayerEffectsManager.normalizedTemperature = 0f;
-        }
-
         internal virtual void OnEnable()
         {
             LevelManipulator.Instance.InitializeLevelProperties(1.5f);
@@ -48,6 +41,13 @@ namespace VoxxWeatherPlugin.Weathers
                                                         snowScaleRange: (0.7f, 1.3f),
                                                         fogStrengthRange: (0f, 15f));
             VFXManager?.PopulateLevelWithVFX();
+        }
+
+        internal void OnFinish()
+        {
+            LevelManipulator.Instance.ResetLevelProperties();
+            LevelManipulator.Instance.ResetSnowVariables();
+            PlayerEffectsManager.normalizedTemperature = 0f;
         }
 
         internal virtual void OnDisable()
@@ -114,11 +114,8 @@ namespace VoxxWeatherPlugin.Weathers
             PlayerEffectsManager.freezeEffectVolume.enabled = true;
             PlayerEffectsManager.underSnowVolume.enabled = true;
             
-            if (SnowfallWeather.Instance != null)
-            {
-                LevelManipulator.Instance.snowVolume!.enabled = true;
-                LevelManipulator.Instance.snowTrackerCameraContainer?.SetActive(true);
-            }
+            LevelManipulator.Instance.snowVolume!.enabled = true;
+            LevelManipulator.Instance.snowTrackerCameraContainer?.SetActive(true);
         }
 
         internal virtual void OnDisable()
@@ -182,7 +179,7 @@ namespace VoxxWeatherPlugin.Weathers
 
         internal override void PopulateLevelWithVFX()
         {
-            if (!(SnowfallWeather.Instance is BlizzardWeather)) // to avoid setting the depth texture for blizzard
+            if (SnowfallWeather.Instance?.IsActive ?? false) // to avoid setting the depth texture for blizzard
             {
                 HDRPCameraOrTextureBinder? depthBinder = snowVFXContainer!.GetComponent<HDRPCameraOrTextureBinder>();
                 if (depthBinder != null)

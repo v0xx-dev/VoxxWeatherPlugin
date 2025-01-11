@@ -73,15 +73,27 @@ namespace VoxxWeatherPlugin.Weathers
         void OnEnable()
         {
             toxicVolumetricFog?.gameObject.SetActive(true);
-            fumesContainerOutside?.SetActive(true);
-            fumesContainerInside?.SetActive(false);
+            if (fumesContainerOutside != null)
+            {
+                fumesContainerOutside.SetActive(true);
+            }
+            if (fumesContainerInside != null)
+            {
+                fumesContainerInside.SetActive(true);
+            }
         }
 
         void OnDisable()
         {
             toxicVolumetricFog?.gameObject.SetActive(false);
-            fumesContainerOutside?.SetActive(false);
-            fumesContainerInside?.SetActive(true);
+            if (fumesContainerOutside != null)
+            {
+                fumesContainerOutside.SetActive(false);
+            }
+            if (fumesContainerInside != null)
+            {
+                fumesContainerInside.SetActive(false);
+            }
         }
 
         internal override void PopulateLevelWithVFX()

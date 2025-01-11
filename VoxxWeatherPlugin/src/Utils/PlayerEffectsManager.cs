@@ -50,8 +50,8 @@ namespace VoxxWeatherPlugin.Utils
 
         internal static void SetPoisoningEffect(float poisonDelta)
         {
-            // If poisonDelta is Time.deltaTime, then poisoningStrength will be increased by 0.2 per second, will reach 1 in 5 seconds
-            poisoningStrength = Mathf.Clamp01(poisoningStrength + poisonDelta*0.2f);
+            // If poisonDelta is Time.deltaTime, then poisoningStrength will be increased by 0.25 per second, will reach 1 in 4 seconds
+            poisoningStrength = Mathf.Clamp01(poisoningStrength + poisonDelta*0.25f);
             PlayerControllerB localPlayerController = GameNetworkManager.Instance.localPlayerController;
             float currentDrunknessFilterWeight = HUDManager.Instance.drunknessFilter.weight;
             float newDrunknessFilterWeight = Mathf.Max(currentDrunknessFilterWeight, poisoningStrength);

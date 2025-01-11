@@ -93,7 +93,7 @@ namespace VoxxWeatherPlugin.Behaviours
 
             BoxCollider waveCollider = gameObject.GetComponent<BoxCollider>();
 
-            //Change the center and scale y size so the lower edge is at SnowfallWeather.Instance.heightThreshold level, but current top edge is preserved
+            //Change the center and scale y size so the lower edge is at LevelManipulator.heightThreshold level, but current top edge is preserved
             float newHeightSpan = levelBounds.extents.y - LevelManipulator.Instance!.heightThreshold;
             waveCollider.center = new Vector3(0f, LevelManipulator.Instance.heightThreshold + newHeightSpan / 2, waveCollider.center.z);
             waveCollider.size = new Vector3(levelBounds.size.x, newHeightSpan, waveCollider.size.z);

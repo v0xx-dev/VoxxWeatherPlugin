@@ -74,7 +74,7 @@ namespace VoxxWeatherPlugin.Weathers
             LevelManipulator.Instance.SetupLevelForSnow(snowHeightRange: (MinSnowHeight, MaxSnowHeight),
                                                         snowNormalizedTimeRange: (MinSnowNormalizedTime, MaxSnowNormalizedTime),
                                                         snowScaleRange: (0.7f, 1.3f),
-                                                        fogStrengthRange: (0f, 5f));
+                                                        fogStrengthRange: (-5f, 5f));
 
             waveInterval = SeededRandom.NextDouble(MinWaveInterval, MaxWaveInterval);
             numOfWaves = SeededRandom.Next(MinWaveCount, MaxWaveCount);

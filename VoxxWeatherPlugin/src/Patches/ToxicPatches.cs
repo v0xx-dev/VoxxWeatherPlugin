@@ -23,7 +23,7 @@ namespace VoxxWeatherPlugin.Patches
             if (!(ToxicSmogWeather.Instance?.IsActive ?? false) || __instance != GameNetworkManager.Instance?.localPlayerController)
                 return;
             
-            if (__instance.isPlayerDead || __instance.isInHangarShipRoom || __instance.isInElevator || __instance.beamUpParticle.isPlaying)
+            if (__instance.isPlayerDead || __instance.isInHangarShipRoom || __instance.isInElevator)
             {
                 PlayerEffectsManager.isPoisoned = false;
             }
@@ -47,6 +47,7 @@ namespace VoxxWeatherPlugin.Patches
                 }
             }
 
+            PlayerEffectsManager.isPoisoned = false;
         }
     }
 }

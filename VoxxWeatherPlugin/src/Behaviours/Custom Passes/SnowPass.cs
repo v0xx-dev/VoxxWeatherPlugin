@@ -132,9 +132,9 @@ namespace VoxxWeatherPlugin.Behaviours
                 return;
             }
             
-            if (SnowfallWeather.Instance == null)
+            if (LevelManipulator.Instance == null)
             {
-                Debug.LogWarning("Attempt to call with an uninitialized SnowfallWeather. Skipping the call to avoid errors");
+                Debug.LogWarning("Attempt to call with an uninitialized weather variables. Skipping the call to avoid errors");
                 return;
             }
 
@@ -157,8 +157,7 @@ namespace VoxxWeatherPlugin.Behaviours
 
             shaderPasses[shaderPasses.Length - 1] = new ShaderTagId(overrideMaterialPassName);
 
-            RefreshSnowMaterial(snowOverlayMaterial);
-            RefreshSnowMaterial(snowVertexMaterials);
+            RefreshAllSnowMaterials();
 
             var mask = overrideDepthState ? RenderStateMask.Depth : 0;
             mask |= overrideDepthState && !depthWrite ? RenderStateMask.Stencil : 0;
@@ -243,6 +242,12 @@ namespace VoxxWeatherPlugin.Behaviours
             {
                 RefreshSnowMaterial(material);
             }
+        }
+
+        internal void RefreshAllSnowMaterials()
+        {
+            RefreshSnowMaterial(snowOverlayMaterial);
+            RefreshSnowMaterial(snowVertexMaterials);
         }
 
         internal void RenderForwardRendererList(FrameSettings frameSettings,

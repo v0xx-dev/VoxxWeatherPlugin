@@ -182,7 +182,8 @@ namespace VoxxWeatherPlugin.Patches
             }
             else
             {
-                PlayerEffectsManager.SetPlayerTemperature(-Time.deltaTime / SnowfallWeather.Instance!.timeUntilFrostbite);
+                float timeUntilFrostbite = SnowfallWeather.Instance.IsActive ? SnowfallWeather.Instance.timeUntilFrostbite : BlizzardWeather.Instance.timeUntilFrostbite;
+                PlayerEffectsManager.SetPlayerTemperature(-Time.deltaTime / timeUntilFrostbite);
             }
 
             if (PlayerEffectsManager.isUnderSnow)

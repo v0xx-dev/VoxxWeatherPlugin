@@ -14,6 +14,7 @@ namespace VoxxWeatherPlugin.Utils
         Item // Leaves a single footprint,for example when dropping an item (must be played manually)
     }
 
+    //TODO CHECK IF IT'S WORKING
     public static class SnowTrackersManager
     {
         internal static GameObject? snowTrackersContainer;
