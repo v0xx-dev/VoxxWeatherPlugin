@@ -890,8 +890,6 @@ namespace VoxxWeatherPlugin.Behaviours
 
         internal IEnumerator BakeSnowMasksCoroutine()
         {
-            //TODO Make async
-
             if (groundObjectCandidates.Count == 0)
             {
                 Debug.LogDebug("No ground objects to bake snow masks for!");

@@ -61,7 +61,7 @@ namespace VoxxWeatherPlugin.Weathers
         internal GameObject? hazardPrefab; // Assign in the inspector
         private float spawnRadius = 20f;
         private float minDistanceBetweenHazards = 5f;
-        private float minDistanceFromBlockers = 15f;
+        private float minDistanceFromBlockers = 20f;
         private List<Vector3>? spawnedPositions;
         private int maxAttempts;
 
@@ -141,7 +141,7 @@ namespace VoxxWeatherPlugin.Weathers
             // Use outside AI nodes as anchors
             List<Vector3> anchorPositions = RoundManager.Instance.outsideAINodes.Select(node => node.transform.position).ToList();
             // Use outside entrances as blockers
-            List<Vector3> blockersPositions = entrances.Where(entrance => !entrance.isEntranceToBuilding).Select(entrance => entrance.transform.position).ToList();
+            List<Vector3> blockersPositions = entrances.Select(entrance => entrance.transform.position).ToList();
             ///Add ship bounds to the list of blockers
             blockersPositions.AddRange([StartOfRound.Instance.shipBounds.transform.position, Vector3.zero]);
             Debug.LogDebug($"Outdoor fumes: Anchor positions: {anchorPositions.Count}, Blockers positions: {blockersPositions.Count}");
@@ -157,7 +157,7 @@ namespace VoxxWeatherPlugin.Weathers
             anchorPositions = RoundManager.Instance.spawnedSyncedObjects.Select(obj => obj.transform.position).ToList();
             anchorPositions.AddRange(RoundManager.Instance.insideAINodes.Select(obj => obj.transform.position));
             // Use entrances as blockers
-            blockersPositions = entrances.Where(entrance => entrance.isEntranceToBuilding).Select(entrance => entrance.transform.position).ToList();
+            blockersPositions = entrances.Select(entrance => entrance.transform.position).ToList();
             Debug.LogDebug($"Indoor fumes: Anchor positions: {anchorPositions.Count}, Blockers positions: {blockersPositions.Count}");
             SpawnFumes(anchorPositions, blockersPositions, factoryFumesAmount, fumesContainerInside!, SeededRandom);
         }

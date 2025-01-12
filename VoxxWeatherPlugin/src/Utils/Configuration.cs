@@ -321,7 +321,7 @@ namespace VoxxWeatherPlugin.Utils
                                                                     new AcceptableValueRange<float>(0, 9999f)));
             minWindForce = Config.Bind("Blizzard",
                                         "minWindForce",
-                                        0.25f,
+                                        0.37f,
                                         new ConfigDescription("Minimum wind force during blizzard weather. Actual wind force is random between min and max.",
                                                             new AcceptableValueRange<float>(0, 1f))); 
             maxWindForce = Config.Bind("Blizzard",
@@ -509,12 +509,12 @@ namespace VoxxWeatherPlugin.Utils
             #region Toxic Smog
             ToxicDamageInterval = Config.Bind("Toxic Smog",
                                             "ToxicDamageInterval",
-                                            1.7f,
+                                            2f,
                                             new ConfigDescription("Time in seconds between toxic smog damage ticks.",
                                                                 new AcceptableValueRange<float>(0, 9999f)));
             ToxicDamageAmount = Config.Bind("Toxic Smog",
                                             "ToxicDamageAmount",
-                                            5,
+                                            4,
                                             new ConfigDescription("Amount of damage dealt by toxic smog effect.",
                                                                 new AcceptableValueRange<int>(0, 100)));
             PoisoningRemovalMultiplier = Config.Bind("Toxic Smog",
@@ -544,7 +544,7 @@ namespace VoxxWeatherPlugin.Utils
                                                             new AcceptableValueRange<int>(0, 256)));
             FactoryAmountMultiplier = Config.Bind("Toxic Smog",
                                                 "FactoryAmountMultiplier",
-                                                0.6f,
+                                                0.5f,
                                                 new ConfigDescription("Multiplier for the amount of fumes placed in the interior with respect to outside. Keep in mind that their amount is also multiplied by a dungeon size!",
                                                                     new AcceptableValueRange<float>(0, 10f)));
             #endregion
