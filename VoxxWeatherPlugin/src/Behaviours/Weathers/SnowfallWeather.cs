@@ -258,7 +258,7 @@ namespace VoxxWeatherPlugin.Weathers
                 int randomIndex = SeededRandom?.Next(0, RoundManager.Instance.outsideAINodes.Length) ?? 0;
                 Vector3 anchor = RoundManager.Instance.outsideAINodes[randomIndex].transform.position;
                 // Sample another random position using navmesh around the anchor where there is at least 10x10m of space
-                Vector3 randomPosition = RoundManager.Instance.GetRandomNavMeshPositionInBoxPredictable(anchor, 25f, randomSeed: randomizer);
+                Vector3 randomPosition = RoundManager.Instance.GetRandomNavMeshPositionInBoxPredictable(anchor, 25f, randomSeed: SeededRandom);
                 randomPosition = RoundManager.Instance.PositionEdgeCheck(randomPosition, 7f);
                 if (randomPosition != Vector3.zero)
                 {
