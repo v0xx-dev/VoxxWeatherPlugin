@@ -12,21 +12,33 @@ using UnityEngine.AI;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.HighDefinition;
 using UnityEngine.SceneManagement;
+using UnityEngine.VFX;
+using VoxxWeatherPlugin.Compatibility;
 using VoxxWeatherPlugin.Utils;
+using VoxxWeatherPlugin.Weathers;
 
 namespace VoxxWeatherPlugin.Behaviours
 {
     public class LevelManipulator : MonoBehaviour
     {
-        public static LevelManipulator Instance { get; private set; }
+        public static LevelManipulator? Instance { get; private set; }
         
         #region Snowy Weather Configuration
+        internal bool isSnowReady = false;
         public GameObject? snowModule;
         [Header("Snow Overlay Volume")]
         [SerializeField]
         internal CustomPassVolume? snowVolume;
         internal SnowOverlayCustomPass? snowOverlayCustomPass;
         [Header("Visuals")]
+        [SerializeField]
+        internal Color snowColor;
+        [SerializeField]
+        internal Color snowOverlayColor;
+        [SerializeField]
+        internal Color blizzardFogColor;
+        [SerializeField]
+        internal Color blizzardCrystalsColor;
         [SerializeField]
         internal Material? snowOverlayMaterial;
         [SerializeField]
@@ -316,17 +328,19 @@ namespace VoxxWeatherPlugin.Behaviours
                     isOutOfBoundsInMaterial = nameString.Contains("outofbounds");
                     isDecalLayerMatched = (meshRenderer.renderingLayerMask & decalLayerMask) != 0;
 
-                    // Collect water surface objects. Must have "water" in the name and no active collider
-                    if (nameString.Contains("water") &&
-                        !(obj.TryGetComponent<Collider>(out Collider waterCollider)
-                        && waterCollider.enabled))
+                    // Collect water surface objects. Must have "water" in the name and no active non-trigger collider
+                    if (nameString.Contains("water"))
                     {   
-                        //Check if scaled mesh bounds are big enough to be considered a water surface, but also thin enough
-                        Bounds bounds = meshRenderer.bounds;
-                        float sizeThreshold = 20f;
-                        if (bounds.size.x > sizeThreshold && bounds.size.z > sizeThreshold && bounds.size.y < 2f)
+                        Collider waterCollider = obj.GetComponent<Collider>();
+                        if (waterCollider == null || !waterCollider.enabled || waterCollider.isTrigger)
                         {
-                            waterSurfaceObjects.Add(obj);
+                            //Check if scaled mesh bounds are big enough to be considered a water surface, but also thin enough
+                            Bounds bounds = meshRenderer.bounds;
+                            float sizeThreshold = 10f;
+                            if (bounds.size.x > sizeThreshold && bounds.size.z > sizeThreshold && bounds.size.y < 2f)
+                            {
+                                waterSurfaceObjects.Add(obj);
+                            }
                         }
                     }
                 }
@@ -494,6 +508,11 @@ namespace VoxxWeatherPlugin.Behaviours
                 return;
             }
 
+            if (LLLCompat.isActive)
+            {
+                LLLCompat.TagRecolorSnow();
+            }
+
             //Activate snow module
             snowVolume.transform.parent.gameObject.SetActive(true);
 
@@ -646,6 +665,7 @@ namespace VoxxWeatherPlugin.Behaviours
             StartCoroutine(SnowMeltCoroutine());
             groundObjectCandidates.Clear();
             waterSurfaceObjects.Clear();
+            isSnowReady = false;
         }
 
         internal IEnumerator SnowMeltCoroutine()
@@ -685,6 +705,41 @@ namespace VoxxWeatherPlugin.Behaviours
             snowOverlayCustomPass?.snowVertexMaterials?.Clear();
 
             Destroy(snowMasks);
+        }
+
+        internal void SetSnowColor(Color snowColor, Color snowOverlayColor, Color blizzardFogColor, Color blizzardCrystalsColor)
+        {
+
+            CurrentSnowVertexMaterial?.SetColor(SnowfallShaderIDs.SnowColor, snowColor);
+            CurrentSnowVertexMaterial?.SetColor(SnowfallShaderIDs.SnowBaseColor, snowOverlayColor);
+            snowOverlayCustomPass?.snowOverlayMaterial?.SetColor(SnowfallShaderIDs.SnowBaseColor, snowOverlayColor);
+
+            if (SnowfallWeather.Instance?.IsActive ?? false)
+            {
+                VisualEffect? snowVFX = SnowfallWeather.Instance?.VFXManager?.snowVFXContainer?.GetComponent<VisualEffect>();
+                if (snowVFX != null)
+                {
+                    snowVFX.SetVector4(SnowfallShaderIDs.SnowColor, snowColor);
+                }
+            }
+            else
+            {
+                VisualEffect? blizzardVFX = BlizzardWeather.Instance?.VFXManager?.snowVFXContainer?.GetComponent<VisualEffect>();
+                if (blizzardVFX != null)
+                {
+                    blizzardVFX.SetVector4(SnowfallShaderIDs.SnowColor, snowColor);
+                    blizzardVFX.SetVector4(SnowfallShaderIDs.BlizzardFogColor, blizzardFogColor);
+                }
+
+                VisualEffect? waveVFX = BlizzardWeather.Instance?.VFXManager?.blizzardWaveContainer?.GetComponentInChildren<VisualEffect>(true);
+                if (waveVFX != null)
+                {
+                    waveVFX.SetVector4(SnowfallShaderIDs.SnowColor, blizzardCrystalsColor);
+                    waveVFX.SetVector4(SnowfallShaderIDs.BlizzardFogColor, blizzardFogColor);
+                }
+            }
+
+
         }
 
         internal void SetupGroundForSnow()
@@ -816,13 +871,17 @@ namespace VoxxWeatherPlugin.Behaviours
             }
             foreach (GameObject waterSurface in waterSurfaceObjects)
             {
+                //Get renderer component, we know it exists since we checked it in the CheckIfObjectIsTerrain method
+                MeshRenderer meshRenderer = waterSurface.GetComponent<MeshRenderer>();
                 MeshFilter meshFilter = waterSurface.GetComponent<MeshFilter>();
-                Mesh meshCopy = meshFilter.sharedMesh.MakeReadableCopy();
+                Mesh mesh = meshFilter.sharedMesh;
+
+                //Find which submesh is used for the water surface from the comparison with mesh.GetSubMesh(i).firstVertex
+                int submeshIndex = meshRenderer.subMeshStartIndex;
+
+                Mesh meshCopy = waterSurface.ExtractSubmesh(submeshIndex);
                 meshFilter.sharedMesh = meshCopy;
                 
-                //Get renderer component, we know it exists since we checked it in the CheckIfObjectIsTerrain method
-                Renderer renderer = waterSurface.GetComponent<Renderer>();
-
                 //Check for collider and if it exists, destroy it, otherwise add a mesh collider
                 // Only freeze water surfaces above the height threshold
                 if (waterSurface.transform.position.y > heightThreshold)
@@ -838,7 +897,7 @@ namespace VoxxWeatherPlugin.Behaviours
                     foreach (NavMeshModifierVolume navMeshModifier in navMeshModifiers)
                     {
                         Bounds bounds = new Bounds(navMeshModifier.center + navMeshModifier.transform.position, navMeshModifier.size);
-                        Bounds waterBounds = renderer.bounds;
+                        Bounds waterBounds = meshRenderer.bounds;
                         // Enlarge along y axis since water surfaces are thin
                         waterBounds.size = new Vector3(waterBounds.size.x, 3f, waterBounds.size.z);
                         if (bounds.Intersects(waterBounds))
@@ -850,7 +909,7 @@ namespace VoxxWeatherPlugin.Behaviours
                 }
                 else continue;
 
-                renderer.sharedMaterial = iceMaterial;
+                meshRenderer.sharedMaterial = iceMaterial;
 
                 // Rise slightly
                 waterSurface.transform.position += 0.6f*Vector3.up;
@@ -916,6 +975,8 @@ namespace VoxxWeatherPlugin.Behaviours
             {
                 snowVertexMaterial?.SetTexture(SnowfallShaderIDs.SnowMasks, snowMasks);
             }
+
+            isSnowReady = true;
         }
 
         internal void RefreshBakeMaterial()

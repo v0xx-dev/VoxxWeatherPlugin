@@ -5,6 +5,8 @@ using System.Collections.Generic;
 using System.Linq;
 using VoxxWeatherPlugin.Behaviours;
 using VoxxWeatherPlugin.Utils;
+using UnityEngine.VFX;
+using VoxxWeatherPlugin.Compatibility;
 
 namespace VoxxWeatherPlugin.Weathers
 {
@@ -64,6 +66,8 @@ namespace VoxxWeatherPlugin.Weathers
         private float minDistanceFromBlockers = 20f;
         private List<Vector3>? spawnedPositions;
         private int maxAttempts;
+        internal Color toxicFumesColor = new Color(0.413f, 0.589f, 0.210f, 0f);
+        internal Color toxicFogColor = new Color(0.413f, 0.589f, 0.210f); //dark lime green
 
         void Awake()
         {
@@ -79,7 +83,7 @@ namespace VoxxWeatherPlugin.Weathers
             }
             if (fumesContainerInside != null)
             {
-                fumesContainerInside.SetActive(true);
+                fumesContainerInside.SetActive(false);
             }
         }
 
@@ -92,7 +96,7 @@ namespace VoxxWeatherPlugin.Weathers
             }
             if (fumesContainerInside != null)
             {
-                fumesContainerInside.SetActive(false);
+                fumesContainerInside.SetActive(true);
             }
         }
 
@@ -104,7 +108,7 @@ namespace VoxxWeatherPlugin.Weathers
                 GameObject toxicFogContainer = new GameObject("ToxicFog");
                 toxicVolumetricFog = toxicFogContainer.AddComponent<LocalVolumetricFog>();
                 toxicFogContainer.transform.SetParent(ToxicSmogWeather.Instance!.transform);
-                toxicVolumetricFog.parameters.albedo = new Color(0.413f, 0.589f, 0.210f); //dark lime green
+                toxicVolumetricFog.parameters.albedo = toxicFogColor;
                 toxicVolumetricFog.parameters.blendingMode = LocalVolumetricFogBlendingMode.Additive;
                 toxicVolumetricFog.parameters.falloffMode = LocalVolumetricFogFalloffMode.Linear;
             }
@@ -160,6 +164,11 @@ namespace VoxxWeatherPlugin.Weathers
             blockersPositions = entrances.Select(entrance => entrance.transform.position).ToList();
             Debug.LogDebug($"Indoor fumes: Anchor positions: {anchorPositions.Count}, Blockers positions: {blockersPositions.Count}");
             SpawnFumes(anchorPositions, blockersPositions, factoryFumesAmount, fumesContainerInside!, SeededRandom);
+            
+            if (LLLCompat.isActive)
+            {
+                LLLCompat.TagRecolorToxic();
+            }
         }
 
         private void SpawnFumes(List<Vector3> anchors, List<Vector3> blockedPositions, int amount, GameObject container, System.Random random)
@@ -255,6 +264,21 @@ namespace VoxxWeatherPlugin.Weathers
             fumesContainerOutside = null;
 
             toxicVolumetricFog?.gameObject.SetActive(false);
+        }
+    
+        internal void SetToxicFumesColor(Color fogColor, Color fumesColor)
+        {
+            if (toxicVolumetricFog != null)
+            {
+                toxicVolumetricFog.parameters.albedo = fogColor;
+            }
+
+            VisualEffect? fumesVFX = hazardPrefab?.GetComponent<VisualEffect>();
+
+            if (fumesVFX != null)
+            {
+                fumesVFX.SetVector4(ToxicShaderIDs.FumesColor, fumesColor);
+            }
         }
     }
 }

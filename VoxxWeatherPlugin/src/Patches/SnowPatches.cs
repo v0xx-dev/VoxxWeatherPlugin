@@ -97,7 +97,6 @@ namespace VoxxWeatherPlugin.Patches
 
         [HarmonyPatch(typeof(PlayerControllerB), "CalculateGroundNormal")]
         [HarmonyTranspiler]
-        [HarmonyDebug]
         private static IEnumerable<CodeInstruction> GroundNormalTranspiler(IEnumerable<CodeInstruction> instructions)
         {
             var codeMatcher = new CodeMatcher(instructions);
@@ -127,6 +126,7 @@ namespace VoxxWeatherPlugin.Patches
 
         [HarmonyPatch(typeof(RoundManager), "SpawnOutsideHazards")]
         [HarmonyTranspiler]
+        [HarmonyPriority(Priority.High)]
         private static IEnumerable<CodeInstruction> IceRebakeTranspiler(IEnumerable<CodeInstruction> instructions, ILGenerator generator)
         {
             var codes = new List<CodeInstruction>(instructions);
@@ -182,7 +182,7 @@ namespace VoxxWeatherPlugin.Patches
             }
             else
             {
-                float timeUntilFrostbite = SnowfallWeather.Instance.IsActive ? SnowfallWeather.Instance.timeUntilFrostbite : BlizzardWeather.Instance.timeUntilFrostbite;
+                float timeUntilFrostbite = SnowfallWeather.Instance!.IsActive ? SnowfallWeather.Instance.timeUntilFrostbite : BlizzardWeather.Instance!.timeUntilFrostbite;
                 PlayerEffectsManager.SetPlayerTemperature(-Time.deltaTime / timeUntilFrostbite);
             }
 

@@ -64,8 +64,12 @@ namespace VoxxWeatherPlugin.Utils
         
         internal static void SetUnderSnowEffect(float weightDelta)
         {
+            if (underSnowVolume == null)
+            {
+                return;
+            }
             float newWeight = Mathf.Clamp01(underSnowVolume!.weight + weightDelta/underSnowFadeSpeed);
-            underSnowVolume!.weight = newWeight * UnderSnowVisualMultiplier;
+            underSnowVolume.weight = newWeight * UnderSnowVisualMultiplier;
         }
     }
 }

@@ -456,7 +456,8 @@ namespace VoxxWeatherPlugin.Weathers
     internal class SolarFlareVFXManager : BaseVFXManager
     {
         [SerializeField]
-        internal GameObject? flareObject; // GameObject for the flare
+        internal GameObject? flareObject; // Prefab for the flare
+        internal GameObject? flareObjectCopy; // GameObject for the flare that gets parented to the sun
         [SerializeField]
         internal GameObject? auroraObject; // GameObject for the particles
         private GameObject? sunTexture; // GameObject for the sun texture
@@ -476,7 +477,7 @@ namespace VoxxWeatherPlugin.Weathers
             }
             else foreach (Transform child in TimeOfDay.Instance.sunDirect.transform.parent)
             {
-                if (child.name == "SunTexture" && child.gameObject.activeSelf)
+                if (child.name == "SunTexture" && child.gameObject.activeInHierarchy)
                 {
                     sunTexture = child.gameObject;
                     break;
@@ -505,11 +506,15 @@ namespace VoxxWeatherPlugin.Weathers
             // Set up the Corona VFX with the colors from the sun texture
             if (sunTexture != null)
             {
-                flareObject.transform.parent = SolarFlareWeather.Instance!.transform; // to stop it from moving with the player
+                flareObjectCopy = Instantiate(flareObject);
+                flareObjectCopy.transform.position = sunTexture.transform.position;
+                flareObjectCopy.transform.rotation = sunTexture.transform.rotation;
+                flareObjectCopy.transform.localScale = sunTexture.transform.lossyScale * (SolarFlareWeather.Instance?.flareData?.FlareSize ?? 1.5f);
+                flareObjectCopy.transform.parent = sunTexture.transform; // to sync with the sun
                 Texture2D? mainTexture = sunTexture.GetComponent<Renderer>().sharedMaterial.mainTexture as Texture2D;
                 if (mainTexture == null)
                 {
-                    Debug.LogWarning("sunTexture does not have a texture assigned!");
+                    Debug.LogWarning("Sun does not have a texture assigned!");
                 }
                 
                 // Get the average color of the sun texture
@@ -524,10 +529,10 @@ namespace VoxxWeatherPlugin.Weathers
                 coronaColor2 = new Color(coronaColor2.r * factor, coronaColor2.g * factor, coronaColor2.b * factor, 1f);
 
                 // Set the color of the corona VFX
-                VisualEffect coronaVFX = flareObject.GetComponent<VisualEffect>();
+                VisualEffect coronaVFX = flareObjectCopy.GetComponent<VisualEffect>();
                 coronaVFX.SetVector4("coronaColor", finalColor);
                 coronaVFX.SetVector4("coronaColor2", coronaColor2);
-                flareObject.SetActive(true);
+                flareObjectCopy.SetActive(true);
                 Debug.LogDebug("Corona VFX instantiated.");
             }
             else
@@ -539,14 +544,6 @@ namespace VoxxWeatherPlugin.Weathers
         internal void Update()
         {
             float sunLuminosity = LevelManipulator.Instance.sunLightData?.intensity ?? 0f;
-
-            // Sync flare objects position, rotation and scale with the sun texture absolute values relative to the world
-            if (sunTexture != null)
-            {
-                flareObject!.transform.position = sunTexture.transform.position;
-                flareObject.transform.rotation = sunTexture.transform.rotation;
-                flareObject.transform.localScale = sunTexture.transform.lossyScale * (SolarFlareWeather.Instance?.flareData?.FlareSize ?? 1.5f);
-            }
 
             if (sunLuminosity < auroraSunThreshold && (!auroraObject?.activeInHierarchy ?? false)) //add check for sun's position relative to horizon???
             {
@@ -604,23 +601,20 @@ namespace VoxxWeatherPlugin.Weathers
 
         internal override void Reset()
         {
-            flareObject?.SetActive(false);
+            flareObjectCopy?.SetActive(false);
             auroraObject?.SetActive(false);
         }
 
         private void OnEnable()
         {
-            if (sunTexture != null)
-            {
-                flareObject?.SetActive(true);
-            }
+            flareObjectCopy?.SetActive(true);
         }
 
         private void OnDisable()
         {
             // TODO compat for OpenCams
             auroraObject?.SetActive(false);
-            flareObject?.SetActive(false);
+            flareObjectCopy?.SetActive(false);
         }
     }
 }

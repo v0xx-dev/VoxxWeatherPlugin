@@ -189,12 +189,14 @@ namespace VoxxWeatherPlugin.Utils
             blizzardVFX.visualEffectAsset = blizzardVFXAsset;
             blizzardVFX.SetFloat("spawnRateMultiplier", Configuration.snowParticlesMultiplier.Value);
             blizzardVFX.SetBool("isCollisionEnabled", Configuration.enableVFXCollisions.Value);
+            blizzardVFX.SetBool("fogEnabled", Configuration.enableBlizzardFog.Value);
             Camera blizzardCamera = blizzardVFX.GetComponentInChildren<Camera>(true);
             blizzardCamera.enabled = Configuration.enableVFXCollisions.Value;
             VisualEffect chillWaveVFX = blizzardVFXManager.blizzardWaveContainer!.GetComponentInChildren<VisualEffect>(true);
             chillWaveVFX.visualEffectAsset = blizzardWaveVFXAsset;
-            chillWaveVFX.SetFloat("spawnRateMultiplier", Configuration.snowParticlesMultiplier.Value);
+            chillWaveVFX.SetFloat("spawnRateMultiplier", Configuration.blizzardWaveParticlesMultiplier.Value);
             chillWaveVFX.SetBool("isCollisionEnabled", Configuration.enableVFXCollisions.Value);
+            chillWaveVFX.SetBool("fogEnabled", Configuration.enableBlizzardFog.Value);
             Camera chillWaveCamera = blizzardVFXManager.blizzardWaveContainer!.GetComponentInChildren<Camera>(true);
             chillWaveCamera.enabled = Configuration.enableVFXCollisions.Value;
             AudioSource blizzardAudio = blizzardVFXManager.GetComponent<AudioSource>();

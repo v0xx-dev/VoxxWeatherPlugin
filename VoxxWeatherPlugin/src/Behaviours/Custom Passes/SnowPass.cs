@@ -193,7 +193,7 @@ namespace VoxxWeatherPlugin.Behaviours
             RenderForwardRendererList(ctx.hdCamera.frameSettings, rendererList, opaque, ctx.renderContext, ctx.cmd);
         }
 
-        internal void SetupMaterial(Material material)
+        internal void SetupMaterial(Material? material)
         {
             if (material == null)
             {
@@ -205,7 +205,6 @@ namespace VoxxWeatherPlugin.Behaviours
             material.SetInt(SnowfallShaderIDs.isAdaptiveTessellation, LevelManipulator.Instance!.IsAdaptiveTessellation);
             // material.SetFloat(SnowfallShaderIDs.ShadowBias, SnowfallWeather.Instance!.shadowBias);
             // material.SetFloat(SnowfallShaderIDs.SnowOcclusionBias, SnowfallWeather.Instance!.snowOcclusionBias);
-
         }
 
         

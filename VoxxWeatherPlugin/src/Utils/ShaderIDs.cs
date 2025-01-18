@@ -27,7 +27,14 @@ namespace VoxxWeatherPlugin.Utils
         internal static readonly int TexIndex = Shader.PropertyToID("_TexIndex");
         internal static readonly int NormalStrength = Shader.PropertyToID("_NormalStrength");
         internal static readonly int SnowColor = Shader.PropertyToID("_SnowColor");
+        //Also used for base color of the snow, i.e where it meets the ground
+        internal static readonly int SnowBaseColor = Shader.PropertyToID("_SnowBaseColor");
+        internal static readonly int BlizzardFogColor = Shader.PropertyToID("_BlizzardFogColor");
         internal static readonly int Metallic = Shader.PropertyToID("_Metallic");
+    }
 
+    static class ToxicShaderIDs
+    {
+        internal static readonly int FumesColor = Shader.PropertyToID("_FumesColor");
     }
 }

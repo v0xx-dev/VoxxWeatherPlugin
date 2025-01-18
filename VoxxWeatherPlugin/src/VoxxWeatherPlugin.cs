@@ -7,12 +7,16 @@ using BepInEx.Logging;
 using System.Reflection;
 using System;
 using System.Collections.Generic;
+using BepInEx.Bootstrap;
+using VoxxWeatherPlugin.Compatibility;
 
 namespace VoxxWeatherPlugin
 {
     [BepInPlugin(PluginInfo.PLUGIN_GUID, PluginInfo.PLUGIN_NAME, PluginInfo.PLUGIN_VERSION)]
     [BepInDependency("mrov.WeatherRegistry", BepInDependency.DependencyFlags.HardDependency)]
     [BepInDependency("voxx.TerraMesh", BepInDependency.DependencyFlags.HardDependency)]
+    [BepInDependency("imabatby.lethallevelloader", BepInDependency.DependencyFlags.SoftDependency)]
+    [BepInDependency("Zaggy1024.OpenBodyCams", BepInDependency.DependencyFlags.SoftDependency)]
     public class VoxxWeatherPlugin : BaseUnityPlugin
     {
         private Harmony harmony;
@@ -80,6 +84,18 @@ namespace VoxxWeatherPlugin
                 DynamicHarmonyPatcher.PatchAllTypes(typeof(EnemyAI), "Update", patchMethod, PatchType.Postfix, harmony, SnowPatches.unaffectedEnemyTypes); 
                 Logger.LogInfo($"{PluginInfo.PLUGIN_GUID} enemy snow hindrance patches successfully applied!");
 
+            }
+
+            if (Chainloader.PluginInfos.ContainsKey("imabatby.lethallevelloader"))
+            {
+                Logger.LogInfo("LethalLevelLoader detected!");
+                LLLCompat.Init();
+            }
+
+            if (Chainloader.PluginInfos.ContainsKey("Zaggy1024.OpenBodyCams"))
+            {
+                Logger.LogInfo("OpenBodyCams detected!");
+                OpenCamsCompat.Init();
             }
 
             Logger.LogInfo($"Plugin {PluginInfo.PLUGIN_GUID} is loaded!");

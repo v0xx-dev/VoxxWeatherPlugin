@@ -77,6 +77,8 @@ namespace VoxxWeatherPlugin.Utils
 
         #region Snow & Blizzard Graphics
         public static ConfigEntry<float> snowParticlesMultiplier; //
+        public static ConfigEntry<float> blizzardWaveParticlesMultiplier; //
+        public static ConfigEntry<bool> enableBlizzardFog; //
         public static ConfigEntry<bool> useOpaqueSnowMaterial; //
         // public static ConfigEntry<bool> fixPosterizationForSnowOverlay; //
         public static ConfigEntry<bool> snowCastsShadows; //
@@ -372,6 +374,15 @@ namespace VoxxWeatherPlugin.Utils
                                             1f,
                                             new ConfigDescription("Multiplier for the amount of snow/blizzard particles. Lower values may reduce performance impact but also visual quality.",
                                                                 new AcceptableValueRange<float>(0, 10f)));
+            blizzardWaveParticlesMultiplier = Config.Bind("Snow Graphics",
+                                                        "blizzardWaveParticlesMultiplier",
+                                                        1f,
+                                                        new ConfigDescription("Multiplier for the amount of blizzard wave particles. Lower values may reduce performance impact but also reduce density of particles.",
+                                                                            new AcceptableValueRange<float>(0, 10f)));  
+            enableBlizzardFog = Config.Bind("Snow Graphics",
+                                            "enableBlizzardFog",
+                                            true,
+                                            "Enable blizzard fog effect. Disabling this can improve performance, at the cost of visual quality.");
             useOpaqueSnowMaterial = Config.Bind("Snow Graphics",
                                                 "useOpaqueSnowMaterial",
                                                 false,

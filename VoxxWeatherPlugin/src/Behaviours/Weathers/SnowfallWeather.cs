@@ -35,8 +35,8 @@ namespace VoxxWeatherPlugin.Weathers
 
         internal virtual void OnEnable()
         {
-            LevelManipulator.Instance.InitializeLevelProperties(1.5f);
-            LevelManipulator.Instance.SetupLevelForSnow(snowHeightRange: (MinSnowHeight, MaxSnowHeight),
+            LevelManipulator.Instance?.InitializeLevelProperties(1.5f);
+            LevelManipulator.Instance?.SetupLevelForSnow(snowHeightRange: (MinSnowHeight, MaxSnowHeight),
                                                         snowNormalizedTimeRange: (MinSnowNormalizedTime, MaxSnowNormalizedTime),
                                                         snowScaleRange: (0.7f, 1.3f),
                                                         fogStrengthRange: (0f, 15f));
@@ -45,8 +45,8 @@ namespace VoxxWeatherPlugin.Weathers
 
         internal void OnFinish()
         {
-            LevelManipulator.Instance.ResetLevelProperties();
-            LevelManipulator.Instance.ResetSnowVariables();
+            LevelManipulator.Instance?.ResetLevelProperties();
+            LevelManipulator.Instance?.ResetSnowVariables();
             PlayerEffectsManager.normalizedTemperature = 0f;
         }
 
@@ -58,8 +58,12 @@ namespace VoxxWeatherPlugin.Weathers
 
         internal virtual void Update()
         {
-            LevelManipulator.Instance.UpdateLevelProperties();
-            LevelManipulator.Instance.UpdateSnowVariables();
+            if (!LevelManipulator.Instance?.isSnowReady ?? false)
+            {
+                return;
+            }
+            LevelManipulator.Instance?.UpdateLevelProperties();
+            LevelManipulator.Instance?.UpdateSnowVariables();
             // Update the snow thickness (host must constantly update for enemies, clients only when not in factory)
             if (GameNetworkManager.Instance.isHostingGame || !GameNetworkManager.Instance.localPlayerController.isInsideFactory)
             {
@@ -114,7 +118,7 @@ namespace VoxxWeatherPlugin.Weathers
             PlayerEffectsManager.freezeEffectVolume.enabled = true;
             PlayerEffectsManager.underSnowVolume.enabled = true;
             
-            LevelManipulator.Instance.snowVolume!.enabled = true;
+            LevelManipulator.Instance!.snowVolume!.enabled = true;
             LevelManipulator.Instance.snowTrackerCameraContainer?.SetActive(true);
         }
 
@@ -193,7 +197,7 @@ namespace VoxxWeatherPlugin.Weathers
 
             SnowTrackersManager.ToggleFootprintTrackers(true);
 
-            LevelManipulator.Instance.snowVolume!.enabled = true;
+            LevelManipulator.Instance!.snowVolume!.enabled = true;
             LevelManipulator.Instance.snowTrackerCameraContainer?.SetActive(true);
 
             // For blizzard weather prefab won't be set
@@ -244,7 +248,6 @@ namespace VoxxWeatherPlugin.Weathers
             
             Debug.Log("Merry Christmas!");
             
-            System.Random randomizer = LevelManipulator.Instance.seededRandom!;
 
             int attempts = 24;
             bool treePlaced = false;
@@ -252,7 +255,7 @@ namespace VoxxWeatherPlugin.Weathers
             while (attempts-- > 0)
             {
                 // Select a random position in the level from RoundManager.Instance.outsideAINodes
-                int randomIndex = randomizer.Next(0, RoundManager.Instance.outsideAINodes.Length);
+                int randomIndex = SeededRandom?.Next(0, RoundManager.Instance.outsideAINodes.Length) ?? 0;
                 Vector3 anchor = RoundManager.Instance.outsideAINodes[randomIndex].transform.position;
                 // Sample another random position using navmesh around the anchor where there is at least 10x10m of space
                 Vector3 randomPosition = RoundManager.Instance.GetRandomNavMeshPositionInBoxPredictable(anchor, 25f, randomSeed: randomizer);
@@ -271,7 +274,7 @@ namespace VoxxWeatherPlugin.Weathers
                 return;
             }
 
-            Quaternion randomRotation = Quaternion.Euler(0, randomizer.Next(0, 360), 0);
+            Quaternion randomRotation = Quaternion.Euler(0, SeededRandom?.Next(0, 360) ?? 0f, 0);
             // Spawn a Christmas tree
             _ = Instantiate(christmasTreePrefab!, treePosition, randomRotation);
 
@@ -287,7 +290,7 @@ namespace VoxxWeatherPlugin.Weathers
             NavMeshHit hit;
             for (int i = 0; i < numGifts; i++)
             {
-                int giftValue = randomizer.Next(1, 24);
+                int giftValue = SeededRandom?.Next(1, 24) ?? 1;
 
                 //Spawn gifts in a ring around the tree by sampling the NavMesh around it
                 Vector3 giftPosition = treePosition + 2f * new Vector3(Mathf.Cos(i * 2 * Mathf.PI / numGifts), 0, Mathf.Sin(i * 2 * Mathf.PI / numGifts));
