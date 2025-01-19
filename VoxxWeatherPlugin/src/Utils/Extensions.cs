@@ -256,6 +256,18 @@ namespace VoxxWeatherPlugin.Utils
         {
             return moonName.Replace(" ", "").Replace("_", "").Replace("-", "").ToLower();
         }
+
+        public static void WhiteOut(this RenderTexture rt)
+        {
+            // Save the currently active render texture
+            RenderTexture previous = RenderTexture.active;
+            // Set the new render texture as active
+            RenderTexture.active = rt;
+            // Clear the render texture to white
+            GL.Clear(true, true, Color.white);
+            // Restore the previously active render texture
+            RenderTexture.active = previous;
+        }
     
     }
 }

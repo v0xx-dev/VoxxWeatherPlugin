@@ -176,8 +176,12 @@ namespace VoxxWeatherPlugin.Utils
 
             // Fix broken references (WHY, UNITY, WHY)
 
-            VisualEffectAsset? blizzardVFXAsset = WeatherAssetLoader.LoadAsset<VisualEffectAsset>(bundleName, "BlizzardVFX");
-            VisualEffectAsset? blizzardWaveVFXAsset = WeatherAssetLoader.LoadAsset<VisualEffectAsset>(bundleName, "BlizzardWaveVFX");
+            VisualEffectAsset? blizzardVFXAsset = Configuration.snowVFXLighting.Value ?
+                WeatherAssetLoader.LoadAsset<VisualEffectAsset>(bundleName, "BlizzardVFXLit") :
+                WeatherAssetLoader.LoadAsset<VisualEffectAsset>(bundleName, "BlizzardVFX");
+            VisualEffectAsset? blizzardWaveVFXAsset = Configuration.blizzardWaveVFXLighting.Value ?
+                WeatherAssetLoader.LoadAsset<VisualEffectAsset>(bundleName, "BlizzardWaveVFXLit") :
+                WeatherAssetLoader.LoadAsset<VisualEffectAsset>(bundleName, "BlizzardWaveVFX");
 
             if (blizzardVFXAsset == null || blizzardWaveVFXAsset == null)
             {
@@ -262,7 +266,9 @@ namespace VoxxWeatherPlugin.Utils
                                                             (k, v) => new { k, v })
                                                             .ToDictionary(x => x.k, x => x.v);         
 
-            VisualEffectAsset? snowVFXAsset = WeatherAssetLoader.LoadAsset<VisualEffectAsset>(bundleName, "SnowVFX");
+            VisualEffectAsset? snowVFXAsset = Configuration.snowVFXLighting.Value ?
+                WeatherAssetLoader.LoadAsset<VisualEffectAsset>(bundleName, "SnowVFXLit") :
+                WeatherAssetLoader.LoadAsset<VisualEffectAsset>(bundleName, "SnowVFX");
 
             if (snowVFXAsset == null)
             {
@@ -350,6 +356,8 @@ namespace VoxxWeatherPlugin.Utils
             levelManipulatorController.snowOverlayMaterial!.shader = overlayShader;
             levelManipulatorController.snowVertexMaterial!.shader = vertexSnowShader;
             levelManipulatorController.snowVertexOpaqueMaterial!.shader = opaqueVertexSnowShader;
+
+            levelManipulatorController.snowVertexMaterial.SetFloat(SnowfallShaderIDs.IsDepthFade, Configuration.softSnowEdges.Value ? 1f : 0f);
             
             return true;   
         }

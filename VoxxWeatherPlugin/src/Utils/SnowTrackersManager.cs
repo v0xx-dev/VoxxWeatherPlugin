@@ -85,6 +85,9 @@ namespace VoxxWeatherPlugin.Utils
         /// </remarks>
         public static void UpdateFootprintTracker(MonoBehaviour obj, bool enableTracker, Vector3 offset = default)
         {
+            if (!Configuration.enableSnowTracks.Value)
+                return;
+                
             if (snowTrackersDict.TryGetValue(obj, out VisualEffect footprintsTrackerVFX))
             {
                 footprintsTrackerVFX.transform.position = obj.transform.position + offset;
@@ -123,6 +126,14 @@ namespace VoxxWeatherPlugin.Utils
         
         internal static void AddFootprintTracker(MonoBehaviour obj, float particleSize, float lifetimeMultiplier, float footprintStrength)
         {
+            if (obj is Shovel)
+            {
+                RegisterFootprintTracker(obj, TrackerType.Shovel);
+            }
+
+            if (!Configuration.enableSnowTracks.Value)
+                return;
+
             //Load different footprints for player and other objects
             switch (obj)
             {
@@ -140,10 +151,6 @@ namespace VoxxWeatherPlugin.Utils
                     break;
             }
 
-            if (obj is Shovel)
-            {
-                RegisterFootprintTracker(obj, TrackerType.Shovel);
-            }
         }
 
         // Removes stale entries from the dictionary

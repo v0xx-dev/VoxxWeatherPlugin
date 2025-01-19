@@ -31,6 +31,7 @@ namespace VoxxWeatherPlugin.Utils
         internal static readonly int SnowBaseColor = Shader.PropertyToID("_SnowBaseColor");
         internal static readonly int BlizzardFogColor = Shader.PropertyToID("_BlizzardFogColor");
         internal static readonly int Metallic = Shader.PropertyToID("_Metallic");
+        internal static readonly int IsDepthFade = Shader.PropertyToID("_EnableDepthFade");
     }
 
     static class ToxicShaderIDs

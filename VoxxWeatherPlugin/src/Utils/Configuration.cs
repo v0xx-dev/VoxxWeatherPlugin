@@ -78,9 +78,11 @@ namespace VoxxWeatherPlugin.Utils
         #region Snow & Blizzard Graphics
         public static ConfigEntry<float> snowParticlesMultiplier; //
         public static ConfigEntry<float> blizzardWaveParticlesMultiplier; //
+        public static ConfigEntry<bool> snowVFXLighting; //
+        public static ConfigEntry<bool> blizzardWaveVFXLighting; //
         public static ConfigEntry<bool> enableBlizzardFog; //
         public static ConfigEntry<bool> useOpaqueSnowMaterial; //
-        // public static ConfigEntry<bool> fixPosterizationForSnowOverlay; //
+        
         public static ConfigEntry<bool> snowCastsShadows; //
         public static ConfigEntry<bool> addFootprints; //
         public static ConfigEntry<int> trackedEntityNumber; //
@@ -93,8 +95,8 @@ namespace VoxxWeatherPlugin.Utils
         public static ConfigEntry<int>  minTesselationFactor; //
         public static ConfigEntry<int>  maxTesselationFactor; //
         public static ConfigEntry<bool>  adaptiveTesselation; //
-        public static ConfigEntry<bool>  softSnowEdges;
-        public static ConfigEntry<bool>  enableSnowTracks;
+        public static ConfigEntry<bool>  softSnowEdges; //
+        public static ConfigEntry<bool>  enableSnowTracks; //
         public static ConfigEntry<bool>  enableVFXCollisions; //
         #endregion
 
@@ -383,14 +385,18 @@ namespace VoxxWeatherPlugin.Utils
                                             "enableBlizzardFog",
                                             true,
                                             "Enable blizzard fog effect. Disabling this can improve performance, at the cost of visual quality.");
+            snowVFXLighting = Config.Bind("Snow Graphics",
+                                        "snowVFXLighting",
+                                        false,
+                                        "Determines if snow particles are affected by shadows and lighting. Disabling this will make snow particles appear the same regardless of lighting conditions, but significantly improves the performance.");
+            blizzardWaveVFXLighting = Config.Bind("Snow Graphics",
+                                                "blizzardWaveVFXLighting",
+                                                false,
+                                                "Determines if blizzard wave particles are affected by shadows and lighting. Disabling this will make blizzard wave particles appear the same regardless of lighting conditions, but significantly improves the performance.");
             useOpaqueSnowMaterial = Config.Bind("Snow Graphics",
                                                 "useOpaqueSnowMaterial",
                                                 false,
                                                 "Use opaque snow material. Disabling this will use a transparent snow material, which will allow for more realistic snow overlay rendering, but will not work with the posterization effect.");
-            // fixPosterizationForSnowOverlay = Config.Bind("Snow Graphics",
-            //                                             "fixPosterizationForSnowOverlay",
-            //                                             false,
-            //                                             "Allows Zeekerss' posterization effect to work with the snow overlay shader (on non-terrain objects). Enabling this will change the rendering path and might cause incompatibilities with other mods that use custom passes.");
             snowCastsShadows = Config.Bind("Snow Graphics",
                                         "snowCastsShadows",
                                         false,

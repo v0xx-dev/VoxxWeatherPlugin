@@ -49,6 +49,8 @@ namespace VoxxWeatherPlugin.Weathers
 
         [Header("Fumes")]
         [SerializeField]
+        internal GameObject? hazardPrefab; // Assign in the inspector
+        [SerializeField]
         private int fumesAmount = 24;
         private int MinFumesAmount => Configuration.MinFumesAmount.Value;
         private int MaxFumesAmount => Configuration.MaxFumesAmount.Value;
@@ -59,14 +61,16 @@ namespace VoxxWeatherPlugin.Weathers
         private GameObject? fumesContainerInside;
         [SerializeField]
         private GameObject? fumesContainerOutside;
-        [SerializeField]
-        internal GameObject? hazardPrefab; // Assign in the inspector
         private float spawnRadius = 20f;
         private float minDistanceBetweenHazards = 5f;
         private float minDistanceFromBlockers = 20f;
         private List<Vector3>? spawnedPositions;
         private int maxAttempts;
+        [SerializeField]
+        [ColorUsage(true, true)]
         internal Color toxicFumesColor = new Color(0.413f, 0.589f, 0.210f, 0f);
+        [SerializeField]
+        [ColorUsage(true, true)]
         internal Color toxicFogColor = new Color(0.413f, 0.589f, 0.210f); //dark lime green
 
         void Awake()

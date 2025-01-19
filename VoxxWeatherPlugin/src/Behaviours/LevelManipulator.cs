@@ -32,12 +32,16 @@ namespace VoxxWeatherPlugin.Behaviours
         internal SnowOverlayCustomPass? snowOverlayCustomPass;
         [Header("Visuals")]
         [SerializeField]
+        [ColorUsage(true, true)]
         internal Color snowColor;
         [SerializeField]
+        [ColorUsage(true, true)]
         internal Color snowOverlayColor;
         [SerializeField]
+        [ColorUsage(true, true)]
         internal Color blizzardFogColor;
         [SerializeField]
+        [ColorUsage(true, true)]
         internal Color blizzardCrystalsColor;
         [SerializeField]
         internal Material? snowOverlayMaterial;
@@ -542,13 +546,7 @@ namespace VoxxWeatherPlugin.Behaviours
             
             snowOverlayCustomPass.SetupMaterial(snowOverlayMaterial);
             snowOverlayCustomPass.SetupMaterial(CurrentSnowVertexMaterial);
-            // if (Configuration.fixPosterizationForSnowOverlay.Value)
-            // {
-            //     // Increase normal strength and change color for snow overlay material
-            //     snowOverlayMaterial!.SetFloat(SnowfallShaderIDs.NormalStrength, 10f);
-            //     snowOverlayMaterial.SetColor(SnowfallShaderIDs.SnowColor, new Color(0.1657f, 0.1670f, 0.2075f, 1f));
-            //     snowOverlayMaterial.SetFloat(SnowfallShaderIDs.Metallic, 1f);
-            // }
+            
             terraMeshConfig = new TerraMeshConfig(
                             // Bounding box for target area
                             levelBounds : null,
@@ -630,8 +628,10 @@ namespace VoxxWeatherPlugin.Behaviours
             snowTracksMap.useDynamicScale = true;
             snowTracksMap.name = "Snow Tracks Map";
             snowTracksMap.Create();
+            snowTracksMap.WhiteOut();
             // Set the camera target texture
-            snowTracksCamera!.targetTexture = snowTracksMap;
+            snowTracksCamera!.enabled = Configuration.enableSnowTracks.Value;
+            snowTracksCamera.targetTexture = snowTracksMap;
             snowTracksCamera.aspect = 1.0f;
 
             moonProcessingWhitelist = Configuration.meshProcessingWhitelist.Value.CleanMoonName().TrimEnd(';').Split(';');
