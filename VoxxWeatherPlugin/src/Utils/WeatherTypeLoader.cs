@@ -176,10 +176,10 @@ namespace VoxxWeatherPlugin.Utils
 
             // Fix broken references (WHY, UNITY, WHY)
 
-            VisualEffectAsset? blizzardVFXAsset = Configuration.snowVFXLighting.Value ?
+            VisualEffectAsset? blizzardVFXAsset = Configuration.snowVfxLighting.Value ?
                 WeatherAssetLoader.LoadAsset<VisualEffectAsset>(bundleName, "BlizzardVFXLit") :
                 WeatherAssetLoader.LoadAsset<VisualEffectAsset>(bundleName, "BlizzardVFX");
-            VisualEffectAsset? blizzardWaveVFXAsset = Configuration.blizzardWaveVFXLighting.Value ?
+            VisualEffectAsset? blizzardWaveVFXAsset = Configuration.blizzardWaveVfxLighting.Value ?
                 WeatherAssetLoader.LoadAsset<VisualEffectAsset>(bundleName, "BlizzardWaveVFXLit") :
                 WeatherAssetLoader.LoadAsset<VisualEffectAsset>(bundleName, "BlizzardWaveVFX");
 
@@ -266,7 +266,7 @@ namespace VoxxWeatherPlugin.Utils
                                                             (k, v) => new { k, v })
                                                             .ToDictionary(x => x.k, x => x.v);         
 
-            VisualEffectAsset? snowVFXAsset = Configuration.snowVFXLighting.Value ?
+            VisualEffectAsset? snowVFXAsset = Configuration.snowVfxLighting.Value ?
                 WeatherAssetLoader.LoadAsset<VisualEffectAsset>(bundleName, "SnowVFXLit") :
                 WeatherAssetLoader.LoadAsset<VisualEffectAsset>(bundleName, "SnowVFX");
 

@@ -9,6 +9,7 @@ using VoxxWeatherPlugin.Behaviours;
 using System;
 using System.Linq;
 using WeatherRegistry;
+using UnityEngine.Rendering.HighDefinition;
 
 
 
@@ -17,7 +18,7 @@ namespace VoxxWeatherPlugin.Patches
     [HarmonyPatch]
     internal class SnowPatches
     {
-        internal static bool SnowAffectsEnemies => Configuration.snowAffectsEnemies.Value;
+        internal static bool SnowAffectsEnemies => Configuration.snowAffectsEnemies.Value && Configuration.enableSnowTracks.Value;
         public static float TimeToWarmUp => Configuration.timeToWarmUp.Value;   // Time to warm up from cold to room temperature
         internal static float FrostbiteDamageInterval => Configuration.frostbiteDamageInterval.Value;
         internal static float FrostbiteDamage => Configuration.frostbiteDamage.Value;
@@ -506,6 +507,85 @@ namespace VoxxWeatherPlugin.Patches
         //     Debug.LogDebug($"Current weather: '{WeatherManager.GetCurrentLevelWeather().Name}', SnowfallWeather: '{SnowfallWeather.Instance?.WeatherName}', BlizzardWeather: '{BlizzardWeather.Instance?.WeatherName}'");
         // }
         
+    }
+
+    [HarmonyPatch]
+    internal class SnowPatchesOptional
+    {
+        [HarmonyPatch(typeof(HDRenderPipeline), "RenderTransparency")]
+        [HarmonyTranspiler]
+        [HarmonyDebug]
+        [HarmonyPriority(Priority.First)]
+        private static IEnumerable<CodeInstruction> LowResTransparencyTranspiler(IEnumerable<CodeInstruction> instructions)
+        {
+            var codeMatcher = new CodeMatcher(instructions);
+            
+            codeMatcher.MatchForward(true,
+                new CodeMatch(OpCodes.Ldarg_0),
+                new CodeMatch(OpCodes.Ldarg_1), // renderGraph
+                new CodeMatch(OpCodes.Ldarg_2), // hdCamera
+                new CodeMatch(OpCodes.Ldarg_3), // colorBuffer
+                new CodeMatch(OpCodes.Ldarg_S), // normalBuffer 
+                new CodeMatch(OpCodes.Ldarg_S), // prepassOutput
+                new CodeMatch(OpCodes.Ldfld),
+                new CodeMatch(OpCodes.Call, AccessTools.Method(typeof(HDRenderPipeline), "RenderUnderWaterVolume")),
+                new CodeMatch(OpCodes.Starg_S)  // colorBuffer
+            );
+
+            if (!codeMatcher.IsValid)
+            {
+                Debug.LogError("Failed to find a match for RenderUnderWaterVolume");
+                return instructions;
+            }
+
+            // Save next instruction index
+            int beginIndex = codeMatcher.Pos + 1;
+
+            codeMatcher.MatchForward(true,
+                new CodeMatch(OpCodes.Call, AccessTools.Method(typeof(HDRenderPipeline), "UpsampleTransparent"))
+            );
+
+            if (!codeMatcher.IsValid)
+            {
+                Debug.LogError("Failed to find a match for UpsampleTransparent");
+                return instructions;
+            }
+
+            // Save current instruction index
+            int endIndex = codeMatcher.Pos;
+
+            // Cut out and save the block of code that renders transparent objects in low resolution
+            List<CodeInstruction> lowResBlock = codeMatcher.InstructionsInRange(beginIndex, endIndex);
+            // // Print the block of code into the console
+            // Debug.LogDebug("LowResBlock:");
+            // foreach (var instruction in lowResBlock)
+            // {
+            //     Debug.LogDebug(instruction.ToString());
+            // }
+            // Debug.LogDebug("End of LowResBlock");
+            // Remove the block of code from the original instructions
+            codeMatcher.RemoveInstructionsInRange(beginIndex, endIndex);
+            codeMatcher.Start();
+
+            // Find the insertion point
+            codeMatcher.MatchForward(true,
+                new CodeMatch(OpCodes.Call, AccessTools.Method(typeof(HDRenderPipeline), "RenderForwardTransparent")),
+                new CodeMatch(OpCodes.Ldarg_0),
+                new CodeMatch(OpCodes.Ldarg_2),
+                new CodeMatch(OpCodes.Call, AccessTools.Method(typeof(HDRenderPipeline), "ResetCameraMipBias"))
+            );
+
+            if (!codeMatcher.IsValid)
+            {
+                Debug.LogError("Failed to find a match for RenderForwardTransparent");
+                return instructions;
+            }
+
+            // Insert the block of code that renders transparent objects in low resolution after SetGlobalColorForCustomPass
+            codeMatcher.Advance(1).Insert(lowResBlock);
+
+            return codeMatcher.InstructionEnumeration();
+        }
     }
 
 }

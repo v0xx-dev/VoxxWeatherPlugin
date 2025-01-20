@@ -107,8 +107,7 @@ namespace VoxxWeatherPlugin.Behaviours
         internal Material? bakeMaterial;
         [SerializeField]
         internal int BakeResolution => Configuration.snowDepthMapResolution.Value;
-        [SerializeField]
-        internal int BlurRadius => Configuration.BlurKernelSize.Value;
+        internal readonly int blurRadius = 2;
         [SerializeField]
         internal Texture2DArray? snowMasks; // Texture2DArray to store the snow masks
         internal bool BakeMipmaps => Configuration.bakeSnowDepthMipmaps.Value;
@@ -537,16 +536,15 @@ namespace VoxxWeatherPlugin.Behaviours
 
         internal void InitializeSnowVariables()
         {
-            // Alpha test pass
-            snowOverlayCustomPass = snowVolume!.customPasses[1] as SnowOverlayCustomPass;
-            snowOverlayCustomPass!.snowOverlayMaterial = Instantiate(snowOverlayMaterial);
             // No alpha test pass
             snowOverlayCustomPass = snowVolume!.customPasses[0] as SnowOverlayCustomPass;
             snowOverlayCustomPass!.snowOverlayMaterial = snowOverlayMaterial;
-            
             snowOverlayCustomPass.SetupMaterial(snowOverlayMaterial);
             snowOverlayCustomPass.SetupMaterial(CurrentSnowVertexMaterial);
-            
+            // Alpha test pass
+            SnowOverlayCustomPass? snowOverlayCustomPassAlpha = snowVolume!.customPasses[1] as SnowOverlayCustomPass;
+            snowOverlayCustomPassAlpha!.snowOverlayMaterial = Instantiate(snowOverlayMaterial);
+
             terraMeshConfig = new TerraMeshConfig(
                             // Bounding box for target area
                             levelBounds : null,
@@ -611,7 +609,7 @@ namespace VoxxWeatherPlugin.Behaviours
 
             CustomPassVolume customPassVolume = levelDepthmapCamera.GetComponent<CustomPassVolume>();
             DepthVSMPass? depthVSMPass = customPassVolume.customPasses[0] as DepthVSMPass;
-            depthVSMPass!.blurRadius = BlurRadius;
+            depthVSMPass!.blurRadius = blurRadius;
             depthVSMPass!.depthUnblurred = levelDepthmapUnblurred;
             // This is because Diversity fucks up injection priorities
             customPassVolume.injectionPoint = CustomPassInjectionPoint.BeforePostProcess;
@@ -628,9 +626,12 @@ namespace VoxxWeatherPlugin.Behaviours
             snowTracksMap.useDynamicScale = true;
             snowTracksMap.name = "Snow Tracks Map";
             snowTracksMap.Create();
-            snowTracksMap.WhiteOut();
             // Set the camera target texture
             snowTracksCamera!.enabled = Configuration.enableSnowTracks.Value;
+            if (!Configuration.enableSnowTracks.Value)
+            {
+                snowTracksMap.WhiteOut();
+            }
             snowTracksCamera.targetTexture = snowTracksMap;
             snowTracksCamera.aspect = 1.0f;
 
@@ -713,6 +714,8 @@ namespace VoxxWeatherPlugin.Behaviours
             CurrentSnowVertexMaterial?.SetColor(SnowfallShaderIDs.SnowColor, snowColor);
             CurrentSnowVertexMaterial?.SetColor(SnowfallShaderIDs.SnowBaseColor, snowOverlayColor);
             snowOverlayCustomPass?.snowOverlayMaterial?.SetColor(SnowfallShaderIDs.SnowBaseColor, snowOverlayColor);
+            SnowOverlayCustomPass? snowOverlayCustomPassAlpha = snowVolume!.customPasses[1] as SnowOverlayCustomPass;
+            snowOverlayCustomPassAlpha!.snowOverlayMaterial?.SetColor(SnowfallShaderIDs.SnowBaseColor, snowOverlayColor);
 
             if (SnowfallWeather.Instance?.IsActive ?? false)
             {
@@ -847,19 +850,25 @@ namespace VoxxWeatherPlugin.Behaviours
             System.Diagnostics.Stopwatch stopwatch = new System.Diagnostics.Stopwatch();
             stopwatch.Start();
 
+#if DEBUG
+            waterTriggerObjects = FindObjectsOfType<QuicksandTrigger>().Where(x => x.enabled &&
+                                                                                x.gameObject.activeInHierarchy &&
+                                                                                x.isWater &&
+                                                                                x.gameObject.scene.name == CurrentSceneName).ToArray();
+#else
             waterTriggerObjects = FindObjectsOfType<QuicksandTrigger>().Where(x => x.enabled &&
                                                                                 x.gameObject.activeInHierarchy &&
                                                                                 x.isWater &&
                                                                                 x.gameObject.scene.name == CurrentSceneName &&
                                                                                 !x.isInsideWater).ToArray();
-
+#endif
             HashSet<GameObject> iceObjects = new HashSet<GameObject>();
-            stopwatch.Restart();
             NavMeshModifierVolume[] navMeshModifiers = FindObjectsOfType<NavMeshModifierVolume>().Where(x => x.gameObject.activeInHierarchy &&
                                                                                     x.gameObject.scene.name == CurrentSceneName &&
                                                                                     x.transform.position.y > heightThreshold &&
                                                                                     x.enabled &&
                                                                                     x.area == 1 << 1).ToArray(); // Layer 1 is not walkable
+            
             foreach (QuicksandTrigger waterObject in waterTriggerObjects)
             {
                 // Disable sinking
@@ -869,6 +878,7 @@ namespace VoxxWeatherPlugin.Behaviours
                     collider.enabled = false;
                 }
             }
+
             foreach (GameObject waterSurface in waterSurfaceObjects)
             {
                 //Get renderer component, we know it exists since we checked it in the CheckIfObjectIsTerrain method
@@ -985,7 +995,7 @@ namespace VoxxWeatherPlugin.Behaviours
             bakeMaterial?.SetFloat(SnowfallShaderIDs.SnowNoiseScale, snowScale);
             bakeMaterial?.SetFloat(SnowfallShaderIDs.ShadowBias, shadowBias);
             bakeMaterial?.SetFloat(SnowfallShaderIDs.PCFKernelSize, PCFKernelSize);
-            bakeMaterial?.SetFloat(SnowfallShaderIDs.BlurKernelSize, BlurRadius);
+            bakeMaterial?.SetFloat(SnowfallShaderIDs.BlurKernelSize, blurRadius);
             bakeMaterial?.SetFloat(SnowfallShaderIDs.SnowOcclusionBias, snowOcclusionBias);
             bakeMaterial?.SetVector(SnowfallShaderIDs.ShipPosition, shipPosition);
             

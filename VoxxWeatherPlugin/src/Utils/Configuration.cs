@@ -78,8 +78,8 @@ namespace VoxxWeatherPlugin.Utils
         #region Snow & Blizzard Graphics
         public static ConfigEntry<float> snowParticlesMultiplier; //
         public static ConfigEntry<float> blizzardWaveParticlesMultiplier; //
-        public static ConfigEntry<bool> snowVFXLighting; //
-        public static ConfigEntry<bool> blizzardWaveVFXLighting; //
+        public static ConfigEntry<bool> snowVfxLighting; //
+        public static ConfigEntry<bool> blizzardWaveVfxLighting; //
         public static ConfigEntry<bool> enableBlizzardFog; //
         public static ConfigEntry<bool> useOpaqueSnowMaterial; //
         
@@ -91,7 +91,6 @@ namespace VoxxWeatherPlugin.Utils
         public static ConfigEntry<int>  snowDepthMapResolution; //
         public static ConfigEntry<bool>  bakeSnowDepthMipmaps; //
         public static ConfigEntry<int>  PCFKernelSize; //
-        public static ConfigEntry<int>  BlurKernelSize; //
         public static ConfigEntry<int>  minTesselationFactor; //
         public static ConfigEntry<int>  maxTesselationFactor; //
         public static ConfigEntry<bool>  adaptiveTesselation; //
@@ -385,12 +384,12 @@ namespace VoxxWeatherPlugin.Utils
                                             "enableBlizzardFog",
                                             true,
                                             "Enable blizzard fog effect. Disabling this can improve performance, at the cost of visual quality.");
-            snowVFXLighting = Config.Bind("Snow Graphics",
-                                        "snowVFXLighting",
+            snowVfxLighting = Config.Bind("Snow Graphics",
+                                        "snowVfxLighting",
                                         false,
                                         "Determines if snow particles are affected by shadows and lighting. Disabling this will make snow particles appear the same regardless of lighting conditions, but significantly improves the performance.");
-            blizzardWaveVFXLighting = Config.Bind("Snow Graphics",
-                                                "blizzardWaveVFXLighting",
+            blizzardWaveVfxLighting = Config.Bind("Snow Graphics",
+                                                "blizzardWaveVfxLighting",
                                                 false,
                                                 "Determines if blizzard wave particles are affected by shadows and lighting. Disabling this will make blizzard wave particles appear the same regardless of lighting conditions, but significantly improves the performance.");
             useOpaqueSnowMaterial = Config.Bind("Snow Graphics",
@@ -434,13 +433,8 @@ namespace VoxxWeatherPlugin.Utils
             PCFKernelSize = Config.Bind("Snow Graphics",
                                         "PCFKernelSize",
                                         12,
-                                        new ConfigDescription("Kernel size for Percentage Closer Filtering. Higher values increase will produce smoother snow 'shadows' under objects. High values will baking and thus level loading times.",
+                                        new ConfigDescription("Kernel size for Percentage Closer Filtering. Higher values increase will produce smoother snow 'shadows' under objects, but will slow baking and thus level loading times.",
                                                             new AcceptableValueRange<int>(1, 50)));
-            BlurKernelSize = Config.Bind("Snow Graphics",
-                                        "BlurKernelSize",
-                                        4,
-                                        new ConfigDescription("Kernel size for the depth buffer blur used for VSM 'shadow' mapping, that is used for snow overlay rendering (non fluffy snow). Higher values will produce smoother snow transitions under objects, but will lower accuracy of VFX collisions.",
-                                                            new AcceptableValueRange<int>(0, 32)));
             minTesselationFactor = Config.Bind("Snow Graphics",
                                                 "minTesselationFactor",
                                                 4,

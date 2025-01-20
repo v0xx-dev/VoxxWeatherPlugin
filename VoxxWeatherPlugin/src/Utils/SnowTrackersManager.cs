@@ -87,7 +87,7 @@ namespace VoxxWeatherPlugin.Utils
         {
             if (!Configuration.enableSnowTracks.Value)
                 return;
-                
+
             if (snowTrackersDict.TryGetValue(obj, out VisualEffect footprintsTrackerVFX))
             {
                 footprintsTrackerVFX.transform.position = obj.transform.position + offset;
@@ -126,11 +126,6 @@ namespace VoxxWeatherPlugin.Utils
         
         internal static void AddFootprintTracker(MonoBehaviour obj, float particleSize, float lifetimeMultiplier, float footprintStrength)
         {
-            if (obj is Shovel)
-            {
-                RegisterFootprintTracker(obj, TrackerType.Shovel);
-            }
-
             if (!Configuration.enableSnowTracks.Value)
                 return;
 
@@ -149,6 +144,11 @@ namespace VoxxWeatherPlugin.Utils
                 case VehicleController:
                     RegisterFootprintTracker(obj, TrackerType.Footprints, particleSize, lifetimeMultiplier, footprintStrength);
                     break;
+            }
+                
+            if (obj is Shovel)
+            {
+                RegisterFootprintTracker(obj, TrackerType.Shovel);
             }
 
         }

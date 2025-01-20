@@ -40,6 +40,8 @@ namespace VoxxWeatherPlugin.Behaviours
             //create temporary exact copy
             RenderTexture tempTexture1 = RenderTexture.GetTemporary(width, height, 0, textureFormat);
             RenderTexture tempTexture2 = RenderTexture.GetTemporary(width, height, 0, textureFormat);
+            tempTexture1.filterMode = FilterMode.Trilinear;
+            tempTexture2.filterMode = FilterMode.Trilinear;
             // Copy the depth map to a temporary texture
             ctx.cmd.Blit(ctx.cameraDepthBuffer, tempTexture1, depthMaterial, 0);
             if (depthUnblurred != null)
