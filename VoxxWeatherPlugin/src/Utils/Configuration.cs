@@ -100,6 +100,7 @@ namespace VoxxWeatherPlugin.Utils
         #endregion
 
         #region Snow & Blizzard Mesh and Terrain Processing
+        public static ConfigEntry<bool> asyncProcessing; //
         public static ConfigEntry<string>  meshProcessingWhitelist; //
         public static ConfigEntry<bool> subdivideMesh; //
         public static ConfigEntry<bool> smoothMesh; //
@@ -464,6 +465,11 @@ namespace VoxxWeatherPlugin.Utils
             #endregion
 
             #region Mesh & Terrain processing
+            asyncProcessing = Config.Bind("Mesh & Terrain Processing",
+                                        "asyncProcessing",
+                                        true,
+                                        "Enable asynchronous mesh and terrain processing. Disabling this will process everything in the main thread, which will increase loading times.");
+                                        
             meshProcessingWhitelist = Config.Bind("Mesh & Terrain Processing",
                                                 "meshProcessingWhitelist",
                                                 "Offense;Assurance;Artifice;Experimentation",

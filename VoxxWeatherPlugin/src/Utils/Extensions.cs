@@ -5,6 +5,8 @@ using UnityEngine.Rendering;
 using Unity.Netcode;
 using UnityEngine.UI;
 using System.Collections;
+using System.Threading.Tasks;
+using Unity.AI.Navigation;
 
 namespace VoxxWeatherPlugin.Utils
 {
@@ -70,11 +72,11 @@ namespace VoxxWeatherPlugin.Utils
             {
                 sw.Restart();
                 GameObject objectToBake = objectsToBake[textureIndex];
-                Mesh mesh = objectToBake.GetComponent<MeshFilter>().sharedMesh;
+                Mesh? mesh = objectToBake.GetComponent<MeshFilter>()?.sharedMesh;
 
                 if (mesh == null)
                 {
-                    Debug.LogError("No mesh found on object to bake!");
+                    Debug.LogError($"No mesh found on object to bake with name: {objectToBake.name}!");
                     yield break;
                 }
 
@@ -267,6 +269,32 @@ namespace VoxxWeatherPlugin.Utils
             GL.Clear(true, true, Color.white);
             // Restore the previously active render texture
             RenderTexture.active = previous;
+        }
+
+        public static IEnumerator AsCoroutine(this Task task)
+        {
+            while (!task.IsCompleted)
+            {
+                yield return null;
+            }
+
+            if (task.IsFaulted)
+            {
+                Debug.LogError("Task failed: " + task.Exception);
+                yield break;
+            }
+        }
+
+        public static IEnumerator NavMeshRebuildCoroutine(this NavMeshSurface navMeshSurface, AsyncOperation asyncOperation, System.Diagnostics.Stopwatch sw)
+        {
+            sw.Restart();
+
+            while (!asyncOperation.isDone)
+                yield return null;
+
+            sw.Stop();
+            
+            Debug.LogDebug($"NavMesh rebaked in {sw.ElapsedMilliseconds} ms");
         }
     
     }

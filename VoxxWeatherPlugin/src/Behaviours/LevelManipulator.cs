@@ -1,7 +1,10 @@
 using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using DunGen;
 using GameNetcodeStuff;
 using TerraMesh;
@@ -28,7 +31,7 @@ namespace VoxxWeatherPlugin.Behaviours
         public GameObject? snowModule;
         [Header("Snow Overlay Volume")]
         [SerializeField]
-        internal CustomPassVolume? snowVolume;
+        internal CustomPassVolume snowVolume = null!;
         internal SnowOverlayCustomPass? snowOverlayCustomPass;
         [Header("Visuals")]
         [SerializeField]
@@ -273,7 +276,7 @@ namespace VoxxWeatherPlugin.Behaviours
             Scene scene = SceneManager.GetSceneByName(CurrentSceneName);
 
             // Reset the list of ground objects to find possible mesh terrains to render snow on
-            groundObjectCandidates = new List<GameObject>();
+            groundObjectCandidates = [];
 
             // Iterate through all root GameObjects in the scene
             foreach (GameObject rootGameObject in scene.GetRootGameObjects())
@@ -488,52 +491,6 @@ namespace VoxxWeatherPlugin.Behaviours
 
         #region Snow Weather Setup
 
-        /// <summary>
-        /// Sets up the level for snowy weather
-        /// </summary>
-        /// <param name="snowHeightRange">The range of snow height on the ground</param>
-        /// <param name="snowNormalizedTimeRange">The range of normalized time for full snow coverage</param>
-        /// <param name="snowScaleRange">The range of snow patchiness</param>
-        /// <param name="fogStrengthRange">The range of fog strength</param>
-        /// <returns></returns>
-        /// <remarks>
-        /// This method sets up the level for snowy weather by modifying the ground objects to render snow on, freezing water surfaces, modifying the fog strength and updating the level depthmap for snow occlusion.
-        /// </remarks>
-        internal void SetupLevelForSnow((float, float) snowHeightRange,
-                                            (float, float) snowNormalizedTimeRange,
-                                            (float, float) snowScaleRange,
-                                            (float, float) fogStrengthRange
-                                            )
-        {
-            if (seededRandom == null)
-            {
-                Debug.LogError("Random seed is not set!");
-                return;
-            }
-
-            if (LLLCompat.isActive)
-            {
-                LLLCompat.TagRecolorSnow();
-            }
-
-            //Activate snow module
-            snowVolume.transform.parent.gameObject.SetActive(true);
-
-            snowScale = seededRandom.NextDouble(snowScaleRange.Item1, snowScaleRange.Item2); // Snow patchy-ness
-            finalSnowHeight = seededRandom.NextDouble(snowHeightRange.Item1, snowHeightRange.Item2);
-            fullSnowNormalizedTime = seededRandom.NextDouble(snowNormalizedTimeRange.Item1, snowNormalizedTimeRange.Item2);
-            List<GameObject> surfaceObjects = GetSurfaceObjects();
-            ModifyRenderMasks(surfaceObjects, terraMeshConfig.renderingLayerMask);
-            ModifyScrollingFog(fogStrengthRange.Item1, fogStrengthRange.Item2);
-            SetupGroundForSnow();
-            if (Configuration.freezeWater.Value)
-            {
-                FreezeWater();
-            }
-            UpdateLevelDepthmap();
-            StartCoroutine(RefreshDepthmapCoroutine(bakeSnowMaps: false, waitForLanding: true));
-        }
-
         internal void InitializeSnowVariables()
         {
             // No alpha test pass
@@ -669,6 +626,64 @@ namespace VoxxWeatherPlugin.Behaviours
             isSnowReady = false;
         }
 
+        /// <summary>
+        /// Sets up the level for snowy weather
+        /// </summary>
+        /// <param name="snowHeightRange">The range of snow height on the ground</param>
+        /// <param name="snowNormalizedTimeRange">The range of normalized time for full snow coverage</param>
+        /// <param name="snowScaleRange">The range of snow patchiness</param>
+        /// <param name="fogStrengthRange">The range of fog strength</param>
+        /// <returns></returns>
+        /// <remarks>
+        /// This method sets up the level for snowy weather by modifying the ground objects to render snow on, freezing water surfaces, modifying the fog strength and updating the level depthmap for snow occlusion.
+        /// </remarks>
+        internal void SetupLevelForSnow((float, float) snowHeightRange,
+                                            (float, float) snowNormalizedTimeRange,
+                                            (float, float) snowScaleRange,
+                                            (float, float) fogStrengthRange
+                                            )
+        {
+            if (seededRandom == null)
+            {
+                Debug.LogError("Random seed is not set!");
+                return;
+            }
+
+            if (LLLCompat.isActive)
+            {
+                LLLCompat.TagRecolorSnow();
+            }
+
+            //Activate snow module
+            snowVolume.transform.parent.gameObject.SetActive(true);
+
+            snowScale = seededRandom.NextDouble(snowScaleRange.Item1, snowScaleRange.Item2); // Snow patchy-ness
+            finalSnowHeight = seededRandom.NextDouble(snowHeightRange.Item1, snowHeightRange.Item2);
+            fullSnowNormalizedTime = seededRandom.NextDouble(snowNormalizedTimeRange.Item1, snowNormalizedTimeRange.Item2);
+            List<GameObject> surfaceObjects = GetSurfaceObjects();
+            ModifyRenderMasks(surfaceObjects, terraMeshConfig.renderingLayerMask);
+            ModifyScrollingFog(fogStrengthRange.Item1, fogStrengthRange.Item2);
+            if (Configuration.asyncProcessing.Value)
+            {
+                StartCoroutine(FinishSnowSetupCoroutine());
+            }
+            else
+            {
+                SetupGroundForSnow();
+                FreezeWater();
+                UpdateLevelDepthmap();
+                StartCoroutine(RefreshDepthmapCoroutine(bakeSnowMaps: false, waitForLanding: true));
+            }
+        }
+
+        internal IEnumerator FinishSnowSetupCoroutine()
+        {
+            yield return SetupGroundForSnowAsync().AsCoroutine();
+            FreezeWater();
+            UpdateLevelDepthmap();
+            StartCoroutine(RefreshDepthmapCoroutine(bakeSnowMaps: false, waitForLanding: true));
+        }
+
         internal IEnumerator SnowMeltCoroutine()
         {
             // Melt snow on the ground gradually when the weather changes mid-round
@@ -741,14 +756,120 @@ namespace VoxxWeatherPlugin.Behaviours
                     waveVFX.SetVector4(SnowfallShaderIDs.BlizzardFogColor, blizzardFogColor);
                 }
             }
+        }
 
+        internal async Task SetupGroundForSnowAsync()
+        {
+            // Stores mesh terrains and actual Unity terrains to keep track of of walkable ground objects and their texture index in the baked masks
+            Dictionary <GameObject, int> groundToIndex = new Dictionary<GameObject, int>();
+            // Some moons used TerraMesh package and already have good mesh terrains, skip them
+            bool skipMoonProcessing = true;
+            foreach (string moon in moonProcessingWhitelist)
+            {
+                if (CurrentSceneName.CleanMoonName().Contains(moon))
+                {
+                    skipMoonProcessing = false;
+                    break;
+                }
+            }
+            // For Experimentation moon, UVs are broken and need to be replaced
+            terraMeshConfig.replaceUvs = StartOfRound.Instance.currentLevel.name.CleanMoonName().Contains("experimentation");
+            terraMeshConfig.onlyUVs = skipMoonProcessing;
+            if (!skipMoonProcessing)
+            {
+                Debug.LogDebug($"Moon {StartOfRound.Instance.currentLevel.name} will have its mesh terrain processed to improve topology for snow rendering!");
+            }
+            if (terraMeshConfig.replaceUvs)
+            {
+                Debug.LogDebug($"Moon {StartOfRound.Instance.currentLevel.name} needs UV replacement for mesh postprocessing! Overriding...");
+            }
+            
+            Dictionary<Task<GameObject?>, UnityEngine.Object> taskDict = [];
+            
+            // Process possible mesh terrains to render snow on
+            foreach (GameObject meshTerrain in groundObjectCandidates)
+            {
+                // Process the mesh to remove thin triangles and smooth the mesh
+                Task<GameObject?> meshTask = meshTerrain.PostprocessMeshTerrainAsync(terraMeshConfig);
+                taskDict.TryAdd(meshTask, meshTerrain);
+            }
+            
+            Terrain[] terrains = Terrain.activeTerrains;
+            
+            foreach (Terrain terrain in terrains)
+            {
+                //Check if terrain data is null and if it's being rendered
+                if (terrain.terrainData == null || !terrain.drawHeightmap)
+                {
+                    continue;
+                }
+                // Turn the terrain into a mesh
+                Task<GameObject?> terrainTask = terrain.MeshifyAsync(terraMeshConfig);
 
+                taskDict.TryAdd(terrainTask, terrain);
+            }
+
+            await Task.WhenAll(taskDict.Keys);
+
+            int textureIndex = 0;
+
+            foreach (var (task, obj) in taskDict)
+            {
+                if (task.IsFaulted)
+                {
+                    Debug.LogError($"Task {task} failed with exception {task.Exception}");
+                }
+
+                GameObject? meshTerrain = task.Result;
+
+                if (meshTerrain == null)
+                {
+                    continue;
+                }
+
+                // do different things based on the type of the object use switch case
+                switch (obj)
+                {
+                    case GameObject:
+                        // Setup the index in the material property block for the snow masks
+                        SetupMeshForSnow(meshTerrain, textureIndex);
+                        // Add the terrain to the dictionary
+                        groundToIndex.Add(meshTerrain, textureIndex);
+                        break;
+                    case Terrain terrain:
+                        // Modify render mask to support overlay snow rendering
+                        MeshRenderer meshRenderer = meshTerrain.GetComponent<MeshRenderer>();
+                        meshRenderer.renderingLayerMask |= terraMeshConfig.renderingLayerMask;
+                        // Setup the Lit terrain material
+                        Material terrainMaterial = meshRenderer.sharedMaterial;
+                        terrainMaterial.SetupMaterialFromTerrain(terrain);
+                        // Setup the index in the material property block for the snow masks
+                        SetupMeshForSnow(meshTerrain, textureIndex);
+                        if (terraMeshConfig.useMeshCollider)
+                        {
+                            // Use mesh terrain for snow thickness calculation
+                            groundToIndex.Add(meshTerrain, textureIndex);
+                        }
+                        else
+                        {
+                            // Use terrain collider for snow thickness calculation
+                            groundToIndex.Add(terrain.gameObject, textureIndex);
+                        }
+                        
+                        // Store the mesh terrain in the list for baking later
+                        groundObjectCandidates.Add(meshTerrain);
+                        break;
+                }
+
+                textureIndex++;
+            }
+
+            // Store the ground objects mapping
+            SnowThicknessManager.Instance!.groundToIndex = groundToIndex;
         }
 
         internal void SetupGroundForSnow()
         {
-            // TODO: Make this async
-
             // Stores mesh terrains and actual Unity terrains to keep track of of walkable ground objects and their texture index in the baked masks
             Dictionary <GameObject, int> groundToIndex = new Dictionary<GameObject, int>();
             // Some moons used TerraMesh package and already have good mesh terrains, skip them
@@ -791,8 +912,8 @@ namespace VoxxWeatherPlugin.Behaviours
             
             foreach (Terrain terrain in terrains)
             {
-                //Check if terrain data is null
-                if (terrain.terrainData == null)
+                //Check if terrain data is null annd if it's being rendered
+                if (terrain.terrainData == null || !terrain.drawHeightmap)
                 {
                     continue;
                 }
@@ -846,6 +967,17 @@ namespace VoxxWeatherPlugin.Behaviours
 
         internal void FreezeWater()
         {
+            if (!Configuration.freezeWater.Value)
+            {
+                return;
+            }
+            
+            if (waterSurfaceObjects.Count == 0)
+            {
+                Debug.LogDebug("No water surfaces to freeze!");
+                return;
+            }
+
             // Measure time
             System.Diagnostics.Stopwatch stopwatch = new System.Diagnostics.Stopwatch();
             stopwatch.Start();
@@ -863,11 +995,18 @@ namespace VoxxWeatherPlugin.Behaviours
                                                                                 !x.isInsideWater).ToArray();
 #endif
             HashSet<GameObject> iceObjects = new HashSet<GameObject>();
+
             NavMeshModifierVolume[] navMeshModifiers = FindObjectsOfType<NavMeshModifierVolume>().Where(x => x.gameObject.activeInHierarchy &&
                                                                                     x.gameObject.scene.name == CurrentSceneName &&
                                                                                     x.transform.position.y > heightThreshold &&
                                                                                     x.enabled &&
                                                                                     x.area == 1 << 1).ToArray(); // Layer 1 is not walkable
+
+            //Print names of all nav mesh modifier volumes
+            foreach (NavMeshModifierVolume navMeshModifier in navMeshModifiers)
+            {
+                Debug.LogDebug($"NavMeshModifierVolume {navMeshModifier.name} found");
+            }
             
             foreach (QuicksandTrigger waterObject in waterTriggerObjects)
             {
@@ -894,31 +1033,33 @@ namespace VoxxWeatherPlugin.Behaviours
                 
                 //Check for collider and if it exists, destroy it, otherwise add a mesh collider
                 // Only freeze water surfaces above the height threshold
-                if (waterSurface.transform.position.y > heightThreshold)
+                if (waterSurface.transform.position.y <= heightThreshold)
                 {
-                    if (waterSurface.TryGetComponent<Collider>(out Collider collider))
-                    {
-                        Destroy(collider);
-                    }
-                    MeshCollider meshCollider = waterSurface.AddComponent<MeshCollider>();
-                    meshCollider.sharedMesh = meshCopy;
+                    continue;
+                }
 
-                    // Check if any bounds of NavMeshModifierVolume intersect with the water surface bounds and disable it in that case
-                    foreach (NavMeshModifierVolume navMeshModifier in navMeshModifiers)
+                if (waterSurface.TryGetComponent<Collider>(out Collider collider))
+                {
+                    Destroy(collider);
+                }
+
+                MeshCollider meshCollider = waterSurface.AddComponent<MeshCollider>();
+                meshCollider.sharedMesh = meshCopy;
+
+                // Check if any bounds of NavMeshModifierVolume intersect with the water surface bounds and disable it in that case
+                foreach (NavMeshModifierVolume navMeshModifier in navMeshModifiers)
+                {
+                    Bounds bounds = new Bounds(navMeshModifier.center + navMeshModifier.transform.position, navMeshModifier.size);
+                    Bounds waterBounds = meshRenderer.bounds;
+                    // Enlarge along y axis since water surfaces are thin
+                    waterBounds.size = new Vector3(waterBounds.size.x, 3f, waterBounds.size.z);
+                    if (bounds.Intersects(waterBounds))
                     {
-                        Bounds bounds = new Bounds(navMeshModifier.center + navMeshModifier.transform.position, navMeshModifier.size);
-                        Bounds waterBounds = meshRenderer.bounds;
-                        // Enlarge along y axis since water surfaces are thin
-                        waterBounds.size = new Vector3(waterBounds.size.x, 3f, waterBounds.size.z);
-                        if (bounds.Intersects(waterBounds))
-                        {
-                            Debug.LogDebug($"Disabling NavMeshModifierVolume {navMeshModifier.name} intersecting with water surface {waterSurface.name}");
-                            navMeshModifier.enabled = false;
-                        }
+                        Debug.LogDebug($"Disabling NavMeshModifierVolume {navMeshModifier.name} intersecting with water surface {waterSurface.name}");
+                        navMeshModifier.enabled = false;
                     }
                 }
-                else continue;
-
+                    
                 meshRenderer.sharedMaterial = iceMaterial;
 
                 // Rise slightly
@@ -926,21 +1067,24 @@ namespace VoxxWeatherPlugin.Behaviours
                 
                 // Change footstep sounds
                 waterSurface.tag = "Rock";
+                waterSurface.layer = LayerMask.NameToLayer("Room");
                 iceObjects.Add(waterSurface);
             }
             // Store the ice objects
             SnowThicknessManager.Instance!.iceObjects = iceObjects;
             // Rebake NavMesh
-            GameObject navMeshContainer = GameObject.FindGameObjectWithTag("OutsideLevelNavMesh");
+            GameObject? navMeshContainer = GameObject.FindGameObjectWithTag("OutsideLevelNavMesh");
+            
+            stopwatch.Stop();
+            Debug.LogDebug($"Freezing water took {stopwatch.ElapsedMilliseconds} ms");
+
             if (navMeshContainer != null)
             {
                 NavMeshSurface navMesh = navMeshContainer.GetComponent<NavMeshSurface>();
-                navMesh.UpdateNavMesh(navMesh.navMeshData);
-                Debug.LogDebug("NavMesh rebaked for ice!");
+                AsyncOperation rebuildOp = navMesh.UpdateNavMesh(navMesh.navMeshData);
+                StartCoroutine(navMesh.NavMeshRebuildCoroutine(rebuildOp, stopwatch));
             }
 
-            stopwatch.Stop();
-            Debug.LogDebug($"Freezing water took {stopwatch.ElapsedMilliseconds} ms");
         }
 
         internal void ModifyScrollingFog(float fogStrengthMin = 0f, float fogStrengthMax = 15f)
@@ -959,6 +1103,7 @@ namespace VoxxWeatherPlugin.Behaviours
 
         internal IEnumerator BakeSnowMasksCoroutine()
         {
+            
             if (groundObjectCandidates.Count == 0)
             {
                 Debug.LogDebug("No ground objects to bake snow masks for!");
