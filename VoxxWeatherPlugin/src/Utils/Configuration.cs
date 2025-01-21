@@ -472,8 +472,8 @@ namespace VoxxWeatherPlugin.Utils
                                         
             meshProcessingWhitelist = Config.Bind("Mesh & Terrain Processing",
                                                 "meshProcessingWhitelist",
-                                                "Offense;Assurance;Artifice;Experimentation",
-                                                "List of moons that will be included for additional mesh processing. Only put moons that have MESH terrains in this list and you see visual artifacts with snow on them (like thin triangles or spikes)");
+                                                "Offense;Assurance;Artifice;Experimentation;March",
+                                                "List of moons that will be included for additional mesh processing. Only put moons that have MESH terrains in this list and you see visual artifacts with snow on them (like thin triangles, spikes or disjoined surfaces). Separate with a semicolon, exact match (including spaces, but not case sensitive).");
             subdivideMesh = Config.Bind("Mesh & Terrain Processing",
                                         "subdivideMesh",
                                         true,

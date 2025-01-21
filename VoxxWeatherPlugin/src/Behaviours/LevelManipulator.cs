@@ -1002,6 +1002,12 @@ namespace VoxxWeatherPlugin.Behaviours
                                                                                     x.enabled &&
                                                                                     x.area == 1 << 1).ToArray(); // Layer 1 is not walkable
 
+            
+            GameObject? navMeshContainer = GameObject.FindGameObjectWithTag("OutsideLevelNavMesh");
+            GameObject? randomWater = waterSurfaceObjects.FirstOrDefault();
+            GameObject iceContainer = new GameObject("IceContainer");
+            iceContainer.transform.SetParent(navMeshContainer?.transform ?? randomWater?.transform?.parent);
+
             //Print names of all nav mesh modifier volumes
             foreach (NavMeshModifierVolume navMeshModifier in navMeshModifiers)
             {
@@ -1068,12 +1074,12 @@ namespace VoxxWeatherPlugin.Behaviours
                 // Change footstep sounds
                 waterSurface.tag = "Rock";
                 waterSurface.layer = LayerMask.NameToLayer("Room");
+                waterSurface.transform.SetParent(iceContainer.transform);
                 iceObjects.Add(waterSurface);
             }
             // Store the ice objects
             SnowThicknessManager.Instance!.iceObjects = iceObjects;
             // Rebake NavMesh
-            GameObject? navMeshContainer = GameObject.FindGameObjectWithTag("OutsideLevelNavMesh");
             
             stopwatch.Stop();
             Debug.LogDebug($"Freezing water took {stopwatch.ElapsedMilliseconds} ms");
