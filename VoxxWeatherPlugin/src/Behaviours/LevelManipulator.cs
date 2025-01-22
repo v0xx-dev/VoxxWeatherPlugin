@@ -996,11 +996,11 @@ namespace VoxxWeatherPlugin.Behaviours
 #endif
             HashSet<GameObject> iceObjects = new HashSet<GameObject>();
 
-            NavMeshModifierVolume[] navMeshModifiers = FindObjectsOfType<NavMeshModifierVolume>().Where(x => x.gameObject.activeInHierarchy &&
+            NavMeshModifierVolume[] navMeshModifiers = NavMeshModifierVolume.activeModifiers.Where(x => x.gameObject.activeInHierarchy &&
                                                                                     x.gameObject.scene.name == CurrentSceneName &&
                                                                                     x.transform.position.y > heightThreshold &&
                                                                                     x.enabled &&
-                                                                                    x.area == 1 << 1).ToArray(); // Layer 1 is not walkable
+                                                                                    x.area == 1).ToArray(); // Layer 1 is not walkable
 
             
             GameObject? navMeshContainer = GameObject.FindGameObjectWithTag("OutsideLevelNavMesh");
