@@ -66,6 +66,19 @@ namespace VoxxWeatherPlugin.Behaviours
                 float finalDelta = targetTemperature - PlayerEffectsManager.normalizedTemperature;
                 PlayerEffectsManager.SetPlayerTemperature(finalDelta);
             }
+        }
+
+        private void FixedUpdate()
+        {
+            //Adjust LOCAL x position of the camera so it follows the player on the x axis
+            //Project the player's position on the x axis to the camera's local space
+
+            if (collisionCamera != null)
+            {
+                Vector3 playerPosition = GameNetworkManager.Instance.localPlayerController.transform.position;
+                Vector3 playerPositionLocal = transform.InverseTransformPoint(playerPosition);
+                collisionCamera.transform.localPosition = new Vector3(playerPositionLocal.x, collisionCamera.transform.localPosition.y, collisionCamera.transform.localPosition.z);
+            }
         } 
 
         internal void OnDisable()
@@ -81,15 +94,10 @@ namespace VoxxWeatherPlugin.Behaviours
 
         internal void SetupChillWave(Bounds levelBounds)
         {
-            if (audioSourceTemplate == null)
-            {
-                audioSourceTemplate = gameObject.GetComponentInChildren<AudioSource>(true);
-                audioSourceTemplate.gameObject.SetActive(false);
-            }
-            if (collisionCamera == null)
-            {
-                collisionCamera = gameObject.GetComponentInChildren<Camera>(true);
-            }
+            audioSourceTemplate ??= gameObject.GetComponentInChildren<AudioSource>(true);
+            audioSourceTemplate.gameObject.SetActive(false);
+            
+            collisionCamera ??= gameObject.GetComponentInChildren<Camera>(true);
 
             BoxCollider waveCollider = gameObject.GetComponent<BoxCollider>();
 
@@ -98,8 +106,10 @@ namespace VoxxWeatherPlugin.Behaviours
             waveCollider.center = new Vector3(0f, LevelManipulator.Instance.heightThreshold + newHeightSpan / 2, waveCollider.center.z);
             waveCollider.size = new Vector3(levelBounds.size.x, newHeightSpan, waveCollider.size.z);
 
-            float maxLength = Mathf.Max(waveCollider.size.x, waveCollider.size.y, waveCollider.size.z) / 2f;
-            collisionCamera!.orthographicSize = maxLength;
+            // Set the camera size to cover the whole box (this will require LOD bias to be set to 100 to stop culling)
+            // float maxLength = Mathf.Max(waveCollider.size.x, waveCollider.size.y, waveCollider.size.z) / 2f;
+            // collisionCamera!.orthographicSize = maxLength;
+
             float audioRange = audioSourceTemplate.maxDistance;
             // Destroy previous audio sources
             if (audioSources != null)

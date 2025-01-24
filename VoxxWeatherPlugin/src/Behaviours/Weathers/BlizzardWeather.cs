@@ -36,8 +36,6 @@ namespace VoxxWeatherPlugin.Weathers
         internal float MaxTimeUntilFrostbite => Configuration.maxTimeUntilFrostbite.Value;
         internal Coroutine? windChangeCoroutine;
         [SerializeField]
-        internal bool isWindChangeActive = false;
-        [SerializeField]
         internal bool isLocalPlayerInWind = false;
         [SerializeField]
         internal bool isPlayerInBlizzard = false;
@@ -56,8 +54,6 @@ namespace VoxxWeatherPlugin.Weathers
         [SerializeField]
         internal float waveInterval = 90f;
         internal Coroutine? chillWaveCoroutine;
-        [SerializeField]
-        internal bool isChillWaveActive = false;
         [SerializeField]
         internal new BlizzardVFXManager VFXManager;
         // Used to implicitly sync the time between the server and the client via TimeOfDay
@@ -104,7 +100,7 @@ namespace VoxxWeatherPlugin.Weathers
             timeSinceWave += TimeOfDay.Instance.globalTime - timeAtStart; 
             timeSinceWindChange += TimeOfDay.Instance.globalTime - timeAtStart;
             
-            if (isWindChangeActive || isChillWaveActive)
+            if (chillWaveCoroutine != null || windChangeCoroutine != null)
             {
                 return;
             }
@@ -112,14 +108,12 @@ namespace VoxxWeatherPlugin.Weathers
             // To keep the chill waves less frequent than the wind changes
             if (timeSinceWave >= waveInterval && SeededRandom!.NextDouble() < 0.5f)
             {
-                isChillWaveActive = true;
                 chillWaveCoroutine = StartCoroutine(GenerateChillWaveCoroutine());
                 return;
             }
 
             if (timeSinceWindChange >= windChangeInterval)
             {
-                isWindChangeActive = true;
                 windChangeCoroutine = StartCoroutine(ChangeWindDirectionCoroutine());
                 return;
             }
@@ -265,7 +259,7 @@ namespace VoxxWeatherPlugin.Weathers
             windDirection.Normalize();
             windForce = SeededRandom.NextDouble(MinWindForce, MaxWindForce);
             timeSinceWindChange = 0;
-            isWindChangeActive = false;
+            windChangeCoroutine = null;
         }
 
         internal IEnumerator GenerateChillWaveCoroutine()
@@ -318,7 +312,7 @@ namespace VoxxWeatherPlugin.Weathers
             numOfWaves = SeededRandom.Next(MinWaveCount, MaxWaveCount);
             timeSinceWave = 0;
             chillWaveContainer.SetActive(false);
-            isChillWaveActive = false;
+            chillWaveCoroutine = null;
         }
     }
 

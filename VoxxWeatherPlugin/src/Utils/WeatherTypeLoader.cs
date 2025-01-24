@@ -325,22 +325,6 @@ namespace VoxxWeatherPlugin.Utils
 
             LevelManipulator levelManipulatorController = levelManipulator.GetComponent<LevelManipulator>();
             
-            // Assign the snow effects to the PlayerEffectsManager
-            foreach (Transform child in levelManipulatorController.snowVolume.transform.parent)
-            {
-                if (child.name == "FrostbiteFilter")
-                {
-                    PlayerEffectsManager.freezeEffectVolume = child.gameObject.GetComponent<Volume>();
-                    continue;
-                }
-                
-                if (child.name == "UnderSnowFilter")
-                {
-                    PlayerEffectsManager.underSnowVolume = child.gameObject.GetComponent<Volume>();
-                    continue;
-                }
-            }
-
             // Fix broken references (WHY, UNITY, WHY)
 
             Shader? overlayShader = WeatherAssetLoader.LoadAsset<Shader>(bundleName, "SnowLitPass");

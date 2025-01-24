@@ -257,7 +257,7 @@ namespace VoxxWeatherPlugin.Behaviours
                 RefreshBakeMaterial();
                 yield return StartCoroutine(BakeSnowMasksCoroutine());
 
-                Debug.LogDebug("Snow masks baked!");
+                Debug.LogDebug("Shader masks baked!");
             }
 
             SnowThicknessManager.Instance!.inputNeedsUpdate = true;
@@ -594,6 +594,22 @@ namespace VoxxWeatherPlugin.Behaviours
 
             moonProcessingWhitelist = Configuration.meshProcessingWhitelist.Value.CleanMoonName().TrimEnd(';').Split(';');
             enemySnowBlacklist = Configuration.enemySnowBlacklist.Value.ToLower().TrimEnd(';').Split(';').ToHashSet();
+
+            // Assign the snow effects to the PlayerEffectsManager
+            foreach (Transform child in snowVolume.transform.parent)
+            {
+                if (child.name == "FrostbiteFilter")
+                {
+                    PlayerEffectsManager.freezeEffectVolume = child.gameObject.GetComponent<Volume>();
+                    continue;
+                }
+                
+                if (child.name == "UnderSnowFilter")
+                {
+                    PlayerEffectsManager.underSnowVolume = child.gameObject.GetComponent<Volume>();
+                    continue;
+                }
+            }
         }
 
         internal void UpdateSnowVariables()
@@ -1008,12 +1024,6 @@ namespace VoxxWeatherPlugin.Behaviours
             GameObject iceContainer = new GameObject("IceContainer");
             iceContainer.transform.SetParent(navMeshContainer?.transform ?? randomWater?.transform?.parent);
 
-            //Print names of all nav mesh modifier volumes
-            foreach (NavMeshModifierVolume navMeshModifier in navMeshModifiers)
-            {
-                Debug.LogDebug($"NavMeshModifierVolume {navMeshModifier.name} found");
-            }
-            
             foreach (QuicksandTrigger waterObject in waterTriggerObjects)
             {
                 // Disable sinking
@@ -1048,18 +1058,19 @@ namespace VoxxWeatherPlugin.Behaviours
                 {
                     Destroy(collider);
                 }
-
+                
+                // Use mesh collider because some of the ice meshes are not just flat planes (e.g. on Vow)
                 MeshCollider meshCollider = waterSurface.AddComponent<MeshCollider>();
                 meshCollider.sharedMesh = meshCopy;
 
                 // Check if any bounds of NavMeshModifierVolume intersect with the water surface bounds and disable it in that case
                 foreach (NavMeshModifierVolume navMeshModifier in navMeshModifiers)
                 {
-                    Bounds bounds = new Bounds(navMeshModifier.center + navMeshModifier.transform.position, navMeshModifier.size);
+                    Bounds navVolumeBounds = new Bounds(navMeshModifier.center + navMeshModifier.transform.position, navMeshModifier.size);
                     Bounds waterBounds = meshRenderer.bounds;
                     // Enlarge along y axis since water surfaces are thin
                     waterBounds.size = new Vector3(waterBounds.size.x, 3f, waterBounds.size.z);
-                    if (bounds.Intersects(waterBounds))
+                    if (navVolumeBounds.Intersects(waterBounds))
                     {
                         Debug.LogDebug($"Disabling NavMeshModifierVolume {navMeshModifier.name} intersecting with water surface {waterSurface.name}");
                         navMeshModifier.enabled = false;
