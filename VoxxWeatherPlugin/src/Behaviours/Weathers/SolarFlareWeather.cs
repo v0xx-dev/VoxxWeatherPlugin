@@ -601,20 +601,35 @@ namespace VoxxWeatherPlugin.Weathers
 
         internal override void Reset()
         {
-            flareObjectCopy?.SetActive(false);
-            auroraObject?.SetActive(false);
+            if (auroraObject != null)
+            {
+                auroraObject.SetActive(false);
+            }
+            if (flareObjectCopy != null)
+            {
+                flareObjectCopy.SetActive(false);
+            }
         }
 
         private void OnEnable()
         {
-            flareObjectCopy?.SetActive(true);
+            if (flareObjectCopy != null)
+            {
+                flareObjectCopy.SetActive(true);
+            }
         }
 
         private void OnDisable()
         {
             // TODO compat for OpenCams
-            auroraObject?.SetActive(false);
-            flareObjectCopy?.SetActive(false);
+            if (auroraObject != null)
+            {
+                auroraObject.SetActive(false);
+            }
+            if (flareObjectCopy != null)
+            {
+                flareObjectCopy.SetActive(false);
+            }
         }
     }
 }
