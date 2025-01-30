@@ -3,6 +3,12 @@ using System.Runtime.CompilerServices;
 using LethalLevelLoader;
 using VoxxWeatherPlugin.Weathers;
 using VoxxWeatherPlugin.Behaviours;
+using System.Collections.Generic;
+using HarmonyLib;
+using System.Linq;
+using System.Text;
+using System.IO;
+using System.Reflection;
 
 namespace VoxxWeatherPlugin.Compatibility
 {
@@ -76,6 +82,66 @@ namespace VoxxWeatherPlugin.Compatibility
             }
 
             ToxicSmogWeather.Instance.VFXManager?.SetToxicFumesColor(fogColor, fumesColor);
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
+        public static string StoreLevelData(string fileName = "levelData.csv") 
+        {
+            string assemblyPath = Assembly.GetExecutingAssembly().Location;
+            string assemblyDirectory = Path.GetDirectoryName(assemblyPath);
+
+            string filePath = Path.Combine(assemblyDirectory, fileName);
+            StringBuilder sb = new StringBuilder();
+
+            sb.AppendLine("Level Name,Level Description,Tags");
+
+            foreach (ExtendedLevel level in PatchedContent.ExtendedLevels)
+            {
+                string levelName = level.NumberlessPlanetName;
+                SelectableLevel selectableLevel = level.SelectableLevel;
+                string levelDescription = selectableLevel.LevelDescription;
+
+                // Escape quotes in description
+                levelDescription = levelDescription.Replace("\"", "\"\""); // Replace " with ""
+                if (levelDescription.Contains("\""))
+                {
+                    levelDescription = $"\"{levelDescription}\""; // Enclose in quotes if it contains commas or quotes
+                }
+                // Remove new line characters, replace commas with semicolons
+                levelDescription = levelDescription.Replace("\n", " ").Replace(",", ";");
+
+                // Handle tags (join them into a single string, or add them as separate columns)
+                string levelTags = string.Join("|", level.ContentTags.Select(tag => tag.contentTagName));
+
+                sb.AppendLine($"{levelName},{levelDescription},{levelTags}");
+            }
+
+            File.WriteAllText(filePath, sb.ToString());
+
+            return $"Level data stored to {filePath}";
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
+        public static string StoreInteriorData(string fileName = "interiorData.csv") 
+        {
+            string assemblyPath = Assembly.GetExecutingAssembly().Location;
+            string assemblyDirectory = Path.GetDirectoryName(assemblyPath);
+
+            string filePath = Path.Combine(assemblyDirectory, fileName);
+            StringBuilder sb = new StringBuilder();
+
+            sb.AppendLine("Dungeon Name");
+
+            foreach (ExtendedDungeonFlow dungeon in PatchedContent.ExtendedDungeonFlows)
+            {
+                string dungeonName = dungeon.DungeonName;
+
+                sb.AppendLine($"{dungeonName}");
+            }
+
+            File.WriteAllText(filePath, sb.ToString());
+
+            return $"Level data stored to {filePath}";
         }
     }
 }

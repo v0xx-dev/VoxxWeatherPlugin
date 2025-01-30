@@ -27,13 +27,24 @@ namespace VoxxWeatherPlugin
         {
             instance = this;
             StaticLogger = Logger; 
-            
+            harmony = new Harmony(PluginInfo.PLUGIN_GUID);
+
             NetcodePatcher();
 
             // Pass plugin metadata to the configuration class
             Configuration.Initialize(Info.Metadata);
-            
-            harmony = new Harmony(PluginInfo.PLUGIN_GUID);
+
+            if (Chainloader.PluginInfos.ContainsKey("imabatby.lethallevelloader"))
+            {
+                Logger.LogDebug("LethalLevelLoader detected!");
+                LLLCompat.Init();
+            }
+
+            if (Chainloader.PluginInfos.ContainsKey("Zaggy1024.OpenBodyCams"))
+            {
+                Logger.LogDebug("OpenBodyCams detected!");
+                OpenCamsCompat.Init();
+            }
 
             WeatherTypeLoader.LoadLevelManipulator();
 
@@ -85,18 +96,6 @@ namespace VoxxWeatherPlugin
                 DynamicHarmonyPatcher.PatchAllTypes(typeof(EnemyAI), "Update", patchMethod, PatchType.Postfix, harmony, SnowPatches.unaffectedEnemyTypes); 
                 Logger.LogInfo($"{PluginInfo.PLUGIN_GUID} enemy snow hindrance patches successfully applied!");
 
-            }
-
-            if (Chainloader.PluginInfos.ContainsKey("imabatby.lethallevelloader"))
-            {
-                Logger.LogInfo("LethalLevelLoader detected!");
-                LLLCompat.Init();
-            }
-
-            if (Chainloader.PluginInfos.ContainsKey("Zaggy1024.OpenBodyCams"))
-            {
-                Logger.LogInfo("OpenBodyCams detected!");
-                OpenCamsCompat.Init();
             }
 
             Logger.LogInfo($"Plugin {PluginInfo.PLUGIN_GUID} is loaded!");

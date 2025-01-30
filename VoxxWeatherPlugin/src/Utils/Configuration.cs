@@ -238,7 +238,7 @@ namespace VoxxWeatherPlugin.Utils
                                                                 new AcceptableValueRange<float>(0, 1f)));
             maxTimeToFullSnow = Config.Bind("Snowfall",
                                             "maxTimeToFullSnow",
-                                            0.8f,
+                                            1f,
                                             new ConfigDescription("Maximum fraction of the day until snow reaches max height. Actual time is random between min and max.",
                                                                 new AcceptableValueRange<float>(0, 1f)));
             freezeWater = Config.Bind("Snowfall",

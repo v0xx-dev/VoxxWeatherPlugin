@@ -615,8 +615,7 @@ namespace VoxxWeatherPlugin.Behaviours
         internal void UpdateSnowVariables()
         {
             // Accumulate snow on the ground (0 is full snow)
-            float normalizedSnowTimer =  Mathf.Clamp01(fullSnowNormalizedTime - TimeOfDay.Instance.normalizedTimeOfDay);
-            snowIntensity = 10f * normalizedSnowTimer;
+            float snowIntensity =  Mathf.Clamp01(fullSnowNormalizedTime - TimeOfDay.Instance.normalizedTimeOfDay);
             // Update the snow glow based on the sun intensity
             float sunIntensity = sunLightData?.intensity ?? 0f;
             emissionMultiplier = Mathf.Clamp01(sunIntensity/40f)*0.3f;
