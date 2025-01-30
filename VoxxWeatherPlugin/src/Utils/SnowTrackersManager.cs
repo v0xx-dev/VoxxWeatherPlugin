@@ -36,6 +36,7 @@ namespace VoxxWeatherPlugin.Utils
             {
                 // Must be in SampleSceneRelay otherwise VFX causes a crash for some reason
                 snowTrackersContainer = new GameObject("SnowTrackersContainer");
+                snowTrackersContainer.SetActive(false);
                 GameObject.DontDestroyOnLoad(snowTrackersContainer);
             }   
 

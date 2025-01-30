@@ -10,6 +10,7 @@ using System;
 using System.Linq;
 using WeatherRegistry;
 using UnityEngine.Rendering.HighDefinition;
+using System.Collections;
 
 
 
@@ -231,7 +232,7 @@ namespace VoxxWeatherPlugin.Patches
         private static void EnemyGroundSamplerPatch(EnemyAI __instance)
         {
             if (SnowAffectsEnemies &&
-                GameNetworkManager.Instance.isHostingGame &&
+                __instance.IsOwner &&
                 IsSnowActive() &&
                 __instance.isOutside)
             {
@@ -250,7 +251,7 @@ namespace VoxxWeatherPlugin.Patches
         private static void EnemySnowHindrancePatch(EnemyAI __instance)
         {
             if (SnowAffectsEnemies &&
-                GameNetworkManager.Instance.isHostingGame &&
+                __instance.IsOwner &&
                 IsSnowActive() && 
                 __instance.isOutside)
             {
@@ -260,6 +261,14 @@ namespace VoxxWeatherPlugin.Patches
 
                 __instance.agent.speed /= snowMovementHindranceMultiplier;
             }
+        }
+
+        [HarmonyPatch(typeof(TimeOfDay), "Start")]
+        [HarmonyPostfix]
+        private static void SnowCleanupPatch()
+        {
+            SnowTrackersManager.CleanupFootprintTrackers(SnowTrackersManager.snowTrackersDict);
+            SnowTrackersManager.CleanupFootprintTrackers(SnowTrackersManager.snowShovelDict);
         }
 
         [HarmonyPatch(typeof(PlayerControllerB), "Start")]
@@ -372,7 +381,6 @@ namespace VoxxWeatherPlugin.Patches
             SnowTrackersManager.PlayFootprintTracker(__instance, TrackerType.Shovel, !__instance.isInFactory);
         }
 
-        //TODO BUSTED
         [HarmonyPatch(typeof(StartOfRound), "StartGame")]
         [HarmonyPostfix]
         [HarmonyPriority(Priority.Last)]
