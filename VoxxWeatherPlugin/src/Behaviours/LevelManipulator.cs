@@ -88,6 +88,9 @@ namespace VoxxWeatherPlugin.Behaviours
 
         [Header("Snow Tracks")]
         [SerializeField]
+        internal VisualEffectAsset[]? footprintsTrackerVFX;
+        internal static Dictionary <string, VisualEffectAsset>? snowTrackersDict;
+        [SerializeField]
         internal GameObject? snowTrackerCameraContainer;
         [SerializeField]
         internal Camera? snowTracksCamera;
@@ -187,6 +190,13 @@ namespace VoxxWeatherPlugin.Behaviours
 
         internal void InitializeLevelProperties(float sizeMultiplier = 0f)
         {
+#if DEBUG
+            if (LLLCompat.isActive)
+            {
+                LLLCompat.StoreLevelData();
+                LLLCompat.StoreInteriorData();
+            }
+#endif
             // Update random seed
             seededRandom = new System.Random(StartOfRound.Instance.randomMapSeed);
             // Update the sun light data

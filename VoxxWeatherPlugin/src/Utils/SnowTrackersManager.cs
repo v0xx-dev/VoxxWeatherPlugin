@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.VFX;
 using GameNetcodeStuff;
-using VoxxWeatherPlugin.Weathers;
+using VoxxWeatherPlugin.Behaviours;
 
 namespace VoxxWeatherPlugin.Utils
 {
@@ -42,10 +42,10 @@ namespace VoxxWeatherPlugin.Utils
 
             VisualEffectAsset? trackerVariantVFX = trackerVariant switch
             {
-                TrackerType.Footprints => SnowfallVFXManager.snowTrackersDict?["footprintsTrackerVFX"],
-                TrackerType.FootprintsLowCapacity => SnowfallVFXManager.snowTrackersDict?["lowcapFootprintsTrackerVFX"],
-                TrackerType.Shovel => SnowfallVFXManager.snowTrackersDict?["shovelVFX"],
-                TrackerType.Item => SnowfallVFXManager.snowTrackersDict?["itemTrackerVFX"],
+                TrackerType.Footprints => LevelManipulator.snowTrackersDict?["footprintsTrackerVFX"],
+                TrackerType.FootprintsLowCapacity => LevelManipulator.snowTrackersDict?["lowcapFootprintsTrackerVFX"],
+                TrackerType.Shovel => LevelManipulator.snowTrackersDict?["shovelVFX"],
+                TrackerType.Item => LevelManipulator.snowTrackersDict?["itemTrackerVFX"],
                 _ => null
             };
 
@@ -63,7 +63,7 @@ namespace VoxxWeatherPlugin.Utils
             {
                 //rotate around local Y axis by 90 degrees to align with the player's camera
                 trackerObj.transform.localRotation = Quaternion.Euler(0, 90, 0);
-                snowShovelDict.Add(obj, trackerVFX);
+                snowShovelDict.TryAdd(obj, trackerVFX);
             }
             else
             {
@@ -71,7 +71,7 @@ namespace VoxxWeatherPlugin.Utils
                 trackerVFX.SetFloat("particleSize", particleSize);
                 trackerVFX.SetFloat("lifetimeMultiplier", lifetimeMultiplier);
                 trackerVFX.SetFloat("footprintStrength", footprintStrength);
-                snowTrackersDict.Add(obj, trackerVFX);
+                snowTrackersDict.TryAdd(obj, trackerVFX);
             }
         }
 

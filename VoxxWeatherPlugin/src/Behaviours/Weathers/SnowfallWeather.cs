@@ -92,12 +92,6 @@ namespace VoxxWeatherPlugin.Weathers
         internal static int snowFootstepIndex = -1;
         internal static float eyeBias = 0.2f;
 
-        [Header("Snow Tracker VFX")]
-        
-        [SerializeField]
-        internal VisualEffectAsset[]? footprintsTrackerVFX;
-        internal static Dictionary <string, VisualEffectAsset>? snowTrackersDict;
-
         [Header("Christmas Event")]
         [SerializeField]
         private GameObject? christmasTreePrefab;

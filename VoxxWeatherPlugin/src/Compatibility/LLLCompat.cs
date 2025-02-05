@@ -93,7 +93,7 @@ namespace VoxxWeatherPlugin.Compatibility
             string filePath = Path.Combine(assemblyDirectory, fileName);
             StringBuilder sb = new StringBuilder();
 
-            sb.AppendLine("Level Name,Level Description,Tags");
+            sb.AppendLine("Level Name,Level Description,Tags,Price");
 
             foreach (ExtendedLevel level in PatchedContent.ExtendedLevels)
             {
@@ -109,11 +109,12 @@ namespace VoxxWeatherPlugin.Compatibility
                 }
                 // Remove new line characters, replace commas with semicolons
                 levelDescription = levelDescription.Replace("\n", " ").Replace(",", ";");
+                int levelPrice = level.RoutePrice;
 
                 // Handle tags (join them into a single string, or add them as separate columns)
                 string levelTags = string.Join("|", level.ContentTags.Select(tag => tag.contentTagName));
 
-                sb.AppendLine($"{levelName},{levelDescription},{levelTags}");
+                sb.AppendLine($"{levelName},{levelDescription},{levelTags},{levelPrice}");
             }
 
             File.WriteAllText(filePath, sb.ToString());
@@ -130,13 +131,14 @@ namespace VoxxWeatherPlugin.Compatibility
             string filePath = Path.Combine(assemblyDirectory, fileName);
             StringBuilder sb = new StringBuilder();
 
-            sb.AppendLine("Dungeon Name");
+            sb.AppendLine("Dungeon Name,Tags");
 
             foreach (ExtendedDungeonFlow dungeon in PatchedContent.ExtendedDungeonFlows)
             {
                 string dungeonName = dungeon.DungeonName;
+                string tags = string.Join("|", dungeon.ContentTags.Select(tag => tag.contentTagName));
 
-                sb.AppendLine($"{dungeonName}");
+                sb.AppendLine($"{dungeonName},{tags}");
             }
 
             File.WriteAllText(filePath, sb.ToString());

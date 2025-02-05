@@ -172,7 +172,7 @@ namespace VoxxWeatherPlugin.Utils
             GameObject effectObject = blizzardVFXManager.gameObject;
             effectObject.SetActive(false);
 
-            blizzardWeatherController.VFXManager = blizzardVFXManager;
+            blizzardWeatherController.VFXManager = blizzardVFXManager;                                     
 
             // Fix broken references (WHY, UNITY, WHY)
 
@@ -259,12 +259,7 @@ namespace VoxxWeatherPlugin.Utils
             GameObject effectObject = snowfallVFXManager.gameObject;
             effectObject.SetActive(false);
 
-            snowfallWeatherController.VFXManager = snowfallVFXManager;
-            //Create a dictionary of the snowfall VFX variants                                                                        
-            string[] keys = new[] {"footprintsTrackerVFX", "lowcapFootprintsTrackerVFX", "itemTrackerVFX", "shovelVFX" };
-            SnowfallVFXManager.snowTrackersDict = keys.Zip(snowfallVFXManager.footprintsTrackerVFX,
-                                                            (k, v) => new { k, v })
-                                                            .ToDictionary(x => x.k, x => x.v);         
+            snowfallWeatherController.VFXManager = snowfallVFXManager;       
 
             VisualEffectAsset? snowVFXAsset = Configuration.snowVfxLighting.Value ?
                 WeatherAssetLoader.LoadAsset<VisualEffectAsset>(bundleName, "SnowVFXLit") :
@@ -324,6 +319,12 @@ namespace VoxxWeatherPlugin.Utils
             levelManipulator.hideFlags = HideFlags.HideAndDontSave;
 
             LevelManipulator levelManipulatorController = levelManipulator.GetComponent<LevelManipulator>();
+
+            //Create a dictionary of the snowfall VFX variants                                
+            string[] keys = ["footprintsTrackerVFX", "lowcapFootprintsTrackerVFX", "itemTrackerVFX", "shovelVFX"];
+            LevelManipulator.snowTrackersDict = keys.Zip(levelManipulatorController.footprintsTrackerVFX,
+                                                            (k, v) => new { k, v })
+                                                            .ToDictionary(x => x.k, x => x.v);     
             
             // Fix broken references (WHY, UNITY, WHY)
 
