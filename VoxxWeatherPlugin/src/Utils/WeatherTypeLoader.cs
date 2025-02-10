@@ -61,7 +61,7 @@ namespace VoxxWeatherPlugin.Utils
                 SunAnimatorBool = "",
                 };
 
-            Weather HeatwaveWeather = new Weather(heatwaveWeatherController.WeatherName, heatwaveEffect)
+            Weather HeatwaveWeather = new Weather("Heatwave", heatwaveEffect)
             {
                 DefaultLevelFilters = new[] {"Experimentation", "Assurance", "Offense", "Embrion", "Artifice",
                                             "EGypt", "Aquatis", "Affliction", "Penumbra", "EchoReach", "Harloth",
@@ -75,6 +75,7 @@ namespace VoxxWeatherPlugin.Utils
                 DefaultWeight = 100,
             };
 
+            heatwaveWeatherController.WeatherDefinition = HeatwaveWeather;
             WeatherManager.RegisterWeather(HeatwaveWeather);
             Debug.Log($"{PluginInfo.PLUGIN_GUID}: Heatwave weather registered!");
         }
@@ -133,9 +134,9 @@ namespace VoxxWeatherPlugin.Utils
                 SunAnimatorBool = "",
             };
 
-            Weather FlareWeather = new Weather(flareWeatherController.WeatherName, flareWeatherEffect)
+            Weather FlareWeather = new Weather("Solar Flare", flareWeatherEffect)
             {
-                DefaultLevelFilters = new[] {"Gordion"},
+                DefaultLevelFilters = new[] {"Gordion", "Galetry"},
                 LevelFilteringOption = FilteringOption.Exclude,
                 Color = Color.yellow,
                 ScrapAmountMultiplier = 0.95f,
@@ -143,6 +144,7 @@ namespace VoxxWeatherPlugin.Utils
                 DefaultWeight = 100
             };
 
+            flareWeatherController.WeatherDefinition = FlareWeather;
             WeatherManager.RegisterWeather(FlareWeather);
             Debug.Log($"{PluginInfo.PLUGIN_GUID}: Solar flare weather registered!");
         }
@@ -215,15 +217,16 @@ namespace VoxxWeatherPlugin.Utils
                 SunAnimatorBool = "overcast",
             };
 
-            Weather BlizzardWeatherType = new Weather(blizzardWeatherController.WeatherName, blizzardWeatherEffect)
+            Weather BlizzardWeatherType = new Weather("Blizzard", blizzardWeatherEffect)
             {
-                DefaultLevelFilters = ["Gordion", "Experimentation", "Assurance", "Offense", "Embrion",
+                DefaultLevelFilters = ["Gordion", "Galetry", "Experimentation", "Assurance", "Offense", "Embrion",
                                             "EGypt", "Penumbra", "EchoReach", "Infernis", "Atlantica",
                                             "Gloom", "Orion", "Vertigo", "RelayStation", "Vaporization",
                                             "Praetor", "Lithium", "Arcadia", "Sector", "Ichor", "AtlasAbyss",
-                                            "Asteroid13", "Asteroid14", "Fray", "Desolation", "Cosmocos",
-                                            "Junic", "Detritus", "CaltPrime", "Vow", "Makron",
-                                            "Attenuation", "Argent", "Humidity", "Sierra", "Black Mesa"],
+                                            "Asteroid13", "Hyve", "Fray", "Desolation", "Cosmocos", "Aquatis",
+                                            "Junic", "Detritus", "CaltPrime", "Vow", "Makron", "Calist", "Thalasso",
+                                            "Empra", "Attenuation", "Argent", "Humidity", "Sierra", "Black Mesa", "Elasticity",
+                                            "$Volcanic"],
                 LevelFilteringOption = FilteringOption.Exclude,
                 Color = Color.cyan,
                 ScrapAmountMultiplier = 1.4f,
@@ -231,6 +234,7 @@ namespace VoxxWeatherPlugin.Utils
                 DefaultWeight = 75
             };
 
+            blizzardWeatherController.WeatherDefinition = BlizzardWeatherType;
             WeatherManager.RegisterWeather(BlizzardWeatherType);
             Debug.Log($"{PluginInfo.PLUGIN_GUID}: Blizzard weather registered!");
 
@@ -283,15 +287,16 @@ namespace VoxxWeatherPlugin.Utils
                 SunAnimatorBool = "overcast",
             };
 
-            Weather SnowfallWeatherEffect = new Weather(snowfallWeatherController.WeatherName, snowyWeatherEffect)
+            Weather SnowfallWeatherEffect = new Weather("Snowfall", snowyWeatherEffect)
             {
-                DefaultLevelFilters = ["Gordion", "Assurance", "Embrion", "Sierra",
+                DefaultLevelFilters = ["Gordion", "Galetry", "Assurance", "Embrion", "Sierra",
                                         "EGypt", "Penumbra", "EchoReach", "Infernis", "Atlantica",
                                         "Gloom", "Orion", "Vertigo", "RelayStation", "Vaporization",
                                         "Praetor", "Lithium", "Arcadia", "Sector", "Ichor", "AtlasAbyss",
-                                        "Asteroid13", "Asteroid14", "Fray", "Desolation", "Cosmocos",
-                                        "Junic", "Detritus", "CaltPrime", "Submersion", "Maritopia",
-                                        "Cambrian", "Halation", "Black Mesa", "Baykal"],
+                                        "Asteroid13", "Hyve", "Fray", "Desolation", "Cosmocos", "Calist",
+                                        "Empra", "Junic", "Detritus", "CaltPrime", "Submersion", "Maritopia",
+                                        "Cambrian", "Halation", "Black Mesa", "Baykal", "Elasticity", "Thalasso",
+                                        "$Volcanic"],
                 LevelFilteringOption = FilteringOption.Exclude,
                 Color = Color.blue,
                 ScrapAmountMultiplier = 1.5f,
@@ -299,6 +304,7 @@ namespace VoxxWeatherPlugin.Utils
                 DefaultWeight = 100
             };
 
+            snowfallWeatherController.WeatherDefinition = SnowfallWeatherEffect;
             WeatherManager.RegisterWeather(SnowfallWeatherEffect);
             Debug.Log($"{PluginInfo.PLUGIN_GUID}: Snowfall weather registered!");
 
@@ -390,9 +396,9 @@ namespace VoxxWeatherPlugin.Utils
                 SunAnimatorBool = "",
             };
 
-            Weather ToxicSmogWeatherEffect = new Weather(toxicSmogWeatherController.WeatherName, toxicWeatherEffect)
+            Weather ToxicSmogWeatherEffect = new Weather("Toxic Smog", toxicWeatherEffect)
             {
-                DefaultLevelFilters = ["Gordion", "Derelict"],
+                DefaultLevelFilters = ["Gordion", "Derelict", "Galetry", "Elasticity"],
                 LevelFilteringOption = FilteringOption.Exclude,
                 Color = new Color(0.413f, 0.589f, 0.210f), // dark lime green
                 ScrapAmountMultiplier = 1.3f,
@@ -400,6 +406,7 @@ namespace VoxxWeatherPlugin.Utils
                 DefaultWeight = 100
             };
 
+            toxicSmogWeatherController.WeatherDefinition = ToxicSmogWeatherEffect;
             WeatherManager.RegisterWeather(ToxicSmogWeatherEffect);
             Debug.Log($"{PluginInfo.PLUGIN_GUID}: Toxic Smog weather registered!");
 

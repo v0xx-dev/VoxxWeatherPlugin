@@ -233,7 +233,7 @@ namespace VoxxWeatherPlugin.Utils
 
             minTimeToFullSnow = Config.Bind("Snowfall",
                                             "minTimeToFullSnow",
-                                            0.5f,
+                                            0.7f,
                                             new ConfigDescription("Minimum fraction of the day until snow reaches max height. Actual time is random between min and max.",
                                                                 new AcceptableValueRange<float>(0, 1f)));
             maxTimeToFullSnow = Config.Bind("Snowfall",
@@ -243,7 +243,7 @@ namespace VoxxWeatherPlugin.Utils
                                                                 new AcceptableValueRange<float>(0, 1f)));
             freezeWater = Config.Bind("Snowfall",
                                     "freezeWater",
-                                    true,
+                                    false, //TODO: Change to true after implementing the feature
                                     "Freeze water during snowfall and blizzard weather");
             underSnowFilterMultiplier = Config.Bind("Snowfall",
                                                     "underSnowFilterMultiplier",
@@ -304,12 +304,12 @@ namespace VoxxWeatherPlugin.Utils
                                                                     new AcceptableValueRange<float>(0, 10f)));
             minTimeToFullSnowBlizzard = Config.Bind("Blizzard",
                                                     "minTimeToFullSnowBlizzard",
-                                                    0.1f,
+                                                    0.4f,
                                                     new ConfigDescription("Minimum fraction of the day until snow reaches max height during blizzard weather. Actual time is random between min and max.",
                                                                         new AcceptableValueRange<float>(0, 1f)));
             maxTimeToFullSnowBlizzard = Config.Bind("Blizzard",
                                                     "maxTimeToFullSnowBlizzard",
-                                                    0.2f,
+                                                    0.7f,
                                                     new ConfigDescription("Maximum fraction of the day until snow reaches max height during blizzard weather. Actual time is random between min and max.",
                                                                         new AcceptableValueRange<float>(0, 1f)));
 

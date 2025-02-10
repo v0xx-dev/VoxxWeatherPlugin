@@ -227,7 +227,8 @@ namespace VoxxWeatherPlugin.Behaviours
 
             // Opaque objects should have higher snow noise scale to produce 'patches' of snow
             // Opaque alpha tested objects should have lower snow noise scale to appear more uniformly covered
-            float snowNoiseScaleBias = renderQueueType == RenderQueueType.OpaqueNoAlphaTest ? 10f : -0.5f;
+            // Default scale is 0.7 - 1.3
+            float snowNoiseScaleBias = renderQueueType == RenderQueueType.OpaqueNoAlphaTest ? 10f : -0.5f; 
             material.SetFloat(SnowfallShaderIDs.SnowNoiseScaleOverlay, LevelManipulator.Instance.snowScale + snowNoiseScaleBias);
         }
 

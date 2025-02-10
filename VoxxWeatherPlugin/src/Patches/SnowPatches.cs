@@ -275,7 +275,7 @@ namespace VoxxWeatherPlugin.Patches
         [HarmonyPrefix]
         private static void PlayerSnowTracksPatch(PlayerControllerB __instance)
         {
-            SnowTrackersManager.AddFootprintTracker(__instance, 2.6f, 1f, 0.25f);
+            SnowTrackersManager.AddFootprintTracker(__instance, 2.6f, 1f, 0.3f);
         }
 
         //TODO MaskedPlayerEnemy doesn't work for some reason
@@ -321,8 +321,11 @@ namespace VoxxWeatherPlugin.Patches
         [HarmonyPrefix]
         private static void PlayerSnowTracksUpdatePatch(PlayerControllerB __instance)
         {
-            bool enableTracker = IsSnowActive() &&
-                                    !__instance.isInsideFactory &&
+            if (!IsSnowActive())
+            {
+                return;
+            }
+            bool enableTracker = !__instance.isInsideFactory &&
                                     (SnowThicknessManager.Instance?.isEntityOnNaturalGround(__instance) ?? false);
             // We need this check to prevent updating tracker's position after player death, as players get moved out of bounds on their death, causing VFX to be culled
             if (!__instance.isPlayerDead) 
@@ -336,10 +339,14 @@ namespace VoxxWeatherPlugin.Patches
         [HarmonyPrefix]
         private static void EnemySnowTracksUpdatePatch(EnemyAI __instance)
         {
+            if (!IsSnowActive())
+            {
+                return;
+            }
             // __instance.isOutside is a simplified check for clients, may cause incorrect behaviour in some cases
-            bool enableTracker = IsSnowActive() &&
-                                    (__instance.isOutside ||
-                                    (SnowThicknessManager.Instance?.isEntityOnNaturalGround(__instance) ?? false));
+            
+            bool enableTracker = __instance.isOutside ||
+                                    (SnowThicknessManager.Instance?.isEntityOnNaturalGround(__instance) ?? false);
             if (__instance is SandWormAI worm)
             {
                 enableTracker &= worm.emerged || worm.inEmergingState;
@@ -351,7 +358,11 @@ namespace VoxxWeatherPlugin.Patches
         [HarmonyPrefix]
         private static void GrabbableSnowTracksUpdatePatch(GrabbableObject __instance)
         {
-            bool enableTracker = IsSnowActive() && !__instance.isInFactory;
+            if (!IsSnowActive())
+            {
+                return;
+            }
+            bool enableTracker = !__instance.isInFactory;
             SnowTrackersManager.UpdateFootprintTracker(__instance, enableTracker);
         }
 
@@ -359,11 +370,14 @@ namespace VoxxWeatherPlugin.Patches
         [HarmonyPrefix]
         private static void VehicleSnowTracksUpdatePatch(VehicleController __instance)
         {
-            bool enableTracker = IsSnowActive() &&
-                                    (__instance.FrontLeftWheel.isGrounded ||
+            if (!IsSnowActive())
+            {
+                return;
+            }
+            bool enableTracker = __instance.FrontLeftWheel.isGrounded ||
                                     __instance.FrontRightWheel.isGrounded ||
                                     __instance.BackLeftWheel.isGrounded ||
-                                    __instance.BackRightWheel.isGrounded);
+                                    __instance.BackRightWheel.isGrounded;
             SnowTrackersManager.UpdateFootprintTracker(__instance, enableTracker, new Vector3(0, 0, 1.5f));
         }
 

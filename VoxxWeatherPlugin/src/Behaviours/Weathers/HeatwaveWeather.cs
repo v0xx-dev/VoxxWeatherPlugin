@@ -11,8 +11,7 @@ namespace VoxxWeatherPlugin.Weathers
 {
     internal class HeatwaveWeather: BaseWeather
     {
-        internal static HeatwaveWeather? Instance { get; private set; }
-        internal override string WeatherName => "Heatwave"; // Name of the weather
+        public static HeatwaveWeather? Instance { get; private set; }
         [SerializeField]
         internal Volume? exhaustionFilter; // Filter for visual effects
         private BoxCollider? heatwaveTrigger; // Trigger collider for the heatwave zone

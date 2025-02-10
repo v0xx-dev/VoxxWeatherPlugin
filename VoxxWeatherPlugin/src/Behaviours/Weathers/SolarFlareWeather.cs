@@ -35,7 +35,6 @@ namespace VoxxWeatherPlugin.Weathers
     internal class SolarFlareWeather : BaseWeather
     {
         public static SolarFlareWeather? Instance { get; private set; }
-        internal override string WeatherName => "Solar Flare";
         [SerializeField]
         internal Material? glitchMaterial;
         [SerializeField]

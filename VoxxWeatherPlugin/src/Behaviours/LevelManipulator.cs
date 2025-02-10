@@ -19,12 +19,13 @@ using UnityEngine.VFX;
 using VoxxWeatherPlugin.Compatibility;
 using VoxxWeatherPlugin.Utils;
 using VoxxWeatherPlugin.Weathers;
+using WeatherRegistry;
 
 namespace VoxxWeatherPlugin.Behaviours
 {
     public class LevelManipulator : MonoBehaviour
     {
-        public static LevelManipulator? Instance { get; private set; }
+        public static LevelManipulator? Instance { get; private set; } = null!;
         
         #region Snowy Weather Configuration
         internal bool isSnowReady = false;
@@ -149,6 +150,7 @@ namespace VoxxWeatherPlugin.Behaviours
         internal System.Random? seededRandom;
         internal HDAdditionalLightData? sunLightData;
         internal string CurrentSceneName => StartOfRound.Instance?.currentLevel.sceneName ?? "";
+        internal Weather currentWeather = null!;
 
         #endregion
 
@@ -625,7 +627,7 @@ namespace VoxxWeatherPlugin.Behaviours
         internal void UpdateSnowVariables()
         {
             // Accumulate snow on the ground (0 is full snow)
-            float snowIntensity =  Mathf.Clamp01(fullSnowNormalizedTime - TimeOfDay.Instance.normalizedTimeOfDay);
+            snowIntensity =  Mathf.Clamp01(fullSnowNormalizedTime - TimeOfDay.Instance.normalizedTimeOfDay + 0.1f); // Account for the fact that at landing time is ~ 0.1f
             // Update the snow glow based on the sun intensity
             float sunIntensity = sunLightData?.intensity ?? 0f;
             emissionMultiplier = Mathf.Clamp01(sunIntensity/40f)*0.3f;
@@ -712,8 +714,8 @@ namespace VoxxWeatherPlugin.Behaviours
         internal IEnumerator SnowMeltCoroutine()
         {
             // Melt snow on the ground gradually when the weather changes mid-round
-            float meltSpeed = 0.1f;
-            while (snowIntensity < 10f)
+            float meltSpeed = 0.01f;
+            while (snowIntensity < 1f)
             {
                 if (StartOfRound.Instance?.inShipPhase ?? true)
                 {

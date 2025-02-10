@@ -13,7 +13,6 @@ namespace VoxxWeatherPlugin.Weathers
     internal class ToxicSmogWeather: BaseWeather
     {
         public static ToxicSmogWeather? Instance { get; private set; }
-        internal override string WeatherName => "Toxic Smog";
         [SerializeField]
         internal ToxicSmogVFXManager? VFXManager;
 
@@ -162,6 +161,7 @@ namespace VoxxWeatherPlugin.Weathers
             }
 
             // Use item spawners AND AI nodes as anchors
+            // TODO CHECK IF THIS CAUSES DESYNC OF FUMES
             anchorPositions = RoundManager.Instance.spawnedSyncedObjects.Select(obj => obj.transform.position).ToList();
             anchorPositions.AddRange(RoundManager.Instance.insideAINodes.Select(obj => obj.transform.position));
             // Use entrances as blockers

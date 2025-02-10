@@ -9,8 +9,7 @@ namespace VoxxWeatherPlugin.Weathers
 {
     internal class BlizzardWeather: SnowfallWeather
     {
-        internal new static BlizzardWeather? Instance;
-        internal override string WeatherName => "Blizzard";
+        public new static BlizzardWeather? Instance { get; internal set; }
         // Overrides   
         internal override float MinSnowHeight => Configuration.minSnowHeightBlizzard.Value;
         internal override float MaxSnowHeight => Configuration.maxSnowHeightBlizzard.Value;

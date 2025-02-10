@@ -15,8 +15,7 @@ namespace VoxxWeatherPlugin.Weathers
 {
     internal class SnowfallWeather: BaseWeather
     {
-        internal static SnowfallWeather? Instance;
-        internal override string WeatherName => "Snowfall";
+        public static SnowfallWeather? Instance { get; internal set; }
         internal virtual float MinSnowHeight => Configuration.minSnowHeight.Value;
         internal virtual float MaxSnowHeight => Configuration.maxSnowHeight.Value;
         internal virtual float MinSnowNormalizedTime => Configuration.minTimeToFullSnow.Value;

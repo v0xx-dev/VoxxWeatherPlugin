@@ -47,6 +47,7 @@ namespace VoxxWeatherPlugin
             }
 
             WeatherTypeLoader.LoadLevelManipulator();
+            harmony.PatchAll(typeof(BasicPatches));
 
             if (Configuration.EnableSolarFlareWeather.Value)    
             {

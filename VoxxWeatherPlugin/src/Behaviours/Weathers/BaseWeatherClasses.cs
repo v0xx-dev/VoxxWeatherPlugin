@@ -5,11 +5,12 @@ namespace VoxxWeatherPlugin.Weathers
 {
     public abstract class BaseWeather: MonoBehaviour
     {
-        //Define the weather name
-        internal abstract string WeatherName { get; }
-        public bool IsActive => (gameObject.activeInHierarchy && enabled ||
-                                WeatherName.ToLower() == WeatherManager.GetCurrentLevelWeather().Name.ToLower()) &&
-                                (!StartOfRound.Instance?.inShipPhase ?? false); // To prevent weather counted as activated in orbit
+        //Define the weather type (from the WeatherRegistry) 
+        public Weather WeatherDefinition { get; internal set; } = null!;
+        public bool IsActive => (gameObject.activeInHierarchy && enabled) ||
+                                ((!StartOfRound.Instance?.inShipPhase ?? false) && // To prevent weather counted as activated in orbit
+                                WeatherDefinition == LevelManipulator.Instance?.currentWeather); 
+                                
         protected System.Random? SeededRandom => LevelManipulator.Instance?.seededRandom;
         protected Bounds LevelBounds => LevelManipulator.Instance?.levelBounds ?? default;
         // protected abstract BaseVFXManager VFXManager { get; }
