@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEngine.VFX;
 using GameNetcodeStuff;
 using VoxxWeatherPlugin.Behaviours;
+using System.Collections;
 
 namespace VoxxWeatherPlugin.Utils
 {
@@ -14,12 +15,24 @@ namespace VoxxWeatherPlugin.Utils
         Item // Leaves a single footprint,for example when dropping an item (must be played manually)
     }
 
+    public class SnowTrackerData
+    {
+        public VisualEffect? trackerVFX;
+        public bool isTracking;
+
+        public SnowTrackerData(VisualEffect trackerVFX, bool isTracking = false)
+        {
+            this.trackerVFX = trackerVFX;
+            this.isTracking = isTracking;
+        }
+    }
+
     //TODO CHECK IF IT'S WORKING
     public static class SnowTrackersManager
     {
         internal static GameObject? snowTrackersContainer;
-        public static Dictionary<MonoBehaviour, VisualEffect> snowTrackersDict = new Dictionary<MonoBehaviour, VisualEffect>();
-        public static Dictionary<MonoBehaviour, VisualEffect> snowShovelDict = new Dictionary<MonoBehaviour, VisualEffect>();
+        public static Dictionary<MonoBehaviour, SnowTrackerData> snowTrackersDict = [];
+        public static Dictionary<MonoBehaviour, SnowTrackerData> snowShovelDict = [];
         private static readonly int isTrackingID = Shader.PropertyToID("isTracking");
 
         /// <summary>
@@ -30,7 +43,13 @@ namespace VoxxWeatherPlugin.Utils
         /// <param name="particleSize">The size of the particles in the tracker.</param>
         /// <param name="lifetimeMultiplier">The lifetime multiplier of the particles in the tracker.</param>
         /// <param name="footprintStrength">The strength of the footprints, i.e. how deep they are</param>
-        public static void RegisterFootprintTracker(MonoBehaviour obj, TrackerType trackerVariant, float particleSize = 1f, float lifetimeMultiplier = 1f, float footprintStrength = 1f)
+        /// <param name="positionOffset">The offset to apply to the tracker's position.</param>
+        public static void RegisterFootprintTracker(MonoBehaviour obj,
+                                                    TrackerType trackerVariant,
+                                                    float particleSize = 1f,
+                                                    float lifetimeMultiplier = 1f,
+                                                    float footprintStrength = 1f,
+                                                    Vector3 positionOffset = default)
         {
             if (snowTrackersContainer == null)
             {
@@ -50,20 +69,30 @@ namespace VoxxWeatherPlugin.Utils
             };
 
             GameObject trackerObj;
-            trackerObj = new GameObject("FootprintsTracker_" + trackerVariant + "_" + obj.name); 
-            trackerObj.transform.SetParent(snowTrackersContainer?.transform);
-            trackerObj.transform.localPosition = Vector3.zero;
+            trackerObj = new GameObject("FootprintsTracker_" + trackerVariant + "_" + obj.name);
+            if (trackerVariant is TrackerType.Shovel || trackerVariant is TrackerType.Item)
+            {
+                // GrabbableObject has no OnDestroy method, where we could catch the tracker, so we never parent to it to avoid particles disappearing
+                trackerObj.transform.SetParent(snowTrackersContainer.transform);
+            }
+            else
+            {
+                trackerObj.transform.SetParent(obj.transform);
+            }
+            trackerObj.transform.localPosition = Vector3.zero + positionOffset;
             trackerObj.transform.localScale = Vector3.one;
             trackerObj.layer = LayerMask.NameToLayer("Vehicle"); // Must match the culling mask of the FootprintsTrackerCamera in SnowfallWeather
         
             VisualEffect trackerVFX = trackerObj.AddComponent<VisualEffect>();
             trackerVFX.visualEffectAsset = trackerVariantVFX;
 
+            SnowTrackerData snowTrackerData = new(trackerVFX);
+
             if (trackerVariant is TrackerType.Shovel)
             {
                 //rotate around local Y axis by 90 degrees to align with the player's camera
                 trackerObj.transform.localRotation = Quaternion.Euler(0, 90, 0);
-                snowShovelDict.TryAdd(obj, trackerVFX);
+                snowShovelDict.TryAdd(obj, snowTrackerData);
             }
             else
             {
@@ -71,7 +100,7 @@ namespace VoxxWeatherPlugin.Utils
                 trackerVFX.SetFloat("particleSize", particleSize);
                 trackerVFX.SetFloat("lifetimeMultiplier", lifetimeMultiplier);
                 trackerVFX.SetFloat("footprintStrength", footprintStrength);
-                snowTrackersDict.TryAdd(obj, trackerVFX);
+                snowTrackersDict.TryAdd(obj, snowTrackerData);
             }
         }
 
@@ -84,18 +113,19 @@ namespace VoxxWeatherPlugin.Utils
         /// <remarks>
         /// This method should be called every frame to keep the tracker up to date.
         /// </remarks>
-        public static void UpdateFootprintTracker(MonoBehaviour obj, bool enableTracker, Vector3 offset = default)
+        public static void UpdateFootprintTracker(MonoBehaviour obj, bool enableTracker)
         {
             if (!Configuration.enableSnowTracks.Value)
                 return;
 
-            if (snowTrackersDict.TryGetValue(obj, out VisualEffect footprintsTrackerVFX))
+            if (snowTrackersDict.TryGetValue(obj, out SnowTrackerData trackerData))
             {
-                footprintsTrackerVFX.transform.position = obj.transform.position + offset;
-                bool trackingNeedsUpdating = footprintsTrackerVFX.GetBool(isTrackingID) ^ enableTracker;
+                VisualEffect? footprintsTrackerVFX = trackerData.trackerVFX;
+                bool trackingNeedsUpdating = trackerData.isTracking ^ enableTracker;
                 if (trackingNeedsUpdating)
                 {
-                    footprintsTrackerVFX.SetBool(isTrackingID, enableTracker);
+                    footprintsTrackerVFX?.SetBool(isTrackingID, enableTracker);
+                    trackerData.isTracking = enableTracker;
                 }
             }
         }
@@ -108,24 +138,26 @@ namespace VoxxWeatherPlugin.Utils
         /// <param name="playCondition">Whether to play the tracker.</param>
         public static void PlayFootprintTracker(MonoBehaviour obj, TrackerType trackerVariant, bool playCondition = false)
         {
-            Dictionary<MonoBehaviour, VisualEffect> dictForVFX;
-            if (trackerVariant is TrackerType.Shovel)
-            {
-                dictForVFX = snowShovelDict;
-            }
-            else
-            {
-                dictForVFX = snowTrackersDict;
-            }
+            Dictionary<MonoBehaviour, SnowTrackerData> dictForVFX = trackerVariant is TrackerType.Shovel ? snowShovelDict : snowTrackersDict;
 
-            if (dictForVFX.TryGetValue(obj, out VisualEffect footprintsTrackerVFX) && playCondition)
+            if (dictForVFX.TryGetValue(obj, out SnowTrackerData trackerData) && playCondition)
             {
-                footprintsTrackerVFX.transform.position = obj.transform.position;
-                footprintsTrackerVFX?.Play();
+                VisualEffect? footprintsTrackerVFX = trackerData.trackerVFX;
+                if (footprintsTrackerVFX == null)
+                {
+                    return;
+                }
+                // Set the position of the tracker to the object's position
+                footprintsTrackerVFX.transform.position = obj.transform.position; 
+                footprintsTrackerVFX.Play();
             }
         }
         
-        internal static void AddFootprintTracker(MonoBehaviour obj, float particleSize, float lifetimeMultiplier, float footprintStrength)
+        internal static void AddFootprintTracker(MonoBehaviour obj,
+                                                float particleSize,
+                                                float lifetimeMultiplier,
+                                                float footprintStrength,
+                                                Vector3 positionOffset = default)
         {
             if (!Configuration.enableSnowTracks.Value)
                 return;
@@ -134,40 +166,73 @@ namespace VoxxWeatherPlugin.Utils
             switch (obj)
             {
                 case PlayerControllerB:
-                    RegisterFootprintTracker(obj, TrackerType.Footprints, particleSize, lifetimeMultiplier, footprintStrength);
+                    RegisterFootprintTracker(obj, TrackerType.Footprints, particleSize, lifetimeMultiplier, footprintStrength, positionOffset);
                     break;
                 case EnemyAI:
-                    RegisterFootprintTracker(obj, TrackerType.FootprintsLowCapacity, particleSize, lifetimeMultiplier, footprintStrength);
+                    RegisterFootprintTracker(obj, TrackerType.FootprintsLowCapacity, particleSize, lifetimeMultiplier, footprintStrength, positionOffset);
                     break;
                 case GrabbableObject:
-                    RegisterFootprintTracker(obj, TrackerType.Item, particleSize, lifetimeMultiplier, footprintStrength);
+                    RegisterFootprintTracker(obj, TrackerType.Item, particleSize, lifetimeMultiplier, footprintStrength, positionOffset);
                     break;
                 case VehicleController:
-                    RegisterFootprintTracker(obj, TrackerType.Footprints, particleSize, lifetimeMultiplier, footprintStrength);
+                    RegisterFootprintTracker(obj, TrackerType.Footprints, particleSize, lifetimeMultiplier, footprintStrength, positionOffset);
                     break;
             }
                 
             if (obj is Shovel)
             {
-                RegisterFootprintTracker(obj, TrackerType.Shovel);
+                RegisterFootprintTracker(obj, TrackerType.Shovel, 2f);
             }
+        }
 
+        /// <summary>
+        /// Temporarily saves the tracker to the snowTrackersContainer to prevent vanishing of the particles when the main object is destroyed
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <param name="trackerVariant"></param>
+        internal static void TempSaveTracker(MonoBehaviour obj, TrackerType trackerVariant)
+        {
+            Dictionary<MonoBehaviour, SnowTrackerData> dictForVFX = trackerVariant is TrackerType.Shovel ? snowShovelDict : snowTrackersDict;
+
+            if (dictForVFX.TryGetValue(obj, out SnowTrackerData trackerData) && trackerData.trackerVFX != null)
+            {
+                VisualEffect footprintsTrackerVFX = trackerData.trackerVFX;
+                // Move the tracker to the container temporarily if the main object is destroyed to prevent vanishing of the particles
+                footprintsTrackerVFX.transform.SetParent(snowTrackersContainer?.transform); 
+            }
+        }
+
+        /// <summary>
+        /// Restores the tracker to the object from the snowTrackersContainer
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <param name="trackerVariant"></param>
+        internal static void RestoreSavedTracker(MonoBehaviour obj, TrackerType trackerVariant)
+        {
+            Dictionary<MonoBehaviour, SnowTrackerData> dictForVFX = trackerVariant is TrackerType.Shovel ? snowShovelDict : snowTrackersDict;
+
+            if (dictForVFX.TryGetValue(obj, out SnowTrackerData trackerData) && trackerData.trackerVFX != null)
+            {
+                VisualEffect footprintsTrackerVFX = trackerData.trackerVFX;
+                // Restore the tracker to the object
+                footprintsTrackerVFX.transform.SetParent(obj?.transform); 
+            }
         }
 
         // Removes stale entries from the dictionary
-        internal static void CleanupFootprintTrackers(Dictionary<MonoBehaviour, VisualEffect> trackersDict)
+        internal static void CleanupFootprintTrackers(Dictionary<MonoBehaviour, SnowTrackerData> trackersDict)
         {
             Debug.LogDebug("Cleaning up snow footprint trackers");
 
-            List<MonoBehaviour> keysToRemove = new List<MonoBehaviour>(); // Store keys to remove
+            List<MonoBehaviour> keysToRemove = []; // Store keys to remove
 
-            foreach (var keyValuePair in trackersDict) 
+            foreach ((var obj, var trackerData) in trackersDict) 
             {
-                if (keyValuePair.Key == null) // Check if the object has been destroyed
+                if (obj == null) // Check if the object has been destroyed
                 {
-                    if (keyValuePair.Value != null)
-                        GameObject.Destroy(keyValuePair.Value.gameObject);
-                    keysToRemove.Add(keyValuePair.Key);
+                    if (trackerData.trackerVFX != null)
+                        GameObject.Destroy(trackerData.trackerVFX.gameObject);
+                    keysToRemove.Add(obj);
                 }
             }
 
@@ -182,6 +247,19 @@ namespace VoxxWeatherPlugin.Utils
         internal static void ToggleFootprintTrackers(bool enable)
         {
             snowTrackersContainer?.SetActive(enable);
+        }
+
+        internal static IEnumerator CleanupTrackersCoroutine()
+        {
+            yield return new WaitUntil(() => StartOfRound.Instance?.inShipPhase ?? true);
+            CleanupTrackers();
+        }
+
+        internal static void CleanupTrackers()
+        {
+            CleanupFootprintTrackers(snowTrackersDict);
+            CleanupFootprintTrackers(snowShovelDict);
+            ToggleFootprintTrackers(false);
         }
     }
 }

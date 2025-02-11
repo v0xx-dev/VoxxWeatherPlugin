@@ -267,15 +267,14 @@ namespace VoxxWeatherPlugin.Patches
         [HarmonyPostfix]
         private static void SnowCleanupPatch()
         {
-            SnowTrackersManager.CleanupFootprintTrackers(SnowTrackersManager.snowTrackersDict);
-            SnowTrackersManager.CleanupFootprintTrackers(SnowTrackersManager.snowShovelDict);
+            SnowTrackersManager.CleanupTrackers();
         }
 
         [HarmonyPatch(typeof(PlayerControllerB), "Start")]
         [HarmonyPrefix]
         private static void PlayerSnowTracksPatch(PlayerControllerB __instance)
         {
-            SnowTrackersManager.AddFootprintTracker(__instance, 2.6f, 1f, 0.3f);
+            SnowTrackersManager.AddFootprintTracker(__instance, 2.6f, 1f, 0.3f, new Vector3(0, 0, -1f));
         }
 
         //TODO MaskedPlayerEnemy doesn't work for some reason
@@ -314,7 +313,7 @@ namespace VoxxWeatherPlugin.Patches
         [HarmonyPrefix]
         private static void VehicleSnowTracksPatch(VehicleController __instance)
         {
-            SnowTrackersManager.AddFootprintTracker(__instance, 6f, 0.75f, 1f);
+            SnowTrackersManager.AddFootprintTracker(__instance, 6f, 0.75f, 1f, new Vector3(0, 0, 1.5f));
         }
         
         [HarmonyPatch(typeof(PlayerControllerB), "Update")]
@@ -330,7 +329,7 @@ namespace VoxxWeatherPlugin.Patches
             // We need this check to prevent updating tracker's position after player death, as players get moved out of bounds on their death, causing VFX to be culled
             if (!__instance.isPlayerDead) 
             {
-                SnowTrackersManager.UpdateFootprintTracker(__instance, enableTracker, new Vector3(0, 0, -1f));
+                SnowTrackersManager.UpdateFootprintTracker(__instance, enableTracker);
             }
             
         }
@@ -354,18 +353,6 @@ namespace VoxxWeatherPlugin.Patches
             SnowTrackersManager.UpdateFootprintTracker(__instance, enableTracker);
         }
 
-        [HarmonyPatch(typeof(GrabbableObject), "Update")]
-        [HarmonyPrefix]
-        private static void GrabbableSnowTracksUpdatePatch(GrabbableObject __instance)
-        {
-            if (!IsSnowActive())
-            {
-                return;
-            }
-            bool enableTracker = !__instance.isInFactory;
-            SnowTrackersManager.UpdateFootprintTracker(__instance, enableTracker);
-        }
-
         [HarmonyPatch(typeof(VehicleController), "Update")]
         [HarmonyPrefix]
         private static void VehicleSnowTracksUpdatePatch(VehicleController __instance)
@@ -378,7 +365,29 @@ namespace VoxxWeatherPlugin.Patches
                                     __instance.FrontRightWheel.isGrounded ||
                                     __instance.BackLeftWheel.isGrounded ||
                                     __instance.BackRightWheel.isGrounded;
-            SnowTrackersManager.UpdateFootprintTracker(__instance, enableTracker, new Vector3(0, 0, 1.5f));
+            SnowTrackersManager.UpdateFootprintTracker(__instance, enableTracker);
+        }
+
+        // Not required cause players are never destroyed as an object
+        // [HarmonyPatch(typeof(PlayerControllerB), "KillPlayer")]
+        // [HarmonyPostfix]
+        // private static void PlayerSnowTracksDeathPatch(PlayerControllerB __instance)
+        // {
+        //     SnowTrackersManager.TempSaveTracker(__instance, TrackerType.Footprints);
+        // }
+
+        [HarmonyPatch(typeof(EnemyAI), "OnDestroy")]
+        [HarmonyPostfix]
+        private static void EnemySnowTracksDestroyPatch(EnemyAI __instance)
+        {
+            SnowTrackersManager.TempSaveTracker(__instance, TrackerType.FootprintsLowCapacity);
+        }
+        
+        [HarmonyPatch(typeof(VehicleController), "DestroyCar")]
+        [HarmonyPostfix]
+        private static void VehicleSnowTracksDestroyPatch(VehicleController __instance)
+        {
+            SnowTrackersManager.TempSaveTracker(__instance, TrackerType.Footprints);
         }
 
         [HarmonyPatch(typeof(GrabbableObject), "PlayDropSFX")]

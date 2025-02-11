@@ -286,7 +286,7 @@ namespace VoxxWeatherPlugin.Utils
             
             enemySnowBlacklist = Config.Bind("Snowfall",
                                             "enemySpawnBlacklist",
-                                            "Docile Locust Bees;Red Locust Bees",
+                                            "Docile Locust Bees;Red Locust Bees;Leaf boy;Ogopogo;Vermin",
                                             "List of OUTSIDE enemies that will be blocked from spawning during snowfall AND blizzard. Separate with a semicolon, exact match (including spaces, but not case sensitive).");
 
             #endregion

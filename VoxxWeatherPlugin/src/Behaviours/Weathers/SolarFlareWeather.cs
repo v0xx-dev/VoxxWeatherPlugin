@@ -94,7 +94,7 @@ namespace VoxxWeatherPlugin.Weathers
                 Debug.LogWarning("Flare types not set up correctly! Likely FixPluginTypesSerialization is not installed!");
                 return;
             }
-            flareData = flareTypes?[(int)randomIntensity];
+            flareData = flareTypes[(int)randomIntensity];
 
             if (glitchPass != null)
             {
@@ -136,8 +136,12 @@ namespace VoxxWeatherPlugin.Weathers
 
         private void Update()
         {
+            if (flareData == null)
+            {
+                return;
+            }
             // TODO Make compat for RestoreMapper too
-            if (glitchPass != null && flareData != null)
+            if (glitchPass != null)
             {
                 glitchPass.intensity.value = flareData.ScreenDistortionIntensity;
             }

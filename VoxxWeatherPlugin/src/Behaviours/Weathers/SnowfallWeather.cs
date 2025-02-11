@@ -131,9 +131,7 @@ namespace VoxxWeatherPlugin.Weathers
             addedVanillaFootprints = false;
             PlayerEffectsManager.isInColdZone = false;
             SnowThicknessManager.Instance?.Reset();
-            SnowTrackersManager.CleanupFootprintTrackers(SnowTrackersManager.snowTrackersDict);
-            SnowTrackersManager.CleanupFootprintTrackers(SnowTrackersManager.snowShovelDict);
-            SnowTrackersManager.ToggleFootprintTrackers(false);
+            StartCoroutine(SnowTrackersManager.CleanupTrackersCoroutine());
         }
 
         internal void Update()
