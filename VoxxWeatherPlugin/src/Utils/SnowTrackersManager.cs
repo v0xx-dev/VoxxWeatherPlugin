@@ -220,10 +220,8 @@ namespace VoxxWeatherPlugin.Utils
         }
 
         // Removes stale entries from the dictionary
-        internal static void CleanupFootprintTrackers(Dictionary<MonoBehaviour, SnowTrackerData> trackersDict)
+        private static void CleanupFootprintTrackers(Dictionary<MonoBehaviour, SnowTrackerData> trackersDict)
         {
-            Debug.LogDebug("Cleaning up snow footprint trackers");
-
             List<MonoBehaviour> keysToRemove = []; // Store keys to remove
 
             foreach ((var obj, var trackerData) in trackersDict) 
@@ -244,22 +242,23 @@ namespace VoxxWeatherPlugin.Utils
             }
         }
 
-        internal static void ToggleFootprintTrackers(bool enable)
+        private static void ToggleFootprintTrackers(bool enable)
         {
             snowTrackersContainer?.SetActive(enable);
         }
 
-        internal static IEnumerator CleanupTrackersCoroutine()
+        internal static void CleanupTrackers(bool enable = false)
         {
-            yield return new WaitUntil(() => StartOfRound.Instance?.inShipPhase ?? true);
-            CleanupTrackers();
-        }
+            if (!Configuration.enableSnowTracks.Value)
+                return;
 
-        internal static void CleanupTrackers()
-        {
-            CleanupFootprintTrackers(snowTrackersDict);
-            CleanupFootprintTrackers(snowShovelDict);
-            ToggleFootprintTrackers(false);
+            if (snowTrackersDict.Count > 0 || snowShovelDict.Count > 0)
+            {
+                Debug.LogDebug("Cleaning up snow footprint trackers");
+                CleanupFootprintTrackers(snowTrackersDict);
+                CleanupFootprintTrackers(snowShovelDict);
+                ToggleFootprintTrackers(enable);
+            }
         }
     }
 }
