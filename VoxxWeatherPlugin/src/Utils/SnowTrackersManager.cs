@@ -4,6 +4,7 @@ using UnityEngine.VFX;
 using GameNetcodeStuff;
 using VoxxWeatherPlugin.Behaviours;
 using System.Collections;
+using VoxxWeatherPlugin.Patches;
 
 namespace VoxxWeatherPlugin.Utils
 {
@@ -82,7 +83,10 @@ namespace VoxxWeatherPlugin.Utils
             trackerObj.transform.localPosition = Vector3.zero + positionOffset;
             trackerObj.transform.localScale = Vector3.one;
             trackerObj.layer = LayerMask.NameToLayer("Vehicle"); // Must match the culling mask of the FootprintsTrackerCamera in SnowfallWeather
-        
+            if (!SnowPatches.IsSnowActive())
+            {
+                trackerObj.SetActive(false);
+            }
             VisualEffect trackerVFX = trackerObj.AddComponent<VisualEffect>();
             trackerVFX.visualEffectAsset = trackerVariantVFX;
 
@@ -219,8 +223,8 @@ namespace VoxxWeatherPlugin.Utils
             }
         }
 
-        // Removes stale entries from the dictionary
-        private static void CleanupFootprintTrackers(Dictionary<MonoBehaviour, SnowTrackerData> trackersDict)
+        // Removes stale entries from the dictionary and toggles the trackers on or off
+        private static void CleanupFootprintTrackers(Dictionary<MonoBehaviour, SnowTrackerData> trackersDict, bool enable = false)
         {
             List<MonoBehaviour> keysToRemove = []; // Store keys to remove
 
@@ -232,6 +236,10 @@ namespace VoxxWeatherPlugin.Utils
                         GameObject.Destroy(trackerData.trackerVFX.gameObject);
                     keysToRemove.Add(obj);
                 }
+                else
+                {
+                    trackerData.trackerVFX?.gameObject.SetActive(enable);
+                }
             }
 
             Debug.LogDebug($"Removing {keysToRemove.Count} previously destroyed entries from snow footprint trackers");
@@ -242,11 +250,6 @@ namespace VoxxWeatherPlugin.Utils
             }
         }
 
-        private static void ToggleFootprintTrackers(bool enable)
-        {
-            snowTrackersContainer?.SetActive(enable);
-        }
-
         internal static void CleanupTrackers(bool enable = false)
         {
             if (!Configuration.enableSnowTracks.Value)
@@ -255,9 +258,8 @@ namespace VoxxWeatherPlugin.Utils
             if (snowTrackersDict.Count > 0 || snowShovelDict.Count > 0)
             {
                 Debug.LogDebug("Cleaning up snow footprint trackers");
-                CleanupFootprintTrackers(snowTrackersDict);
-                CleanupFootprintTrackers(snowShovelDict);
-                ToggleFootprintTrackers(enable);
+                CleanupFootprintTrackers(snowTrackersDict, enable);
+                CleanupFootprintTrackers(snowShovelDict, enable);
             }
         }
     }
