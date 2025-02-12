@@ -475,7 +475,7 @@ namespace VoxxWeatherPlugin.Patches
             bool isSameSurface = isOnGround ? playerScript.hit.collider.CompareTag(StartOfRound.Instance.footstepSurfaces[playerScript.currentFootstepSurfaceIndex].surfaceTag) : true;
             bool snowOverride = false;
 
-            if (!IsSnowActive() || !(LevelManipulator.Instance?.isSnowReady ?? false))
+            if (!IsSnowActive() || !(LevelManipulator.Instance?.IsSnowReady ?? false))
             {
                 return !isOnGround || isSameSurface;
             }

@@ -119,7 +119,11 @@ namespace VoxxWeatherPlugin.Weathers
             {
                 toxicVolumetricFog.gameObject.SetActive(true);
             }
-
+            
+            if (LLLCompat.isActive)
+            {
+                LLLCompat.TagRecolorToxic();
+            }
             // Find the dungeon scale
             float dungeonSize = StartOfRound.Instance.currentLevel.factorySizeMultiplier;
 
@@ -131,6 +135,8 @@ namespace VoxxWeatherPlugin.Weathers
             toxicVolumetricFog.transform.position = LevelBounds.center;
             toxicVolumetricFog.parameters.distanceFadeStart = LevelBounds.size.x*0.9f;
             toxicVolumetricFog.parameters.distanceFadeEnd = LevelBounds.size.x;
+            
+            
 
             fumesAmount = SeededRandom.Next(MinFumesAmount, MaxFumesAmount);
             factoryFumesAmount = Mathf.CeilToInt(fumesAmount * factoryAmountMultiplier * dungeonSize);
@@ -169,10 +175,6 @@ namespace VoxxWeatherPlugin.Weathers
             Debug.LogDebug($"Indoor fumes: Anchor positions: {anchorPositions.Count}, Blockers positions: {blockersPositions.Count}");
             SpawnFumes(anchorPositions, blockersPositions, factoryFumesAmount, fumesContainerInside!, SeededRandom);
             
-            if (LLLCompat.isActive)
-            {
-                LLLCompat.TagRecolorToxic();
-            }
         }
 
         private void SpawnFumes(List<Vector3> anchors, List<Vector3> blockedPositions, int amount, GameObject container, System.Random random)
@@ -278,11 +280,14 @@ namespace VoxxWeatherPlugin.Weathers
             }
 
             VisualEffect? fumesVFX = hazardPrefab?.GetComponent<VisualEffect>();
-
+            
             if (fumesVFX != null)
             {
+                Debug.LogDebug($"Setting fumes color to {fumesColor}");
                 fumesVFX.SetVector4(ToxicShaderIDs.FumesColor, fumesColor);
             }
+
+            Debug.LogDebug($"Current fumes color: {fumesVFX?.GetVector4(ToxicShaderIDs.FumesColor)}");
         }
     }
 }

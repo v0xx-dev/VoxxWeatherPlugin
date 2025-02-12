@@ -28,7 +28,8 @@ namespace VoxxWeatherPlugin.Behaviours
         public static LevelManipulator? Instance { get; private set; } = null!;
         
         #region Snowy Weather Configuration
-        internal bool isSnowReady = false;
+        public bool IsSnowReady { get; private set; } = false;
+        public event Action<bool>? OnSnowReady;
         public GameObject? snowModule;
         [Header("Snow Overlay Volume")]
         [SerializeField]
@@ -272,6 +273,9 @@ namespace VoxxWeatherPlugin.Behaviours
                 Debug.LogDebug("Shader masks baked!");
             }
 
+            
+            IsSnowReady = true;
+            OnSnowReady?.Invoke(IsSnowReady);
             SnowThicknessManager.Instance!.inputNeedsUpdate = true;
         }
 
@@ -650,7 +654,8 @@ namespace VoxxWeatherPlugin.Behaviours
             StartCoroutine(SnowMeltCoroutine());
             groundObjectCandidates.Clear();
             waterSurfaceObjects.Clear();
-            isSnowReady = false;
+            IsSnowReady = false;
+            OnSnowReady?.Invoke(IsSnowReady);
         }
 
         /// <summary>
@@ -1135,7 +1140,6 @@ namespace VoxxWeatherPlugin.Behaviours
             if (groundObjectCandidates.Count == 0)
             {
                 Debug.LogDebug("No ground objects to bake snow masks for!");
-                isSnowReady = true;
                 yield break;
             }
 
@@ -1159,8 +1163,6 @@ namespace VoxxWeatherPlugin.Behaviours
             {
                 snowVertexMaterial?.SetTexture(SnowfallShaderIDs.SnowMasks, snowMasks);
             }
-
-            isSnowReady = true;
         }
 
         internal void RefreshBakeMaterial()

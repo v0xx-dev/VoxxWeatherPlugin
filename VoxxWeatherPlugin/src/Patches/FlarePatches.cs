@@ -176,7 +176,7 @@ namespace VoxxWeatherPlugin.Patches
                 SolarFlareWeather.Instance?.flareData != null &&
                 doorMalfunctionEnabled)
             {
-                if (SolarFlareWeather.Instance.flareData.IsDoorMalfunction && __instance.isBigDoor && seededRandom.NextDouble() < 0.9f)
+                if (SolarFlareWeather.Instance.flareData.IsDoorMalfunction && __instance.isBigDoor && seededRandom.NextDouble() < 0.5f)
                 {
                     return false;
                 }

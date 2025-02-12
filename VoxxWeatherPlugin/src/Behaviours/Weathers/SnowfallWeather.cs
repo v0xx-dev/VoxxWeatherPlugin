@@ -57,7 +57,7 @@ namespace VoxxWeatherPlugin.Weathers
 
         internal virtual void Update()
         {
-            if (!LevelManipulator.Instance?.isSnowReady ?? false)
+            if (!LevelManipulator.Instance?.IsSnowReady ?? false)
             {
                 return;
             }
