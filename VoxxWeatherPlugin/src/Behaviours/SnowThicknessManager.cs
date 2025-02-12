@@ -99,7 +99,7 @@ namespace VoxxWeatherPlugin.Behaviours
 
         internal void CalculateThickness()
         {
-            if (errorCount > 10)
+            if (errorCount > 5)
             {
                 // Too many errors, stop trying
                 return;
@@ -113,7 +113,7 @@ namespace VoxxWeatherPlugin.Behaviours
 
             if (groundToIndex.Count == 0)
             {
-                Debug.LogError("No ground object is registered, cannot calculate snow thickness!");
+                Debug.LogWarning("No ground object is registered, cannot calculate snow thickness!");
                 errorCount++;
                 return;
             }

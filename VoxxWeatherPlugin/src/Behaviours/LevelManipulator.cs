@@ -64,7 +64,7 @@ namespace VoxxWeatherPlugin.Behaviours
         [SerializeField]
         internal float snowScale = 1.0f;
         [SerializeField, Tooltip("The snow intensity is the power of the exponential function, so 0.0f is full snow.")]
-        internal float snowIntensity = 10.0f; // How much snow is on the ground
+        internal float snowIntensity = 1.0f; // How much snow is on the ground
         [SerializeField]
         internal float finalSnowHeight = 2f;
         [SerializeField]
@@ -715,7 +715,7 @@ namespace VoxxWeatherPlugin.Behaviours
         {
             // Melt snow on the ground gradually when the weather changes mid-round
             float meltSpeed = 0.01f;
-            while (snowIntensity < 1f)
+            while (snowIntensity <= 1f)
             {
                 if (StartOfRound.Instance?.inShipPhase ?? true)
                 {
@@ -826,7 +826,7 @@ namespace VoxxWeatherPlugin.Behaviours
             foreach (Terrain terrain in terrains)
             {
                 //Check if terrain data is null and if it's being rendered
-                if (terrain.terrainData == null || !terrain.drawHeightmap)
+                if (terrain.terrainData == null || !terrain.drawHeightmap || !terrain.gameObject.activeInHierarchy)
                 {
                     continue;
                 }
@@ -1135,6 +1135,7 @@ namespace VoxxWeatherPlugin.Behaviours
             if (groundObjectCandidates.Count == 0)
             {
                 Debug.LogDebug("No ground objects to bake snow masks for!");
+                isSnowReady = true;
                 yield break;
             }
 
