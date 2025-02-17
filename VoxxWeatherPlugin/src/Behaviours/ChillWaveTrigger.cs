@@ -112,6 +112,7 @@ namespace VoxxWeatherPlugin.Behaviours
 
             if (blizzardWaveFog != null)
             {
+                blizzardWaveFog.gameObject.SetActive(Configuration.useVolumetricBlizzardFog.Value);
                 blizzardWaveFog.parameters.size = new Vector3(waveCollider.size.x, waveCollider.size.z, waveCollider.size.y);
                 blizzardWaveFog.transform.localPosition = waveCollider.center;
             }

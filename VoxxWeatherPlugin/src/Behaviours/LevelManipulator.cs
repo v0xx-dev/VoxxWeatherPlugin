@@ -74,6 +74,7 @@ namespace VoxxWeatherPlugin.Behaviours
         [Header("Snow Occlusion")]
         [SerializeField]
         internal Camera? levelDepthmapCamera;
+        private HDAdditionalCameraData? depthmapCameraData;
         [SerializeField]
         internal RenderTexture? levelDepthmap;
         [SerializeField]
@@ -82,6 +83,8 @@ namespace VoxxWeatherPlugin.Behaviours
         internal int DepthmapResolution => Configuration.depthBufferResolution.Value;
         [SerializeField]
         internal int PCFKernelSize => Configuration.PCFKernelSize.Value;
+        public Material? depthBakeMaterial;
+        public int depthBlurRadius = 2; // Used for smoothing depth in VSM algorithm
         [SerializeField]
         internal float shadowBias = 0.001f;
         [SerializeField]
@@ -115,7 +118,7 @@ namespace VoxxWeatherPlugin.Behaviours
         internal Material? bakeMaterial;
         [SerializeField]
         internal int BakeResolution => Configuration.snowDepthMapResolution.Value;
-        internal readonly int blurRadius = 2;
+        internal readonly int blurRadius = 2; // Used for smoothing normals in the baked snow masks
         [SerializeField]
         internal Texture2DArray? snowMasks; // Texture2DArray to store the snow masks
         internal bool BakeMipmaps => Configuration.bakeSnowDepthMipmaps.Value;
@@ -252,7 +255,8 @@ namespace VoxxWeatherPlugin.Behaviours
             levelDepthmapCamera.enabled = true;
             
             yield return new WaitForEndOfFrame();
-            yield return new WaitForEndOfFrame();
+
+            BakeDepth();
             
             levelDepthmapCamera.enabled = false;
             
@@ -266,10 +270,51 @@ namespace VoxxWeatherPlugin.Behaviours
                 Debug.LogDebug("Shader masks baked!");
             }
 
-            
             IsSnowReady = true;
             OnSnowReady?.Invoke(IsSnowReady);
             SnowThicknessManager.Instance!.inputNeedsUpdate = true;
+        }
+
+        private void RequestHDRPBuffersAccess(ref HDAdditionalCameraData.BufferAccess access)
+        {
+            access.RequestAccess(HDAdditionalCameraData.BufferAccessType.Depth);
+        }
+
+        private void BakeDepth()
+        {
+            if (depthBakeMaterial == null)
+            {
+                Debug.LogError("Depth material is not assigned.");
+                return;
+            }
+
+            if (levelDepthmapCamera?.targetTexture == null || levelDepthmap == null)
+            {
+                Debug.LogError("Camera target texture is not assigned for VSM.");
+                return;
+            }
+
+            depthBakeMaterial.SetFloat("_BlurKernelSize", depthBlurRadius);
+            // Get the depth buffer handle
+            RTHandle? depthBufferHandle = depthmapCameraData?.GetGraphicsBuffer(HDAdditionalCameraData.BufferAccessType.Depth);
+
+            if (depthBufferHandle == null || depthBufferHandle.rt == null)
+            {
+                Debug.LogError("Depth buffer handle is null! Cannot bake depth.");
+                return;
+            }
+
+            // Store the unblurred depth map (use Blit instead of CopyTexture to avoid format mismatch)
+            Graphics.Blit(depthBufferHandle.rt, levelDepthmapUnblurred);
+            
+            RenderTexture tempBuffer = RenderTexture.GetTemporary(levelDepthmap.descriptor);
+
+            // Blur the depth map (Horizontal + Vertical)
+            Graphics.Blit(levelDepthmapUnblurred, tempBuffer, depthBakeMaterial, 0);
+            Graphics.Blit(tempBuffer, levelDepthmap, depthBakeMaterial, 1);
+
+            RenderTexture.ReleaseTemporary(tempBuffer);
+
         }
 
         public List<GameObject> GetSurfaceObjects()
@@ -557,6 +602,9 @@ namespace VoxxWeatherPlugin.Behaviours
             levelDepthmapCamera!.targetTexture = levelDepthmapUnblurred;
             levelDepthmapCamera.aspect = 1.0f;
             levelDepthmapCamera.enabled = false;
+            depthmapCameraData ??= levelDepthmapCamera.GetComponent<HDAdditionalCameraData>();
+            if (depthmapCameraData != null)
+                depthmapCameraData.requestGraphicsBuffer += RequestHDRPBuffersAccess;
             // Create buffer for unblurred depthmap
             levelDepthmapUnblurred = new RenderTexture(DepthmapResolution, 
                                             DepthmapResolution,
@@ -572,13 +620,6 @@ namespace VoxxWeatherPlugin.Behaviours
             levelDepthmapUnblurred.useDynamicScale = true;
             levelDepthmapUnblurred.name = "Level Depthmap Unblurred";
             levelDepthmapUnblurred.Create();
-
-            CustomPassVolume customPassVolume = levelDepthmapCamera.GetComponent<CustomPassVolume>();
-            DepthVSMPass? depthVSMPass = customPassVolume.customPasses[0] as DepthVSMPass;
-            depthVSMPass!.blurRadius = blurRadius;
-            depthVSMPass!.depthUnblurred = levelDepthmapUnblurred;
-            // This is because Diversity fucks up injection priorities
-            customPassVolume.injectionPoint = CustomPassInjectionPoint.BeforePostProcess;
 
             snowTracksMap = new RenderTexture(TracksMapResolution,
                                             TracksMapResolution,

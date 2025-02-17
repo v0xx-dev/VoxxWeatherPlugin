@@ -16,30 +16,30 @@ namespace VoxxWeatherPlugin.Behaviours
         /// <summary>
         /// Camera HDRP additional data.
         /// </summary>
-        public HDAdditionalCameraData AdditionalData;
+        public HDAdditionalCameraData? AdditionalData;
         public RenderTexture? depthTexture;
         public RenderTexture? colorTexture;
-        internal Camera m_Camera;
+        internal Camera? m_Camera;
         public bool useCameraBuffer = false;
 
         [VFXPropertyBinding("UnityEditor.VFX.CameraType"), SerializeField]
         protected ExposedProperty CameraProperty = "Camera";
 
-        RTHandle m_Texture;
+        RTHandle? m_Texture;
         protected RenderTexture? depthBufferRT = null;
 
-        ExposedProperty m_Position;
-        ExposedProperty m_Angles;
-        ExposedProperty m_Scale;
-        ExposedProperty m_FieldOfView;
-        ExposedProperty m_NearPlane;
-        ExposedProperty m_FarPlane;
-        ExposedProperty m_AspectRatio;
-        ExposedProperty m_Dimensions;
-        ExposedProperty m_ScaledDimensions;
-        ExposedProperty m_DepthBuffer;
-        ExposedProperty m_ColorBuffer;
-        ExposedProperty m_OrthographicSize;
+        ExposedProperty? m_Position;
+        ExposedProperty? m_Angles;
+        ExposedProperty? m_Scale;
+        ExposedProperty? m_FieldOfView;
+        ExposedProperty? m_NearPlane;
+        ExposedProperty? m_FarPlane;
+        ExposedProperty? m_AspectRatio;
+        ExposedProperty? m_Dimensions;
+        ExposedProperty? m_ScaledDimensions;
+        ExposedProperty? m_DepthBuffer;
+        ExposedProperty? m_ColorBuffer;
+        ExposedProperty? m_OrthographicSize;
 
         /// <summary>
         /// Set a camera property.
@@ -293,8 +293,8 @@ namespace VoxxWeatherPlugin.Behaviours
         protected ExposedProperty m_Property = "AABox";
         public BoxCollider Target = null;
 
-        private ExposedProperty Center;
-        private ExposedProperty Size;
+        private ExposedProperty? Center;
+        private ExposedProperty? Size;
 
         protected override void OnEnable()
         {

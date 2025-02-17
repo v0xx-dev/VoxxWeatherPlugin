@@ -74,7 +74,7 @@ namespace VoxxWeatherPlugin.Behaviours
 
         private static void EnableVoiceChatDistortion(InterferenceDistortionFilter interferenceFilter)
         {
-            if (!interferenceFilter.enabled)
+            if (!interferenceFilter.enabled && SolarFlareWeather.Instance?.flareData != null)
             {
                 interferenceFilter.enabled = true;
                 interferenceFilter.distortionChance = SolarFlareWeather.Instance.flareData.RadioDistortionIntensity;
@@ -91,7 +91,7 @@ namespace VoxxWeatherPlugin.Behaviours
             }
         }
 
-        private static InterferenceDistortionFilter GetOrAddFilter(AudioSource voiceSource)
+        private static InterferenceDistortionFilter? GetOrAddFilter(AudioSource voiceSource)
         {
             if (voiceSource == null)
             {
@@ -113,7 +113,7 @@ namespace VoxxWeatherPlugin.Behaviours
             return filter;
         }
 
-        public static void ClearFilterCache(AudioSource voiceSource = null)
+        public static void ClearFilterCache(AudioSource? voiceSource = null)
         {
             if (voiceSource != null)
             {
