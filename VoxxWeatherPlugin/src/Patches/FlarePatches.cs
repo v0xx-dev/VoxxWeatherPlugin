@@ -20,7 +20,6 @@ namespace VoxxWeatherPlugin.Patches
         internal static bool drainBatteryInFacility => Configuration.DrainBatteryInFacility.Value;
         internal static bool doorMalfunctionEnabled => Configuration.DoorMalfunctionEnabled.Value;
 
-
         [HarmonyPatch(typeof(PlayerVoiceIngameSettings), "OnDisable")]
         [HarmonyPrefix]
         static void FilterCacheCleanerPatch(PlayerVoiceIngameSettings __instance)
@@ -207,8 +206,42 @@ namespace VoxxWeatherPlugin.Patches
                     SolarFlareWeather.Instance.flareData.RadioFrequencyShift *= 4f;
                     SolarFlareWeather.Instance.flareData.RadioBreakthroughLength -= 0.25f;
                 }
+
+                // Update Glitch Effects
+                foreach (GlitchEffect? glitchPass in SolarFlareWeather.Instance.glitchPasses.Values)
+                {
+                    if (glitchPass == null)
+                    {
+                        continue;
+                    }
+                    
+                    glitchPass.intensity.value = SolarFlareWeather.Instance.flareData.ScreenDistortionIntensity;
+                }
             }
         }
+
+        [HarmonyPatch(typeof(Turret), nameof(Turret.Start))]
+        [HarmonyPostfix]
+        static void TurretMalfunctionPatch(Turret __instance)
+        {
+            if ((SolarFlareWeather.Instance?.IsActive ?? false) &&
+                SolarFlareWeather.Instance?.flareData != null)
+            {
+                SolarFlareWeather.Instance.CreateStaticParticle(__instance);
+            }
+        }
+
+        [HarmonyPatch(typeof(RadMechAI), nameof(RadMechAI.Start))]
+        [HarmonyPostfix]
+        static void RadMechMalfunctionPatch(RadMechAI __instance)
+        {
+            if ((SolarFlareWeather.Instance?.IsActive ?? false) &&
+                SolarFlareWeather.Instance?.flareData != null)
+            {
+                SolarFlareWeather.Instance.CreateStaticParticle(__instance);
+            }
+        }
+
     }
 
     [HarmonyPatch]

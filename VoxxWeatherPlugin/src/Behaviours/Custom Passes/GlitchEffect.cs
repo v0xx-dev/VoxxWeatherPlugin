@@ -2,12 +2,14 @@
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.HighDefinition;
 using System;
+using UnityEngine.Experimental.Rendering;
 
 namespace VoxxWeatherPlugin.Behaviours
 {
     [Serializable, VolumeComponentMenu("Post-processing/Custom/Glitch Effect")]
     public sealed class GlitchEffect : CustomPass
     {
+        
         [Tooltip("Overall glitch intensity.")]
         public ClampedFloatParameter intensity = new ClampedFloatParameter(0f, 0f, 1f);
 
@@ -33,6 +35,10 @@ namespace VoxxWeatherPlugin.Behaviours
         int m_BlockStride = 1;
         float m_BlockTime;
 
+        private Vector2 bufferDimensions;
+
+        RTHandle? tempColorBuffer = null;
+
         static class ShaderIDs
         {
             internal static readonly int InputTexture = Shader.PropertyToID("_InputTexture");
@@ -52,9 +58,21 @@ namespace VoxxWeatherPlugin.Behaviours
         {
             if (m_Material == null)
             {
-                Debug.LogError("Missing shader for Glitch Effect.");
                 return;
             }
+
+            UpdateTempBuffer(ctx);
+
+            if (tempColorBuffer == null)
+            {
+                Debug.LogError("Failed to allocate glitch buffer");
+                return;
+            }
+
+            ctx.cmd.CopyTexture(ctx.cameraColorBuffer, 0, 0, 0, 0,
+                                (int)bufferDimensions.x, (int)bufferDimensions.y,
+                                        tempColorBuffer, 0, 0, 0, 0);
+
 
             float time = Time.time;
             float delta = time - m_PrevTime;
@@ -82,6 +100,7 @@ namespace VoxxWeatherPlugin.Behaviours
             m_Material.SetVector(ShaderIDs.Jump, new Vector2(m_JumpTime, jump.value * intensity.value));
             m_Material.SetFloat(ShaderIDs.Shake, shake.value * 0.2f * intensity.value);
             m_Material.SetInt(ShaderIDs.Seed, (int)(time * 10000));
+            m_Material.SetTexture(ShaderIDs.InputTexture, tempColorBuffer);
 
             CoreUtils.SetRenderTarget(ctx.cmd, ctx.cameraColorBuffer, ClearFlag.None);
             CoreUtils.DrawFullScreen(ctx.cmd, m_Material, ctx.propertyBlock, shaderPassId: 0);
@@ -89,7 +108,36 @@ namespace VoxxWeatherPlugin.Behaviours
 
         protected override void Cleanup()
         {
+            tempColorBuffer?.Release();
+            tempColorBuffer = null;
             base.Cleanup();
+        }
+
+        private void UpdateTempBuffer(CustomPassContext ctx)
+        {
+            if (tempColorBuffer != null)
+            {
+                return;
+            }
+
+            bufferDimensions = new Vector2(ctx.cameraColorBuffer.rt.width, ctx.cameraColorBuffer.rt.height);
+            if (ctx.hdCamera?.camera?.targetTexture != null)
+            {
+                bufferDimensions = new Vector2(ctx.hdCamera.camera.targetTexture.width, ctx.hdCamera.camera.targetTexture.height);
+            }
+
+            tempColorBuffer = RTHandles.Alloc(
+                                (int)bufferDimensions.x,
+                                (int)bufferDimensions.y,
+                                TextureXR.slices,
+                                dimension: TextureXR.dimension,
+                                colorFormat: GraphicsFormat.B10G11R11_UFloatPack32,
+                                useDynamicScale: true,
+                                name: "Glitch Buffer"
+                                );
+
+            
+            Debug.Log($"Allocated temp buffer {tempColorBuffer.rt.width}x{tempColorBuffer.rt.height}");
         }
     }
 }

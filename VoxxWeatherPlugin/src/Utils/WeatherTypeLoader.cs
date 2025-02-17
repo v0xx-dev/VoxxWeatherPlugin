@@ -5,12 +5,14 @@ using WeatherRegistry;
 using VoxxWeatherPlugin.Weathers;
 using VoxxWeatherPlugin.Behaviours;
 using UnityEngine.Rendering;
+using Unity.Netcode;
 
 namespace VoxxWeatherPlugin.Utils
 {
     public class WeatherTypeLoader
     {
         internal static string bundleName = "voxxweather.assetbundle";
+        internal static GameObject? weatherSynchronizerPrefab = null!;
         
         public static void RegisterHeatwaveWeather()
         {
@@ -196,14 +198,14 @@ namespace VoxxWeatherPlugin.Utils
             blizzardVFX.visualEffectAsset = blizzardVFXAsset;
             blizzardVFX.SetFloat("spawnRateMultiplier", Configuration.snowParticlesMultiplier.Value);
             blizzardVFX.SetBool("isCollisionEnabled", Configuration.enableVFXCollisions.Value);
-            blizzardVFX.SetBool("fogEnabled", Configuration.enableBlizzardFog.Value);
+            blizzardVFX.SetBool("fogEnabled", Configuration.useParticleBlizzardFog.Value);
             Camera blizzardCamera = blizzardVFX.GetComponentInChildren<Camera>(true);
             blizzardCamera.enabled = Configuration.enableVFXCollisions.Value;
             VisualEffect chillWaveVFX = blizzardVFXManager.blizzardWaveContainer!.GetComponentInChildren<VisualEffect>(true);
             chillWaveVFX.visualEffectAsset = blizzardWaveVFXAsset;
             chillWaveVFX.SetFloat("spawnRateMultiplier", Configuration.blizzardWaveParticlesMultiplier.Value);
             chillWaveVFX.SetBool("isCollisionEnabled", Configuration.enableVFXCollisions.Value);
-            chillWaveVFX.SetBool("fogEnabled", Configuration.enableBlizzardFog.Value);
+            chillWaveVFX.SetBool("fogEnabled", Configuration.useParticleBlizzardFog.Value);
             Camera chillWaveCamera = blizzardVFXManager.blizzardWaveContainer!.GetComponentInChildren<Camera>(true);
             chillWaveCamera.enabled = Configuration.enableVFXCollisions.Value;
             AudioSource blizzardAudio = blizzardVFXManager.GetComponent<AudioSource>();
@@ -351,6 +353,20 @@ namespace VoxxWeatherPlugin.Utils
 
             levelManipulatorController.snowVertexMaterial.SetFloat(SnowfallShaderIDs.IsDepthFade, Configuration.softSnowEdges.Value ? 1f : 0f);
             
+            return true;   
+        }
+
+        public static bool LoadWeatherSynchronizer()
+        {
+            weatherSynchronizerPrefab = WeatherAssetLoader.LoadAsset<GameObject>(bundleName, "WeatherSynchronizerContainer");
+            if (weatherSynchronizerPrefab == null)
+            {
+                Debug.LogError("Failed to load Weather Synchronizer. Brace yourself for desyncs!");
+                return false;
+            }
+
+            NetworkManager.Singleton.AddNetworkPrefab(weatherSynchronizerPrefab); 
+
             return true;   
         }
 
