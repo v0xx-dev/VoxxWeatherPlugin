@@ -223,23 +223,12 @@ namespace VoxxWeatherPlugin.Behaviours
     [VFXBinder("HDRP/HDRP Fog&Camera")]
     public class HDRPCameraFogBinder : HDRPCameraOrTextureBinder
     {
-        private Material? fogMaterial;
         public LocalVolumetricFog? volumetricFog;
-
-        protected override void UpdateSubProperties()
-        {
-            base.UpdateSubProperties();
-            // Get Camera component from HDRP additional data
-            if (volumetricFog != null)
-            {
-                fogMaterial ??= volumetricFog.parameters.materialMask;
-            }
-        }
 
         public override bool IsValid(VisualEffect component)
         {
             bool isValid = base.IsValid(component);
-            return fogMaterial != null && volumetricFog != null && isValid;
+            return volumetricFog != null && isValid;
         }
 
         public override void UpdateBinding(VisualEffect component)
@@ -248,12 +237,12 @@ namespace VoxxWeatherPlugin.Behaviours
 
             if (depthBufferRT != null)
             {
-                UpdateFogOcclusion(fogMaterial, m_Camera, depthBufferRT, true);
+                UpdateFogOcclusion(m_Camera, depthBufferRT, true);
                 return;
             }
             else if (depthTexture != null)
             {
-                UpdateFogOcclusion(fogMaterial, m_Camera, depthTexture, true);
+                UpdateFogOcclusion(m_Camera, depthTexture, true);
                 return;
             }
 
@@ -261,7 +250,7 @@ namespace VoxxWeatherPlugin.Behaviours
 
         }
 
-        private void UpdateFogOcclusion(Material? fogMaterial, Camera? depthCamera, RenderTexture? depthMap, bool updateMatrix = false)
+        private void UpdateFogOcclusion(Camera? depthCamera, RenderTexture? depthMap, bool updateMatrix = false)
         {
             Matrix4x4 GetCameraMatrix()
             {
@@ -269,6 +258,8 @@ namespace VoxxWeatherPlugin.Behaviours
 
                 return cameraMatrix;
             }
+
+            Material? fogMaterial = volumetricFog?.parameters.materialMask;
 
             if (depthCamera == null || depthMap == null || fogMaterial == null)
                 return;

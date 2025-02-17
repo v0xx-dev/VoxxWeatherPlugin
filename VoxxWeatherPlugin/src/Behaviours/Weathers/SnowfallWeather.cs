@@ -96,7 +96,7 @@ namespace VoxxWeatherPlugin.Weathers
         private GameObject? christmasTreePrefab;
         private Item? giftBoxItem;
 
-        internal void Start()
+        internal virtual void Start()
         {
             // Find the snow footstep index
             snowFootstepIndex = Array.FindIndex(StartOfRound.Instance.footstepSurfaces, surface => surface.surfaceTag == "Snow");

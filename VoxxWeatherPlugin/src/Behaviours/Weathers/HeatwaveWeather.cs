@@ -109,12 +109,13 @@ namespace VoxxWeatherPlugin.Weathers
 
     public class HeatwaveVFXManager: BaseVFXManager
     {
-        public GameObject? heatwaveParticlePrefab; // Prefab for the heatwave particle effect
+        public GameObject heatwaveParticlePrefab = null!; // Prefab for the heatwave particle effect
         public GameObject? heatwaveVFXContainer; // GameObject for the particles
         [SerializeField]
-        internal AnimationCurve? heatwaveIntensityCurve; // Curve for the intensity of the heatwave
+        internal AnimationCurve heatwaveIntensityCurve = null!; // Curve for the intensity of the heatwave
         private Coroutine? cooldownCoroutine; // Coroutine for cooling down the heatwave VFX
         private List<VisualEffect> cachedVFX = new List<VisualEffect>(); // Cached VFX for the heatwave particles
+        bool isPopulated = false;
 
         // Variables for emitter placement
         private float emitterSize;
@@ -198,6 +199,7 @@ namespace VoxxWeatherPlugin.Weathers
             adjustedBounds.center = new Vector3(LevelBounds.center.x, newYPos, LevelBounds.center.z);
             LevelManipulator.Instance.levelBounds = adjustedBounds;
 
+            isPopulated = true;
             Debug.LogDebug($"Placed {placedEmittersNum} emitters.");
         }
 
@@ -235,6 +237,7 @@ namespace VoxxWeatherPlugin.Weathers
                 Destroy(heatwaveVFXContainer);
             }
             heatwaveVFXContainer = null;
+            isPopulated = false;
             Debug.LogDebug("Heatwave VFX container destroyed.");
 
             cachedVFX.Clear();
@@ -264,7 +267,7 @@ namespace VoxxWeatherPlugin.Weathers
             
             float maxSunLuminosity = 10f; // Sun luminosity in lux when the heatwave is at its peak
 
-            if (heatwaveVFXContainer != null)
+            if (heatwaveVFXContainer != null && isPopulated)
             {
                 reductionFactor = Mathf.Clamp01((LevelManipulator.Instance.sunLightData?.intensity ?? 0f) / maxSunLuminosity);
                 reductionFactor = heatwaveIntensityCurve!.Evaluate(reductionFactor); // Min value in curve is 0.001 to avoid division by zero

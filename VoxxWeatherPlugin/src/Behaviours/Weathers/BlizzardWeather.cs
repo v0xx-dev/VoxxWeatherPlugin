@@ -326,12 +326,12 @@ namespace VoxxWeatherPlugin.Weathers
         internal Camera? blizzardCollisionCamera;
         internal LocalVolumetricFog? blizzardFog;
 
-        internal void Awake()
+        internal override void Start()
         {
+            base.Start();
             blizzardSFXPlayer = GetComponent<AudioSource>();
             blizzardSFXPlayer.spatialBlend = 0; // 2D sound
-            blizzardCollisionCamera = snowVFXContainer?.GetComponentInChildren<Camera>();
-            blizzardFog = snowVFXContainer?.GetComponentInChildren<LocalVolumetricFog>(true);
+            blizzardCollisionCamera = snowVFXContainer.GetComponentInChildren<Camera>();
         }
 
         internal override void OnEnable()
@@ -365,15 +365,23 @@ namespace VoxxWeatherPlugin.Weathers
 
         internal override void PopulateLevelWithVFX()
         {
-            blizzardWaveContainer?.SetActive(false);
+            base.PopulateLevelWithVFX();
 
-            ChillWaveTrigger? chillWaveTrigger = blizzardWaveContainer?.GetComponent<ChillWaveTrigger>();
+            if (blizzardWaveContainer == null)
+            {
+                Debug.LogError("Blizzard wave container is null!");
+                return;
+            }
 
-            if (chillWaveTrigger != null)
+            blizzardWaveContainer.SetActive(false);
+
+            if (blizzardWaveContainer.TryGetComponent(out ChillWaveTrigger chillWaveTrigger))
             {
                 chillWaveTrigger.SetupChillWave(LevelBounds);
                 Debug.LogDebug("Chill wave trigger setup!");
             }
+
+            blizzardFog ??= snowVFXContainer?.GetComponentInChildren<LocalVolumetricFog>(true);
 
             if (Configuration.useVolumetricBlizzardFog.Value && blizzardFog != null)
             {
@@ -381,7 +389,6 @@ namespace VoxxWeatherPlugin.Weathers
                 blizzardFog.parameters.meanFreePath = SeededRandom.NextDouble(Configuration.blizzardFogMeanFreePathMin.Value, Configuration.blizzardFogMeanFreePathMax.Value);
             }
             
-            base.PopulateLevelWithVFX();
         }
     }
 }

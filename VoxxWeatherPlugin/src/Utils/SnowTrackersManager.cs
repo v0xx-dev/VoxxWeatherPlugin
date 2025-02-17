@@ -227,6 +227,9 @@ namespace VoxxWeatherPlugin.Utils
         private static void CleanupFootprintTrackers(Dictionary<MonoBehaviour, SnowTrackerData> trackersDict, bool enable = false)
         {
             List<MonoBehaviour> keysToRemove = []; // Store keys to remove
+            
+            if (snowTrackersContainer != null)
+                snowTrackersContainer.SetActive(enable);
 
             foreach ((var obj, var trackerData) in trackersDict) 
             {

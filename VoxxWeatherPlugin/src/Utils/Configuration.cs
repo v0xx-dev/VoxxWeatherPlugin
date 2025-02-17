@@ -457,13 +457,13 @@ namespace VoxxWeatherPlugin.Utils
                                                     "blizzardFogMeanFreePathMin",
                                                     5f,
                                                     new ConfigDescription("Minimum mean free path for blizzard fog in meters. Actual mean free path is random between min and max. Mean free path is the distance where visibility is reduced by 63%",
-                                                                        new AcceptableValueRange<float>(0.1f, 256f)));
+                                                                        new AcceptableValueRange<float>(0.1f, 100)));
             
             blizzardFogMeanFreePathMax = Config.Bind("Blizzard",
                                                     "blizzardFogMeanFreePathMax",
                                                     15f,
                                                     new ConfigDescription("Maximum mean free path for blizzard fog in meters. Actual mean free path is random between min and max.",
-                                                                        new AcceptableValueRange<float>(0.1f, 256f)));  
+                                                                        new AcceptableValueRange<float>(0.1f, 100)));  
             #endregion
 
             #region Snow & Blizzard Graphics

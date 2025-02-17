@@ -252,13 +252,15 @@ namespace VoxxWeatherPlugin.Behaviours
 
             levelDepthmapCamera.targetTexture = levelDepthmap;
             levelDepthmapCamera.aspect = 1.0f;
-            levelDepthmapCamera.enabled = true;
+            levelDepthmapCamera.enabled = false;
             
             yield return new WaitForEndOfFrame();
 
+            levelDepthmapCamera.Render();
+
             BakeDepth();
             
-            levelDepthmapCamera.enabled = false;
+            // levelDepthmapCamera.enabled = false;
             
             Debug.LogDebug("Level depthmap rendered!");
 
@@ -1167,6 +1169,8 @@ namespace VoxxWeatherPlugin.Behaviours
                                         x.gameObject.scene.name == CurrentSceneName &&
                                         x.transform.position.y > heightThreshold).ToArray();
             float additionalMeanFreePath = seededRandom!.NextDouble(fogStrengthMin, fogStrengthMax); // Could be negative
+            if ((BlizzardWeather.Instance?.IsActive ?? false) && Configuration.useVolumetricBlizzardFog.Value)
+                additionalMeanFreePath = 0;
             foreach (LocalVolumetricFog fog in fogArray)
             {
                 fog.parameters.textureScrollingSpeed = Vector3.zero;

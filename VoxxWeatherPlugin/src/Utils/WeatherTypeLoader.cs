@@ -6,6 +6,7 @@ using VoxxWeatherPlugin.Weathers;
 using VoxxWeatherPlugin.Behaviours;
 using UnityEngine.Rendering;
 using Unity.Netcode;
+using UnityEngine.Rendering.HighDefinition;
 
 namespace VoxxWeatherPlugin.Utils
 {
@@ -187,8 +188,9 @@ namespace VoxxWeatherPlugin.Utils
             VisualEffectAsset? blizzardWaveVFXAsset = Configuration.blizzardWaveVfxLighting.Value ?
                 WeatherAssetLoader.LoadAsset<VisualEffectAsset>(bundleName, "BlizzardWaveVFXLit") :
                 WeatherAssetLoader.LoadAsset<VisualEffectAsset>(bundleName, "BlizzardWaveVFX");
+            Shader? blizzardFogShader = WeatherAssetLoader.LoadAsset<Shader>(bundleName, "BlizzardFogVolumetricCollision");
 
-            if (blizzardVFXAsset == null || blizzardWaveVFXAsset == null)
+            if (blizzardVFXAsset == null || blizzardWaveVFXAsset == null || blizzardFogShader == null)
             {
                 Debug.LogError("Failed to load Blizzard Weather visual assets. Weather registration failed.");
                 return;
@@ -201,6 +203,9 @@ namespace VoxxWeatherPlugin.Utils
             blizzardVFX.SetBool("fogEnabled", Configuration.useParticleBlizzardFog.Value);
             Camera blizzardCamera = blizzardVFX.GetComponentInChildren<Camera>(true);
             blizzardCamera.enabled = Configuration.enableVFXCollisions.Value;
+            LocalVolumetricFog blizzardFog = blizzardVFXManager.snowVFXContainer!.GetComponentInChildren<LocalVolumetricFog>(true);
+            Material blizzardFogMaterial = blizzardFog.parameters.materialMask;
+            blizzardFogMaterial.shader = blizzardFogShader;
             VisualEffect chillWaveVFX = blizzardVFXManager.blizzardWaveContainer!.GetComponentInChildren<VisualEffect>(true);
             chillWaveVFX.visualEffectAsset = blizzardWaveVFXAsset;
             chillWaveVFX.SetFloat("spawnRateMultiplier", Configuration.blizzardWaveParticlesMultiplier.Value);
@@ -208,6 +213,9 @@ namespace VoxxWeatherPlugin.Utils
             chillWaveVFX.SetBool("fogEnabled", Configuration.useParticleBlizzardFog.Value);
             Camera chillWaveCamera = blizzardVFXManager.blizzardWaveContainer!.GetComponentInChildren<Camera>(true);
             chillWaveCamera.enabled = Configuration.enableVFXCollisions.Value;
+            blizzardFog = blizzardVFXManager.blizzardWaveContainer!.GetComponentInChildren<LocalVolumetricFog>(true);
+            blizzardFogMaterial = blizzardFog.parameters.materialMask;
+            blizzardFogMaterial.shader = blizzardFogShader;
             AudioSource blizzardAudio = blizzardVFXManager.GetComponent<AudioSource>();
             blizzardAudio.volume = Configuration.blizzardAmbientVolume.Value;
             AudioSource waveAudio = blizzardVFXManager.blizzardWaveContainer.GetComponentInChildren<AudioSource>(true);
