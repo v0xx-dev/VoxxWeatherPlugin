@@ -247,19 +247,19 @@ namespace VoxxWeatherPlugin.Utils
 
             RadMechMalfunctionChance = Config.Bind("SolarFlare",
                                                 "RadMechMalfunctionChance",
-                                                0.4f,
+                                                0.3f,
                                                 new ConfigDescription("Chance of RadMechs malfunctioning during Solar Flare. 0.1 is 10% chance, 0.5 is 50% chance, 1.0 is 100% chance. All chances are rolled independently for each RadMech.",
                                                                     new AcceptableValueRange<float>(0, 1f)));
 
             RadMechReactivationChance = Config.Bind("SolarFlare",
                                                 "RadMechReactivationChance",
-                                                0.25f,
+                                                0.1f,
                                                 new ConfigDescription("Chance of RadMechs reactivating during Solar Flare. 0.1 is 10% chance, 0.5 is 50% chance, 1.0 is 100% chance. All chances are rolled independently for each RadMech.",
                                                                     new AcceptableValueRange<float>(0, 1f)));
 
             TurretMalfunctionChance = Config.Bind("SolarFlare",
                                                 "TurretMalfunctionChance",
-                                                0.3f,
+                                                0.15f,
                                                 new ConfigDescription("Chance of turrets malfunctioning during Solar Flare. 0.1 is 10% chance, 0.5 is 50% chance, 1.0 is 100% chance. All chances are rolled independently for each turret.",
                                                                     new AcceptableValueRange<float>(0, 1f)));
 
@@ -283,7 +283,7 @@ namespace VoxxWeatherPlugin.Utils
 
             LandmineMalfunctionChance = Config.Bind("SolarFlare",
                                                 "LandmineMalfunctionChance",
-                                                0.3f,
+                                                0.05f,
                                                 new ConfigDescription("Chance of landmines malfunctioning during Solar Flare. 0.1 is 10% chance, 0.5 is 50% chance, 1.0 is 100% chance. All chances are rolled independently for each landmine.",
                                                                     new AcceptableValueRange<float>(0, 1f)));
 

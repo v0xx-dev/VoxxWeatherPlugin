@@ -201,7 +201,7 @@ namespace VoxxWeatherPlugin.Weathers
                 }
             }
             
-            if (TimeOfDay.Instance.normalizedTimeOfDay % 0.07f < 1e-4)
+            if (TimeOfDay.Instance.normalizedTimeOfDay % 0.06f < 1e-4)
             {
                if (doorMalfunctionCoroutine != null)
                 {
@@ -231,7 +231,7 @@ namespace VoxxWeatherPlugin.Weathers
 
                 if (malfunctionData.MalfunctionCoroutine != null)
                 {
-                    Debug.LogError($"Malfunction coroutine already running for {malfunctionObject.name}!");
+                    Debug.LogDebug($"Malfunction coroutine already running for {malfunctionObject.name}!");
                     continue;
                 }
 
@@ -286,7 +286,7 @@ namespace VoxxWeatherPlugin.Weathers
             if (malfunctionData.malfunctionObject == null)
             {
                 // Clean up the dictionary
-                Debug.LogError("Malfunction object is null! Removing from dictionary.");
+                Debug.LogDebug("Malfunction object is null! Removing from dictionary.");
                 electricMalfunctionData.Remove(malfunctionData.malfunctionObject);
                 yield break;
             }
@@ -342,6 +342,7 @@ namespace VoxxWeatherPlugin.Weathers
                     }
                     yield return new WaitForSeconds(2f); // Wait a bit to sync up
                     radMechType.nestSpawnPrefab = radMechNestPrefab;
+                    electricMalfunctionData.Remove(radMechNest);
                 }
             }
             else if (malfunctionData.malfunctionObject is Landmine mine)
@@ -351,6 +352,7 @@ namespace VoxxWeatherPlugin.Weathers
                     (mine as IHittable).Hit(1, Vector3.down);
                 }
                 malfunctionData.StaticParticles?.Stop();
+                electricMalfunctionData.Remove(mine);
             }
             
             if (malfunctionData.FadeAudioCoroutine != null)

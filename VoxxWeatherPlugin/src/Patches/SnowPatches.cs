@@ -391,11 +391,11 @@ namespace VoxxWeatherPlugin.Patches
             SnowTrackersManager.TempSaveTracker(__instance, TrackerType.Footprints);
         }
 
-        [HarmonyPatch(typeof(ItemDropship), nameof(ItemDropship.OpenShipClientRpc))]
+        [HarmonyPatch(typeof(ItemDropship), nameof(ItemDropship.ShipLandedAnimationEvent))]
         [HarmonyPrefix]
-        private static void ItemShipSnowPatch(GrabbableObject __instance)
+        private static void ItemShipSnowPatch(ItemDropship __instance)
         {
-            SnowTrackersManager.RegisterFootprintTracker(__instance, TrackerType.Item, particleSize: 4f);
+            SnowTrackersManager.RegisterFootprintTracker(__instance, TrackerType.Item, particleSize: 18f);
             SnowTrackersManager.PlayFootprintTracker(__instance, TrackerType.Item, true);
         }
 

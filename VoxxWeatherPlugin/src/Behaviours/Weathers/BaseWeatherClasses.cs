@@ -9,7 +9,8 @@ namespace VoxxWeatherPlugin.Weathers
         public Weather WeatherDefinition { get; internal set; } = null!;
         public bool IsActive => (gameObject.activeInHierarchy && enabled) ||
                                 ((!StartOfRound.Instance?.inShipPhase ?? false) && // To prevent weather counted as activated in orbit
-                                WeatherDefinition == LevelManipulator.Instance?.currentWeather); 
+                                IsMatched); 
+        public bool IsMatched => WeatherDefinition == LevelManipulator.Instance?.currentWeather;
                                 
         protected System.Random? SeededRandom => LevelManipulator.Instance.seededRandom;
         protected Bounds LevelBounds => LevelManipulator.Instance?.levelBounds ?? default;

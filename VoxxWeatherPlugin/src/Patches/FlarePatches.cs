@@ -224,8 +224,7 @@ namespace VoxxWeatherPlugin.Patches
         [HarmonyPostfix]
         static void TurretMalfunctionPatch(Turret __instance)
         {
-            if ((SolarFlareWeather.Instance?.IsActive ?? false) &&
-                SolarFlareWeather.Instance?.flareData != null)
+            if (SolarFlareWeather.Instance?.IsMatched ?? false)
             {
                 SolarFlareWeather.Instance.CreateStaticParticle(__instance);
             }
@@ -235,8 +234,7 @@ namespace VoxxWeatherPlugin.Patches
         [HarmonyPostfix]
         static void RadMechMalfunctionPatch(RadMechAI __instance)
         {
-            if ((SolarFlareWeather.Instance?.IsActive ?? false) &&
-                SolarFlareWeather.Instance?.flareData != null)
+            if (SolarFlareWeather.Instance?.IsMatched ?? false)
             {
                 SolarFlareWeather.Instance.CreateStaticParticle(__instance);
             }
