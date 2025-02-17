@@ -6,12 +6,13 @@ using UnityEngine.AI;
 using UnityEngine.VFX;
 using System.Collections.Generic;
 using VoxxWeatherPlugin.Behaviours;
+using System.Collections;
 
 namespace VoxxWeatherPlugin.Weathers
 {
     internal class HeatwaveWeather: BaseWeather
     {
-        public static HeatwaveWeather? Instance { get; private set; }
+        public static HeatwaveWeather Instance { get; private set; } = null!;
         [SerializeField]
         internal Volume? exhaustionFilter; // Filter for visual effects
         private BoxCollider? heatwaveTrigger; // Trigger collider for the heatwave zone
@@ -38,7 +39,6 @@ namespace VoxxWeatherPlugin.Weathers
         {
             LevelManipulator.Instance.InitializeLevelProperties(1.3f);
             VFXManager?.PopulateLevelWithVFX();
-            timeOfDayFactor = VFXManager?.CooldownHeatwaveVFX() ?? 1f;
             SetupHeatwaveWeather();
         }
 
@@ -104,15 +104,6 @@ namespace VoxxWeatherPlugin.Weathers
             //     }
             // }
         }
-
-        private void Update()
-        {
-            // Cooldown the heatwave VFX based on the sun intensity
-            if (TimeOfDay.Instance.normalizedTimeOfDay % 0.1f < 0.01f)
-            {
-                timeOfDayFactor = VFXManager?.CooldownHeatwaveVFX() ?? 1f;
-            }
-        }
     }
 
 
@@ -122,6 +113,7 @@ namespace VoxxWeatherPlugin.Weathers
         public GameObject? heatwaveVFXContainer; // GameObject for the particles
         [SerializeField]
         internal AnimationCurve? heatwaveIntensityCurve; // Curve for the intensity of the heatwave
+        private Coroutine? cooldownCoroutine; // Coroutine for cooling down the heatwave VFX
         private List<VisualEffect> cachedVFX = new List<VisualEffect>(); // Cached VFX for the heatwave particles
 
         // Variables for emitter placement
@@ -147,6 +139,11 @@ namespace VoxxWeatherPlugin.Weathers
             if (heatwaveVFXContainer == null)
                 heatwaveVFXContainer = new GameObject("HeatwaveVFXContainer");
 
+            StartCoroutine(PlaceHeatwaveVFXCoroutine());
+        }
+
+        private IEnumerator PlaceHeatwaveVFXCoroutine()
+        {
             int placedEmittersNum = 0;
 
             int xCount = Mathf.CeilToInt(LevelBounds.size.x / emitterSize);
@@ -186,6 +183,8 @@ namespace VoxxWeatherPlugin.Weathers
                         minY = Mathf.Min(minY, position.y);
                         maxY = Mathf.Max(maxY, position.y);
                     }
+
+                    yield return null;
                 }
             }
             
@@ -221,6 +220,14 @@ namespace VoxxWeatherPlugin.Weathers
             return (Vector3.zero, Vector3.up);
         }
 
+        internal void Update()
+        {
+            if (cooldownCoroutine == null)
+            {
+                cooldownCoroutine = StartCoroutine(CooldownHeatwaveVFX());
+            }
+        }
+
         internal override void Reset()
         {
             if (heatwaveVFXContainer != null)
@@ -251,7 +258,7 @@ namespace VoxxWeatherPlugin.Weathers
         }
 
         
-        internal float CooldownHeatwaveVFX()
+        internal IEnumerator CooldownHeatwaveVFX()
         {
             float reductionFactor = 1f;
             
@@ -264,10 +271,12 @@ namespace VoxxWeatherPlugin.Weathers
                 foreach (VisualEffect vfx in cachedVFX)
                 {
                     vfx?.SetFloat(spawnRatePropertyID, Configuration.HeatwaveParticlesSpawnRate.Value * reductionFactor);
+                    yield return null;
                 }
             }
             
-            return reductionFactor;
+            HeatwaveWeather.Instance.timeOfDayFactor = reductionFactor;
+            cooldownCoroutine = null;
         }
     }
 }
