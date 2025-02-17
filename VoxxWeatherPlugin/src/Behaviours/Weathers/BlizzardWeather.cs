@@ -331,7 +331,7 @@ namespace VoxxWeatherPlugin.Weathers
             blizzardSFXPlayer = GetComponent<AudioSource>();
             blizzardSFXPlayer.spatialBlend = 0; // 2D sound
             blizzardCollisionCamera = snowVFXContainer?.GetComponentInChildren<Camera>();
-            blizzardFog = snowVFXContainer?.GetComponentInChildren<LocalVolumetricFog>();
+            blizzardFog = snowVFXContainer?.GetComponentInChildren<LocalVolumetricFog>(true);
         }
 
         internal override void OnEnable()
