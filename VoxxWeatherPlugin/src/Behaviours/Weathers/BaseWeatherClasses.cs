@@ -11,7 +11,7 @@ namespace VoxxWeatherPlugin.Weathers
                                 ((!StartOfRound.Instance?.inShipPhase ?? false) && // To prevent weather counted as activated in orbit
                                 WeatherDefinition == LevelManipulator.Instance?.currentWeather); 
                                 
-        protected System.Random? SeededRandom => LevelManipulator.Instance?.seededRandom;
+        protected System.Random? SeededRandom => LevelManipulator.Instance.seededRandom;
         protected Bounds LevelBounds => LevelManipulator.Instance?.levelBounds ?? default;
         // protected abstract BaseVFXManager VFXManager { get; }
 

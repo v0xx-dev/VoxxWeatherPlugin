@@ -296,6 +296,16 @@ namespace VoxxWeatherPlugin.Utils
             
             Debug.LogDebug($"NavMesh rebaked in {sw.ElapsedMilliseconds} ms");
         }
+
+        public static Color Clamp(this Color color, float min, float max)
+        {
+            return new Color(
+                Mathf.Clamp(color.r, min, max),
+                Mathf.Clamp(color.g, min, max),
+                Mathf.Clamp(color.b, min, max),
+                Mathf.Clamp(color.a, min, max)
+            );
+        }
     
     }
 }

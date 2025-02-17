@@ -25,7 +25,7 @@ namespace VoxxWeatherPlugin.Behaviours
 {
     public class LevelManipulator : MonoBehaviour
     {
-        public static LevelManipulator? Instance { get; private set; } = null!;
+        public static LevelManipulator Instance { get; private set; } = null!;
         
         #region Snowy Weather Configuration
         public bool IsSnowReady { get; private set; } = false;
@@ -132,7 +132,7 @@ namespace VoxxWeatherPlugin.Behaviours
         [SerializeField]
         internal float heightThreshold = -100f; // Under this y coordinate, objects will not be considered for snow rendering
         [SerializeField]
-        internal QuicksandTrigger[]? waterTriggerObjects;
+        internal List<QuicksandTrigger>? waterTriggerObjects;
         [SerializeField]
         internal List<GameObject> waterSurfaceObjects = [];
         [SerializeField]
@@ -193,19 +193,12 @@ namespace VoxxWeatherPlugin.Behaviours
 
         internal void InitializeLevelProperties(float sizeMultiplier = 0f)
         {
-#if DEBUG
-            if (LLLCompat.isActive)
-            {
-                LLLCompat.StoreLevelData();
-                LLLCompat.StoreInteriorData();
-            }
-#endif
             // Update random seed
             seededRandom = new System.Random(StartOfRound.Instance.randomMapSeed);
             // Update the sun light data
             sunLightData = TimeOfDay.Instance.sunDirect?.GetComponent<HDAdditionalLightData>();
             // Update the level bounds
-            if (sizeMultiplier != 0f)
+            if (sizeMultiplier > 0f)
             {
                 CalculateLevelSize(sizeMultiplier);
                 terraMeshConfig.levelBounds = levelBounds;
@@ -767,25 +760,21 @@ namespace VoxxWeatherPlugin.Behaviours
             if (SnowfallWeather.Instance?.IsActive ?? false)
             {
                 VisualEffect? snowVFX = SnowfallWeather.Instance?.VFXManager?.snowVFXContainer?.GetComponent<VisualEffect>();
-                if (snowVFX != null)
-                {
-                    snowVFX.SetVector4(SnowfallShaderIDs.SnowColor, snowColor);
-                }
+                snowVFX?.SetVector4(SnowfallShaderIDs.SnowColor, snowColor);
             }
             else
             {
                 VisualEffect? blizzardVFX = BlizzardWeather.Instance?.VFXManager?.snowVFXContainer?.GetComponent<VisualEffect>();
-                if (blizzardVFX != null)
-                {
-                    blizzardVFX.SetVector4(SnowfallShaderIDs.SnowColor, snowColor);
-                    blizzardVFX.SetVector4(SnowfallShaderIDs.BlizzardFogColor, blizzardFogColor);
-                }
+                blizzardVFX?.SetVector4(SnowfallShaderIDs.SnowColor, snowColor);
+                blizzardVFX?.SetVector4(SnowfallShaderIDs.BlizzardFogColor, blizzardFogColor);
 
                 VisualEffect? waveVFX = BlizzardWeather.Instance?.VFXManager?.blizzardWaveContainer?.GetComponentInChildren<VisualEffect>(true);
-                if (waveVFX != null)
+                waveVFX?.SetVector4(SnowfallShaderIDs.SnowColor, blizzardCrystalsColor);
+                waveVFX?.SetVector4(SnowfallShaderIDs.BlizzardFogColor, blizzardFogColor);
+
+                if (BlizzardWeather.Instance?.VFXManager?.blizzardFog != null)
                 {
-                    waveVFX.SetVector4(SnowfallShaderIDs.SnowColor, blizzardCrystalsColor);
-                    waveVFX.SetVector4(SnowfallShaderIDs.BlizzardFogColor, blizzardFogColor);
+                    BlizzardWeather.Instance.VFXManager.blizzardFog.parameters.albedo = blizzardFogColor;
                 }
             }
         }
@@ -1018,21 +1007,21 @@ namespace VoxxWeatherPlugin.Behaviours
             waterTriggerObjects = FindObjectsOfType<QuicksandTrigger>().Where(x => x.enabled &&
                                                                                 x.gameObject.activeInHierarchy &&
                                                                                 x.isWater &&
-                                                                                x.gameObject.scene.name == CurrentSceneName).ToArray();
+                                                                                x.gameObject.scene.name == CurrentSceneName).ToList();
 #else
             waterTriggerObjects = FindObjectsOfType<QuicksandTrigger>().Where(x => x.enabled &&
                                                                                 x.gameObject.activeInHierarchy &&
                                                                                 x.isWater &&
                                                                                 x.gameObject.scene.name == CurrentSceneName &&
-                                                                                !x.isInsideWater).ToArray();
+                                                                                !x.isInsideWater).ToList();
 #endif
             HashSet<GameObject> iceObjects = new HashSet<GameObject>();
 
-            NavMeshModifierVolume[] navMeshModifiers = NavMeshModifierVolume.activeModifiers.Where(x => x.gameObject.activeInHierarchy &&
+            List<NavMeshModifierVolume> navMeshModifiers = NavMeshModifierVolume.activeModifiers.Where(x => x.gameObject.activeInHierarchy &&
                                                                                     x.gameObject.scene.name == CurrentSceneName &&
                                                                                     x.transform.position.y > heightThreshold &&
                                                                                     x.enabled &&
-                                                                                    x.area == 1).ToArray(); // Layer 1 is not walkable
+                                                                                    x.area == 1).ToList(); // Layer 1 is not walkable
 
             
             GameObject? navMeshContainer = GameObject.FindGameObjectWithTag("OutsideLevelNavMesh");
@@ -1040,15 +1029,7 @@ namespace VoxxWeatherPlugin.Behaviours
             GameObject iceContainer = new GameObject("IceContainer");
             iceContainer.transform.SetParent(navMeshContainer?.transform ?? randomWater?.transform?.parent);
 
-            foreach (QuicksandTrigger waterObject in waterTriggerObjects)
-            {
-                // Disable sinking
-                waterObject.enabled = false;
-                if (waterObject.TryGetComponent<Collider>(out Collider collider))
-                {
-                    collider.enabled = false;
-                }
-            }
+            
 
             foreach (GameObject waterSurface in waterSurfaceObjects)
             {
@@ -1070,6 +1051,13 @@ namespace VoxxWeatherPlugin.Behaviours
                     continue;
                 }
 
+                // If area of bounds of mesh renderer are bigger than twice the LevelBounds, skip freezing
+                if (meshRenderer.bounds.size.x * meshRenderer.bounds.size.z > 2 * levelBounds.size.x * levelBounds.size.z)
+                {
+                    Debug.LogDebug($"Skipping freezing water surface {waterSurface.name} because it's too big. Is it an ocean?");
+                    continue;
+                }
+
                 if (waterSurface.TryGetComponent<Collider>(out Collider collider))
                 {
                     Destroy(collider);
@@ -1080,8 +1068,9 @@ namespace VoxxWeatherPlugin.Behaviours
                 meshCollider.sharedMesh = meshCopy;
 
                 // Check if any bounds of NavMeshModifierVolume intersect with the water surface bounds and disable it in that case
-                foreach (NavMeshModifierVolume navMeshModifier in navMeshModifiers)
+                for (int i = navMeshModifiers.Count - 1; i >= 0; i--)
                 {
+                    NavMeshModifierVolume navMeshModifier = navMeshModifiers[i];
                     Bounds navVolumeBounds = new Bounds(navMeshModifier.center + navMeshModifier.transform.position, navMeshModifier.size);
                     Bounds waterBounds = meshRenderer.bounds;
                     // Enlarge along y axis since water surfaces are thin
@@ -1090,6 +1079,22 @@ namespace VoxxWeatherPlugin.Behaviours
                     {
                         Debug.LogDebug($"Disabling NavMeshModifierVolume {navMeshModifier.name} intersecting with water surface {waterSurface.name}");
                         navMeshModifier.enabled = false;
+                        navMeshModifiers.RemoveAt(i);
+                    }
+                }
+
+                for (int i = waterTriggerObjects.Count - 1; i >= 0; i--)
+                {
+                    QuicksandTrigger waterObject = waterTriggerObjects[i];
+                    if (waterObject.TryGetComponent<Collider>(out collider) && collider.bounds.Intersects(meshRenderer.bounds))
+                    {
+                        // Disable sinking
+                        waterObject.enabled = false;
+                        collider.enabled = false;
+
+                        //Remove the water trigger from the list
+                        waterTriggerObjects.RemoveAt(i);
+
                     }
                 }
                     

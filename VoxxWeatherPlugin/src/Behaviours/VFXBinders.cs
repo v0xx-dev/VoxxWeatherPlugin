@@ -3,6 +3,7 @@ using UnityEngine.Rendering;
 using UnityEngine.Rendering.HighDefinition;
 using UnityEngine.VFX;
 using UnityEngine.VFX.Utility;
+using VoxxWeatherPlugin.Utils;
 
 namespace VoxxWeatherPlugin.Behaviours
 {
@@ -18,13 +19,14 @@ namespace VoxxWeatherPlugin.Behaviours
         public HDAdditionalCameraData AdditionalData;
         public RenderTexture? depthTexture;
         public RenderTexture? colorTexture;
-        bool useCameraBuffer = false;
         internal Camera m_Camera;
+        public bool useCameraBuffer = false;
 
         [VFXPropertyBinding("UnityEditor.VFX.CameraType"), SerializeField]
-        ExposedProperty CameraProperty = "Camera";
+        protected ExposedProperty CameraProperty = "Camera";
 
         RTHandle m_Texture;
+        protected RenderTexture? depthBufferRT = null;
 
         ExposedProperty m_Position;
         ExposedProperty m_Angles;
@@ -49,7 +51,7 @@ namespace VoxxWeatherPlugin.Behaviours
             UpdateSubProperties();
         }
 
-        void UpdateSubProperties()
+        protected virtual void UpdateSubProperties()
         {
             // Get Camera component from HDRP additional data
             if (AdditionalData != null)
@@ -72,7 +74,7 @@ namespace VoxxWeatherPlugin.Behaviours
             m_OrthographicSize = CameraProperty + "_orthographicSize";
         }
 
-        void RequestHDRPBuffersAccess(ref HDAdditionalCameraData.BufferAccess access)
+        protected void RequestHDRPBuffersAccess(ref HDAdditionalCameraData.BufferAccess access)
         {
             access.RequestAccess(HDAdditionalCameraData.BufferAccessType.Color);
             access.RequestAccess(HDAdditionalCameraData.BufferAccessType.Depth);
@@ -102,7 +104,7 @@ namespace VoxxWeatherPlugin.Behaviours
                 AdditionalData.requestGraphicsBuffer -= RequestHDRPBuffersAccess;
         }
 
-        private void OnValidate()
+        protected void OnValidate()
         {
             UpdateSubProperties();
 
@@ -197,13 +199,15 @@ namespace VoxxWeatherPlugin.Behaviours
             if (useDepthTexture)
                 component.SetTexture(m_DepthBuffer, depthTexture);
             else if (depth != null)
-                component.SetTexture(m_DepthBuffer, depth!.rt);
+            {
+                component.SetTexture(m_DepthBuffer, depth.rt);
+                depthBufferRT = depth.rt;
+            }
 
             if (useColorTexture)
                 component.SetTexture(m_ColorBuffer, colorTexture);
             else if (color != null)
                 component.SetTexture(m_ColorBuffer, color!.rt);
-
         }
 
         /// <summary>
@@ -213,6 +217,69 @@ namespace VoxxWeatherPlugin.Behaviours
         public override string ToString()
         {
             return string.Format($"HDRP Camera : '{(AdditionalData == null? "null" : AdditionalData.gameObject.name)}' -> {CameraProperty}");
+        }
+    }
+
+    [VFXBinder("HDRP/HDRP Fog&Camera")]
+    public class HDRPCameraFogBinder : HDRPCameraOrTextureBinder
+    {
+        private Material? fogMaterial;
+        public LocalVolumetricFog? volumetricFog;
+
+        protected override void UpdateSubProperties()
+        {
+            base.UpdateSubProperties();
+            // Get Camera component from HDRP additional data
+            if (volumetricFog != null)
+            {
+                fogMaterial ??= volumetricFog.parameters.materialMask;
+            }
+        }
+
+        public override bool IsValid(VisualEffect component)
+        {
+            bool isValid = base.IsValid(component);
+            return fogMaterial != null && volumetricFog != null && isValid;
+        }
+
+        public override void UpdateBinding(VisualEffect component)
+        {
+            base.UpdateBinding(component);
+
+            if (depthBufferRT != null)
+            {
+                UpdateFogOcclusion(fogMaterial, m_Camera, depthBufferRT, true);
+                return;
+            }
+            else if (depthTexture != null)
+            {
+                UpdateFogOcclusion(fogMaterial, m_Camera, depthTexture, true);
+                return;
+            }
+
+            Debug.LogWarning("No valid texture or camera depth buffer found for HDRP Camera and Fog Binder.");
+
+        }
+
+        private void UpdateFogOcclusion(Material? fogMaterial, Camera? depthCamera, RenderTexture? depthMap, bool updateMatrix = false)
+        {
+            Matrix4x4 GetCameraMatrix()
+            {
+                Matrix4x4 cameraMatrix = depthCamera != null ? depthCamera.projectionMatrix * depthCamera.worldToCameraMatrix : default;
+
+                return cameraMatrix;
+            }
+
+            if (depthCamera == null || depthMap == null || fogMaterial == null)
+                return;
+
+            fogMaterial.SetTexture(SnowfallShaderIDs.DepthTex, depthMap);
+
+            if (updateMatrix)
+            {
+                Matrix4x4 cameraMatrix = GetCameraMatrix();
+                fogMaterial.SetMatrix(SnowfallShaderIDs.LightViewProjection, cameraMatrix);
+            }
         }
     }
 

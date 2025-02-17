@@ -4,6 +4,7 @@ using System.Collections;
 using GameNetcodeStuff;
 using UnityEngine.Events;
 using VoxxWeatherPlugin.Behaviours;
+using UnityEngine.Rendering.HighDefinition;
 
 namespace VoxxWeatherPlugin.Weathers
 {
@@ -15,10 +16,6 @@ namespace VoxxWeatherPlugin.Weathers
         internal override float MaxSnowHeight => Configuration.maxSnowHeightBlizzard.Value;
         internal override float MinSnowNormalizedTime => Configuration.minTimeToFullSnowBlizzard.Value;
         internal override float MaxSnowNormalizedTime => Configuration.maxTimeToFullSnowBlizzard.Value;
-
-        [Header("Visuals")]
-        [SerializeField]
-        internal Camera? blizzardCollisionCamera;
 
         [Header("Wind")]
         [SerializeField]
@@ -123,7 +120,7 @@ namespace VoxxWeatherPlugin.Weathers
             Vector3 playerHeadPos = GameNetworkManager.Instance.localPlayerController.gameplayCamera.transform.position;
             
             // Calculate the direction vector from playerHeadPos to blizzard source
-            Vector3 directionToSource = (blizzardCollisionCamera.transform.position - playerHeadPos).normalized;
+            Vector3 directionToSource = (VFXManager.blizzardCollisionCamera.transform.position - playerHeadPos).normalized;
 
             // Calculate the point 20 meters away in the direction of the blizzard source
             Vector3 targetPoint = playerHeadPos + directionToSource * 20f;
@@ -136,7 +133,7 @@ namespace VoxxWeatherPlugin.Weathers
             // Visualize the Linecast
             UnityEngine.Debug.DrawLine(playerHeadPos, targetPoint, Color.red, Time.fixedDeltaTime);
             // Visualize the Wind Direction
-            UnityEngine.Debug.DrawRay(blizzardCollisionCamera.transform.position, windDirection * 10, Color.blue, Time.fixedDeltaTime);
+            UnityEngine.Debug.DrawRay(VFXManager.blizzardCollisionCamera.transform.position, windDirection * 10, Color.blue, Time.fixedDeltaTime);
             // If linecast hits, visualize the hit point by doing a raycast and drawing a line
             if (!isLocalPlayerInWind)
             {
@@ -326,11 +323,15 @@ namespace VoxxWeatherPlugin.Weathers
         internal AudioClip? sonicBoomSFX;
         [SerializeField]
         internal AudioClip? wavePassSFX;
+        internal Camera? blizzardCollisionCamera;
+        internal LocalVolumetricFog? blizzardFog;
 
         internal void Awake()
         {
             blizzardSFXPlayer = GetComponent<AudioSource>();
             blizzardSFXPlayer.spatialBlend = 0; // 2D sound
+            blizzardCollisionCamera = snowVFXContainer?.GetComponentInChildren<Camera>();
+            blizzardFog = snowVFXContainer?.GetComponentInChildren<LocalVolumetricFog>();
         }
 
         internal override void OnEnable()
@@ -373,9 +374,14 @@ namespace VoxxWeatherPlugin.Weathers
                 chillWaveTrigger.SetupChillWave(LevelBounds);
                 Debug.LogDebug("Chill wave trigger setup!");
             }
+
+            if (Configuration.useVolumetricBlizzardFog.Value && blizzardFog != null)
+            {
+                blizzardFog.gameObject.SetActive(true);
+                blizzardFog.parameters.meanFreePath = SeededRandom.NextDouble(Configuration.blizzardFogMeanFreePathMin.Value, Configuration.blizzardFogMeanFreePathMax.Value);
+            }
             
             base.PopulateLevelWithVFX();
         }
-
     }
 }

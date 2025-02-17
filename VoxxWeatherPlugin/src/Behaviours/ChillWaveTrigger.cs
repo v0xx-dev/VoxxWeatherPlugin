@@ -3,6 +3,7 @@ using GameNetcodeStuff;
 using VoxxWeatherPlugin.Utils;
 using System.Collections;
 using VoxxWeatherPlugin.Weathers;
+using UnityEngine.Rendering.HighDefinition;
 
 namespace VoxxWeatherPlugin.Behaviours
 {
@@ -11,6 +12,7 @@ namespace VoxxWeatherPlugin.Behaviours
         public AudioSource? audioSourceTemplate;
         private AudioSource[]? audioSources;
         public Camera? collisionCamera;
+        private LocalVolumetricFog? blizzardWaveFog;
         [SerializeField]
         internal int WaveDamage => Configuration.chillingWaveDamage.Value;
         [SerializeField]
@@ -94,6 +96,8 @@ namespace VoxxWeatherPlugin.Behaviours
 
         internal void SetupChillWave(Bounds levelBounds)
         {
+            blizzardWaveFog ??= gameObject.GetComponentInChildren<LocalVolumetricFog>(true);
+
             audioSourceTemplate ??= gameObject.GetComponentInChildren<AudioSource>(true);
             audioSourceTemplate.gameObject.SetActive(false);
             
@@ -106,6 +110,11 @@ namespace VoxxWeatherPlugin.Behaviours
             waveCollider.center = new Vector3(0f, LevelManipulator.Instance.heightThreshold + newHeightSpan / 2, waveCollider.center.z);
             waveCollider.size = new Vector3(levelBounds.size.x, newHeightSpan, waveCollider.size.z);
 
+            if (blizzardWaveFog != null)
+            {
+                blizzardWaveFog.parameters.size = new Vector3(waveCollider.size.x, waveCollider.size.z, waveCollider.size.y);
+                blizzardWaveFog.transform.localPosition = waveCollider.center;
+            }
             // Set the camera size to cover the whole box (this will require LOD bias to be set to 100 to stop culling)
             // float maxLength = Mathf.Max(waveCollider.size.x, waveCollider.size.y, waveCollider.size.z) / 2f;
             // collisionCamera!.orthographicSize = maxLength;

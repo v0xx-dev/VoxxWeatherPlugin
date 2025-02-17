@@ -361,6 +361,7 @@ namespace VoxxWeatherPlugin.Patches
             {
                 return;
             }
+            
             bool enableTracker = __instance.FrontLeftWheel.isGrounded ||
                                     __instance.FrontRightWheel.isGrounded ||
                                     __instance.BackLeftWheel.isGrounded ||
@@ -388,6 +389,14 @@ namespace VoxxWeatherPlugin.Patches
         private static void VehicleSnowTracksDestroyPatch(VehicleController __instance)
         {
             SnowTrackersManager.TempSaveTracker(__instance, TrackerType.Footprints);
+        }
+
+        [HarmonyPatch(typeof(ItemDropship), nameof(ItemDropship.OpenShipClientRpc))]
+        [HarmonyPrefix]
+        private static void ItemShipSnowPatch(GrabbableObject __instance)
+        {
+            SnowTrackersManager.RegisterFootprintTracker(__instance, TrackerType.Item, particleSize: 4f);
+            SnowTrackersManager.PlayFootprintTracker(__instance, TrackerType.Item, true);
         }
 
         [HarmonyPatch(typeof(GrabbableObject), "PlayDropSFX")]

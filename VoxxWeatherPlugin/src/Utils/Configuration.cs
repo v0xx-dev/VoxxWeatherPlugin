@@ -1,7 +1,5 @@
 using BepInEx;
-using BepInEx.Bootstrap;
 using BepInEx.Configuration;
-using Newtonsoft.Json;
 
 namespace VoxxWeatherPlugin.Utils
 {
@@ -35,9 +33,19 @@ namespace VoxxWeatherPlugin.Utils
         public static ConfigEntry<bool> DistortOnlyVoiceDuringSolarFlare; //
         public static ConfigEntry<float> BatteryDrainMultiplier; //
         public static ConfigEntry<bool> DrainBatteryInFacility; //
-        public static ConfigEntry<bool> DoorMalfunctionEnabled; //
-        public static ConfigEntry<float> DoorMalfunctionChance; //
         public static ConfigEntry<float> NoiseStaticLevel; //
+        public static ConfigEntry<bool> DoorMalfunctionEnabled; //
+        public static ConfigEntry<bool> RadMechMalfunctionEnabled; //
+        public static ConfigEntry<bool> TurretMalfunctionEnabled; //
+        public static ConfigEntry<bool> LandmineMalfunctionEnabled; //
+        public static ConfigEntry<float> RadMechMalfunctionChance; //
+        public static ConfigEntry<float> RadMechReactivationChance; //
+        public static ConfigEntry<float> TurretMalfunctionChance; //
+        public static ConfigEntry<float> RadMechStunDuration; //
+        public static ConfigEntry<float> RadMechReactivateDelay; //
+        public static ConfigEntry<float> TurretMalfunctionDelay; //
+        public static ConfigEntry<float> DoorMalfunctionChance; //
+        public static ConfigEntry<float> LandmineMalfunctionChance; //
         #endregion
 
         #region Snowfall
@@ -73,14 +81,17 @@ namespace VoxxWeatherPlugin.Utils
         public static ConfigEntry<int>  chillingWaveDamage; //
         public static ConfigEntry<float>  blizzardAmbientVolume; //
         public static ConfigEntry<float>  blizzardWaveVolume; //
+        public static ConfigEntry<float>  blizzardFogMeanFreePathMin; //
+        public static ConfigEntry<float>  blizzardFogMeanFreePathMax; //
         #endregion
 
         #region Snow & Blizzard Graphics
         public static ConfigEntry<float> snowParticlesMultiplier; //
         public static ConfigEntry<float> blizzardWaveParticlesMultiplier; //
+        public static ConfigEntry<bool> useParticleBlizzardFog; //
+        public static ConfigEntry<bool> useVolumetricBlizzardFog; //
         public static ConfigEntry<bool> snowVfxLighting; //
         public static ConfigEntry<bool> blizzardWaveVfxLighting; //
-        public static ConfigEntry<bool> enableBlizzardFog; //
         public static ConfigEntry<bool> useOpaqueSnowMaterial; //
         
         public static ConfigEntry<bool> snowCastsShadows; //
@@ -203,20 +214,79 @@ namespace VoxxWeatherPlugin.Utils
                                                 "DrainBatteryInFacility",
                                                 false,
                                                 "Drain item battery even when inside a facility during Solar Flare");
-            DoorMalfunctionEnabled = Config.Bind("SolarFlare",
-                                                "DoorMalfunctionEnabled",
-                                                true,
-                                                "Enable or disable door malfunction during Average and Strong Solar Flare");
-            DoorMalfunctionChance = Config.Bind("SolarFlare",
-                                                "DoorMalfunctionChance",
-                                                0.5f,
-                                                new ConfigDescription("Chance of metal doors opening/closing by themselves during Solar Flare. 0.1 is 10% chance, 0.5 is 50% chance, 1.0 is 100% chance. Low chance might cause you to get soft locked behind a door in the facility!",
-                                                new AcceptableValueRange<float>(0, 1f)));
             NoiseStaticLevel = Config.Bind("SolarFlare",
                                             "NoiseStaticLevel",
                                             0.001f,
                                             new ConfigDescription("Level of static noise from the walkie talkie during Solar Flare. This is signal amplitude, the actual volume in dB will follow a logarithmic scale. For example the volume for value 0.1 relative to 0.2 is not reduced by 100%, it's actually by ~log10(0.2/0.1) %",
                                                                     new AcceptableValueRange<float>(0, 1f)));
+            DoorMalfunctionEnabled = Config.Bind("SolarFlare",
+                                                "DoorMalfunctionEnabled",
+                                                true,
+                                                "Enable or disable door malfunction during Mild, Average and Strong Solar Flare");
+
+            RadMechMalfunctionEnabled = Config.Bind("SolarFlare",
+                                                "RadMechMalfunctionEnabled",
+                                                true,
+                                                "Enable or disable robot malfunction during Average and Strong Solar Flare");
+
+            TurretMalfunctionEnabled = Config.Bind("SolarFlare",
+                                                "TurretMalfunctionEnabled",
+                                                true,
+                                                "Enable or disable turret malfunction during all types of Solar Flare");
+
+            LandmineMalfunctionEnabled = Config.Bind("SolarFlare",
+                                                "LandmineMalfunctionEnabled",
+                                                true,
+                                                "Enable or disable landmine malfunction during all types of Solar Flare");
+
+            DoorMalfunctionChance = Config.Bind("SolarFlare",
+                                                "DoorMalfunctionChance",
+                                                0.5f,
+                                                new ConfigDescription("Chance of metal doors opening/closing by themselves during Solar Flare. 0.1 is 10% chance, 0.5 is 50% chance, 1.0 is 100% chance. Low chance might cause you to get soft locked behind a door in the facility! All chances are rolled independently for each door.",
+                                                new AcceptableValueRange<float>(0, 1f)));
+
+            RadMechMalfunctionChance = Config.Bind("SolarFlare",
+                                                "RadMechMalfunctionChance",
+                                                0.4f,
+                                                new ConfigDescription("Chance of RadMechs malfunctioning during Solar Flare. 0.1 is 10% chance, 0.5 is 50% chance, 1.0 is 100% chance. All chances are rolled independently for each RadMech.",
+                                                                    new AcceptableValueRange<float>(0, 1f)));
+
+            RadMechReactivationChance = Config.Bind("SolarFlare",
+                                                "RadMechReactivationChance",
+                                                0.25f,
+                                                new ConfigDescription("Chance of RadMechs reactivating during Solar Flare. 0.1 is 10% chance, 0.5 is 50% chance, 1.0 is 100% chance. All chances are rolled independently for each RadMech.",
+                                                                    new AcceptableValueRange<float>(0, 1f)));
+
+            TurretMalfunctionChance = Config.Bind("SolarFlare",
+                                                "TurretMalfunctionChance",
+                                                0.3f,
+                                                new ConfigDescription("Chance of turrets malfunctioning during Solar Flare. 0.1 is 10% chance, 0.5 is 50% chance, 1.0 is 100% chance. All chances are rolled independently for each turret.",
+                                                                    new AcceptableValueRange<float>(0, 1f)));
+
+            RadMechStunDuration = Config.Bind("SolarFlare",
+                                                "RadMechStunDuration",
+                                                4f,
+                                                new ConfigDescription("Time in seconds RadMechs are stunned randomly during Solar Flare.",
+                                                                    new AcceptableValueRange<float>(0, 60f)));
+
+            RadMechReactivateDelay = Config.Bind("SolarFlare",
+                                                "RadMechReactivateDelay",
+                                                5f,
+                                                new ConfigDescription("Delay in seconds before RadMechs reactivate",
+                                                                    new AcceptableValueRange<float>(0, 60f)));
+
+            TurretMalfunctionDelay = Config.Bind("SolarFlare",
+                                                "TurretMalfunctionDelay",
+                                                5f,
+                                                new ConfigDescription("Delay in seconds before turrets start to malfunction during Solar Flare.",
+                                                                    new AcceptableValueRange<float>(0, 60f)));
+
+            LandmineMalfunctionChance = Config.Bind("SolarFlare",
+                                                "LandmineMalfunctionChance",
+                                                0.3f,
+                                                new ConfigDescription("Chance of landmines malfunctioning during Solar Flare. 0.1 is 10% chance, 0.5 is 50% chance, 1.0 is 100% chance. All chances are rolled independently for each landmine.",
+                                                                    new AcceptableValueRange<float>(0, 1f)));
+
             #endregion
 
             #region Snowfall
@@ -243,7 +313,7 @@ namespace VoxxWeatherPlugin.Utils
                                                                 new AcceptableValueRange<float>(0, 1f)));
             freezeWater = Config.Bind("Snowfall",
                                     "freezeWater",
-                                    false, //TODO: Change to true after implementing the feature
+                                    true,
                                     "Freeze water during snowfall and blizzard weather");
             underSnowFilterMultiplier = Config.Bind("Snowfall",
                                                     "underSnowFilterMultiplier",
@@ -297,77 +367,103 @@ namespace VoxxWeatherPlugin.Utils
                                                 1.0f,
                                                 new ConfigDescription("Minimum snow height at the end of the day in meters during blizzard weather. Actual snow height is random between min and max.",
                                                                     new AcceptableValueRange<float>(0, 10f)));
+            
             maxSnowHeightBlizzard = Config.Bind("Blizzard",
                                                 "maxSnowHeightBlizzard",
                                                 1.8f,
                                                 new ConfigDescription("Maximum snow height at the end of the day in meters during blizzard weather. Actual snow height is random between min and max.",
                                                                     new AcceptableValueRange<float>(0, 10f)));
+            
             minTimeToFullSnowBlizzard = Config.Bind("Blizzard",
                                                     "minTimeToFullSnowBlizzard",
                                                     0.4f,
                                                     new ConfigDescription("Minimum fraction of the day until snow reaches max height during blizzard weather. Actual time is random between min and max.",
                                                                         new AcceptableValueRange<float>(0, 1f)));
+            
             maxTimeToFullSnowBlizzard = Config.Bind("Blizzard",
                                                     "maxTimeToFullSnowBlizzard",
                                                     0.7f,
                                                     new ConfigDescription("Maximum fraction of the day until snow reaches max height during blizzard weather. Actual time is random between min and max.",
                                                                         new AcceptableValueRange<float>(0, 1f)));
 
+            
             minTimeUntilFrostbite = Config.Bind("Blizzard",
                                                 "minTimeUntilFrostbite",
                                                 40f,
                                                 new ConfigDescription("Minimum time in seconds until frostbite reaches full intensity, effect starts to affect the player at 50% of chosen time. Actual time is random between min and max. Snowfall weather will only use 40% of this value as a constant.",
                                                                     new AcceptableValueRange<float>(0, 9999f)));
+            
             maxTimeUntilFrostbite = Config.Bind("Blizzard",
                                                 "maxTimeUntilFrostbite",
                                                 100f,
                                                 new ConfigDescription("Maximum time in seconds until frostbite reaches full intensity, effect starts to affect the player at 50% of chosen time. Actual time is random between min and max.",
                                                                     new AcceptableValueRange<float>(0, 9999f)));
+            
             minWindForce = Config.Bind("Blizzard",
                                         "minWindForce",
                                         0.37f,
                                         new ConfigDescription("Minimum wind force during blizzard weather. Actual wind force is random between min and max.",
                                                             new AcceptableValueRange<float>(0, 1f))); 
+            
             maxWindForce = Config.Bind("Blizzard",
                                         "maxWindForce",
                                         0.6f,
                                         new ConfigDescription("Maximum wind force during blizzard weather. At very high values you might not be able to move while standing in deep snow! Actual wind force is random between min and max.",
                                                             new AcceptableValueRange<float>(0, 1f)));
+            
             minWaveInterval = Config.Bind("Blizzard",
                                         "minWaveInterval",
                                         60f,
                                         new ConfigDescription("Minimum time in seconds between chilling waves of frost. Actual time is random between min and max.",
                                                             new AcceptableValueRange<float>(0, 9999f)));  
+            
             maxWaveInterval = Config.Bind("Blizzard",
                                         "maxWaveInterval",
                                         180f,
                                         new ConfigDescription("Maximum time in seconds between chilling waves of frost. Actual time is random between min and max.",
                                                             new AcceptableValueRange<float>(0, 9999f)));
+            
             minWaveCount = Config.Bind("Blizzard", 
                                         "minWaveCount",
                                         1,
                                         new ConfigDescription("Minimum number of chilling waves of frost that will strike in succession. Actual number is random between min and max.",
                                                             new AcceptableValueRange<int>(0, 99)));
+            
             maxWaveCount = Config.Bind("Blizzard",
                                         "maxWaveCount",
                                         5,
                                         new ConfigDescription("Maximum number of chilling waves of frost that will strike in succession. Actual number is random between min and max.",
                                                             new AcceptableValueRange<int>(0, 99)));
+            
             chillingWaveDamage = Config.Bind("Blizzard",
                                             "chillingWaveDamage",
                                             20,
                                             new ConfigDescription("Damage dealt by each chilling wave of frost if you get caught in one.",
                                                                 new AcceptableValueRange<int>(0, 99)));
+            
             blizzardAmbientVolume = Config.Bind("Blizzard",
                                                 "blizzardAmbientVolume",
                                                 1f,
                                                 new ConfigDescription("Volume of the blizzard ambient sound. 0 is silent, 1 is full volume.",
                                                                     new AcceptableValueRange<float>(0, 1f)));
+            
             blizzardWaveVolume = Config.Bind("Blizzard",
                                             "blizzardWaveVolume",
                                             1f,
                                             new ConfigDescription("Volume of the blizzard wave sound. 0 is silent, 1 is full volume.",
                                                                 new AcceptableValueRange<float>(0, 1f)));
+            
+            blizzardFogMeanFreePathMin = Config.Bind("Blizzard",
+                                                    "blizzardFogMeanFreePathMin",
+                                                    5f,
+                                                    new ConfigDescription("Minimum mean free path for blizzard fog in meters. Actual mean free path is random between min and max. Mean free path is the distance where visibility is reduced by 63%",
+                                                                        new AcceptableValueRange<float>(0.1f, 256f)));
+            
+            blizzardFogMeanFreePathMax = Config.Bind("Blizzard",
+                                                    "blizzardFogMeanFreePathMax",
+                                                    15f,
+                                                    new ConfigDescription("Maximum mean free path for blizzard fog in meters. Actual mean free path is random between min and max.",
+                                                                        new AcceptableValueRange<float>(0.1f, 256f)));  
             #endregion
 
             #region Snow & Blizzard Graphics
@@ -376,27 +472,37 @@ namespace VoxxWeatherPlugin.Utils
                                             1f,
                                             new ConfigDescription("Multiplier for the amount of snow/blizzard particles. Lower values may reduce performance impact but also visual quality.",
                                                                 new AcceptableValueRange<float>(0, 10f)));
+            
             blizzardWaveParticlesMultiplier = Config.Bind("Snow Graphics",
                                                         "blizzardWaveParticlesMultiplier",
                                                         1f,
                                                         new ConfigDescription("Multiplier for the amount of blizzard wave particles. Lower values may reduce performance impact but also reduce density of particles.",
                                                                             new AcceptableValueRange<float>(0, 10f)));  
-            enableBlizzardFog = Config.Bind("Snow Graphics",
-                                            "enableBlizzardFog",
-                                            true,
-                                            "Enable blizzard fog effect. Disabling this can improve performance, at the cost of visual quality.");
+            useParticleBlizzardFog = Config.Bind("Snow Graphics",
+                                            "useParticleBlizzardFog",
+                                            false,
+                                            "Enable particle based blizzard fog effect. Disabling this can improve performance, at the cost of visual quality.");
+            
+            useVolumetricBlizzardFog = Config.Bind("Snow Graphics",
+                                                "useVolumetricBlizzardFog",
+                                                true,
+                                                "Enable volumetric blizzard fog effect. Disabling this can improve performance, at the cost of visual quality. More performance friendly than particle based fog.");
+            
             snowVfxLighting = Config.Bind("Snow Graphics",
                                         "snowVfxLighting",
                                         false,
                                         "Determines if snow particles are affected by shadows and lighting. Disabling this will make snow particles appear the same regardless of lighting conditions, but significantly improves the performance.");
+            
             blizzardWaveVfxLighting = Config.Bind("Snow Graphics",
                                                 "blizzardWaveVfxLighting",
                                                 false,
                                                 "Determines if blizzard wave particles are affected by shadows and lighting. Disabling this will make blizzard wave particles appear the same regardless of lighting conditions, but significantly improves the performance.");
+            
             useOpaqueSnowMaterial = Config.Bind("Snow Graphics",
                                                 "useOpaqueSnowMaterial",
                                                 false,
                                                 "Use opaque snow material. Disabling this will use a transparent snow material, which will allow for more realistic snow overlay rendering, but will not work with the posterization effect.");
+            
             snowCastsShadows = Config.Bind("Snow Graphics",
                                         "snowCastsShadows",
                                         false,

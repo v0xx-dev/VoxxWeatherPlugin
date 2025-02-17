@@ -134,7 +134,7 @@ namespace VoxxWeatherPlugin.Weathers
             SnowTrackersManager.CleanupTrackers();
         }
 
-        internal void Update()
+        internal virtual void Update()
         {   
             PlayerControllerB localPlayer = GameNetworkManager.Instance.localPlayerController;
             
