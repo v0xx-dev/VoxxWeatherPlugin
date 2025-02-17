@@ -215,20 +215,19 @@ namespace VoxxWeatherPlugin.Behaviours
                 return;
             }
             // material.SetFloat(SnowfallShaderIDs.FadeValue, fadeValue);
+            float intensityFactor = material == snowOverlayMaterial ? 0.5f : 1f;
+            material.SetFloat(SnowfallShaderIDs.SnowNoisePower, LevelManipulator.Instance.snowIntensity * intensityFactor);
             material.SetTexture(SnowfallShaderIDs.DepthTex, LevelManipulator.Instance!.levelDepthmap);
             material.SetTexture(SnowfallShaderIDs.FootprintsTex, LevelManipulator.Instance.snowTracksMap);
             material.SetMatrix(SnowfallShaderIDs.FootprintsViewProjection, LevelManipulator.Instance.tracksWorldToClipMatrix ?? Matrix4x4.identity);
             material.SetMatrix(SnowfallShaderIDs.LightViewProjection, LevelManipulator.Instance.depthWorldToClipMatrix ?? Matrix4x4.identity);
-            material.SetFloat(SnowfallShaderIDs.SnowNoisePower, LevelManipulator.Instance.snowIntensity);
             material.SetFloat(SnowfallShaderIDs.SnowNoiseScale, LevelManipulator.Instance.snowScale);
             material.SetFloat(SnowfallShaderIDs.MaxSnowHeight, LevelManipulator.Instance.finalSnowHeight);
             material.SetVector(SnowfallShaderIDs.ShipPosition, LevelManipulator.Instance.shipPosition);
             material.SetFloat(SnowfallShaderIDs.Emission, LevelManipulator.Instance.emissionMultiplier);
 
-            // Opaque objects should have higher snow noise scale to produce 'patches' of snow
-            // Opaque alpha tested objects should have lower snow noise scale to appear more uniformly covered
             // Default scale is 0.7 - 1.3
-            float snowNoiseScaleBias = renderQueueType == RenderQueueType.OpaqueNoAlphaTest ? 10f : -0.5f; 
+            float snowNoiseScaleBias = 10f; 
             material.SetFloat(SnowfallShaderIDs.SnowNoiseScaleOverlay, LevelManipulator.Instance.snowScale + snowNoiseScaleBias);
         }
 

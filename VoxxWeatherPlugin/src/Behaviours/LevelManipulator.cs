@@ -547,14 +547,10 @@ namespace VoxxWeatherPlugin.Behaviours
 
         internal void InitializeSnowVariables()
         {
-            // No alpha test pass
             snowOverlayCustomPass = snowVolume!.customPasses[0] as SnowOverlayCustomPass;
             snowOverlayCustomPass!.snowOverlayMaterial = snowOverlayMaterial;
             snowOverlayCustomPass.SetupMaterial(snowOverlayMaterial);
             snowOverlayCustomPass.SetupMaterial(CurrentSnowVertexMaterial);
-            // Alpha test pass
-            SnowOverlayCustomPass? snowOverlayCustomPassAlpha = snowVolume!.customPasses[1] as SnowOverlayCustomPass;
-            snowOverlayCustomPassAlpha!.snowOverlayMaterial = Instantiate(snowOverlayMaterial);
 
             terraMeshConfig = new TerraMeshConfig(
                             // Bounding box for target area
@@ -795,8 +791,6 @@ namespace VoxxWeatherPlugin.Behaviours
             CurrentSnowVertexMaterial?.SetColor(SnowfallShaderIDs.SnowColor, snowColor);
             CurrentSnowVertexMaterial?.SetColor(SnowfallShaderIDs.SnowBaseColor, snowOverlayColor);
             snowOverlayCustomPass?.snowOverlayMaterial?.SetColor(SnowfallShaderIDs.SnowBaseColor, snowOverlayColor);
-            SnowOverlayCustomPass? snowOverlayCustomPassAlpha = snowVolume!.customPasses[1] as SnowOverlayCustomPass;
-            snowOverlayCustomPassAlpha!.snowOverlayMaterial?.SetColor(SnowfallShaderIDs.SnowBaseColor, snowOverlayColor);
 
             if (SnowfallWeather.Instance?.IsActive ?? false)
             {
