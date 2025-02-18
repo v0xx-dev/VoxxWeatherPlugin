@@ -19,7 +19,9 @@ namespace VoxxWeatherPlugin.Utils
         internal static readonly int SnowOcclusionBias = Shader.PropertyToID("_SnowOcclusionBias");
         internal static readonly int BaseTessellationFactor = Shader.PropertyToID("_BaseTessellationFactor");
         internal static readonly int MaxTessellationFactor = Shader.PropertyToID("_MaxTessellationFactor");
-        internal static readonly int isAdaptiveTessellation = Shader.PropertyToID("_isAdaptiveTesselation");
+        internal static readonly int isAdaptiveTessellation = Shader.PropertyToID("_isAdaptiveTessellation");
+        internal static readonly int TessellationFadeDistance = Shader.PropertyToID("_TessellationFactorMinDistance");
+        internal static readonly int TessellationMaxDistance = Shader.PropertyToID("_TessellationFactorMaxDistance");
         internal static readonly int ShipPosition = Shader.PropertyToID("_ShipPosition");
         internal static readonly int Emission = Shader.PropertyToID("_Emission");
         internal static readonly int SnowMasks = Shader.PropertyToID("_SnowMaskTex");

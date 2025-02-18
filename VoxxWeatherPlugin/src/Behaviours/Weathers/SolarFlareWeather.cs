@@ -149,7 +149,7 @@ namespace VoxxWeatherPlugin.Weathers
             HUDManager.Instance.DisplayTip(title, message);
         }
 
-        private void RefreshGlitchCameras()
+        private void RefreshGlitchCameras(bool toggle = true)
         {
             List<Camera> staleCameras = [];
            
@@ -160,8 +160,8 @@ namespace VoxxWeatherPlugin.Weathers
                     staleCameras.Add(camera);
                     continue;
                 }
-                glitchPass.enabled = true;
-                glitchPass.intensity.value = flareData.ScreenDistortionIntensity;
+                glitchPass.enabled = toggle;
+                glitchPass.intensity.value = flareData?.ScreenDistortionIntensity ?? 0f;
             }
 
             foreach (Camera staleCamera in staleCameras)
@@ -301,7 +301,7 @@ namespace VoxxWeatherPlugin.Weathers
                 yield break;
             }
 
-            Debug.LogError($"Starting electric malfunction for {malfunctionData.malfunctionObject.name}");
+            Debug.LogDebug($"Starting electric malfunction for {malfunctionData.malfunctionObject.name}");
 
             if (malfunctionData.FadeAudioCoroutine != null)
             {
@@ -517,11 +517,12 @@ namespace VoxxWeatherPlugin.Weathers
             audioSource.maxDistance = 30f;
             audioSource.minDistance = 5f;
 
-            // for (int i = 0; i < staticParticles.transform.childCount; i++)
-            // {
-            //     DestroyImmediate(staticParticles.transform.GetChild(i).gameObject);
-            // }
-            
+            // Destroy children of the static particles game object (duplicates)
+            foreach (Transform child in staticParticles.transform)
+            {
+                Destroy(child.gameObject);
+            }
+
             var shapeModule = staticParticles.shape;
             ElectricMalfunctionData malfunctionData = new ElectricMalfunctionData();
             malfunctionData.StaticParticles = staticParticles;
@@ -580,18 +581,23 @@ namespace VoxxWeatherPlugin.Weathers
             float targetVolume = fadeIn ? 1f : 0f;
             float currentTime = 0f;
 
+            if (audioSource == null)
+            {
+                yield break;
+            }
+
             if (delay > 0)
             {
                 yield return new WaitForSeconds(delay);
             }
 
-            if (fadeIn && audioSource != null)
+            if (fadeIn)
             {
                 audioSource.volume = 0f; // Start at zero volume for fade-in
                 audioSource.Play(); 
             }
 
-            while (currentTime < duration && audioSource != null)
+            while (currentTime < duration)
             {
                 currentTime += Time.deltaTime;
                 audioSource.volume = Mathf.Lerp(audioSource.volume, targetVolume, currentTime / duration);
@@ -600,7 +606,7 @@ namespace VoxxWeatherPlugin.Weathers
 
             if (!fadeIn)
             {
-                audioSource?.Stop(); // Stop playback after fading out
+                audioSource.Stop(); // Stop playback after fading out
             }
 
             malfunctionData.FadeAudioCoroutine = null;
@@ -682,8 +688,9 @@ namespace VoxxWeatherPlugin.Weathers
             VisualEffect auroraVFX = auroraObject.GetComponent<VisualEffect>();
             if (SolarFlareWeather.Instance?.flareData != null)
             {
-                auroraObject.transform.parent = SolarFlareWeather.Instance.transform; // to stop it from moving with the player
-                auroraObject.transform.position = new Vector3(LevelBounds.center.x, StartOfRound.Instance.shipBounds.bounds.center.y, LevelBounds.center.z);
+                //auroraObject.transform.parent = SolarFlareWeather.Instance.transform; // to stop it from moving with the player
+                //auroraObject.transform.position = new Vector3(LevelBounds.center.x, StartOfRound.Instance.shipBounds.bounds.center.y, LevelBounds.center.z);
+                auroraObject.transform.localPosition = Vector3.zero;
                 auroraObject.transform.rotation = Quaternion.identity;
                 auroraVFX.SetVector4("auroraColor", SolarFlareWeather.Instance.flareData.AuroraColor1);
                 auroraVFX.SetVector4("auroraColor2", SolarFlareWeather.Instance.flareData.AuroraColor2);
@@ -869,17 +876,6 @@ namespace VoxxWeatherPlugin.Weathers
             return new Color(red / 255f, green / 255f, blue / 255f);
         }
 
-        internal void Update()
-        {
-            float sunLuminosity = LevelManipulator.Instance.sunLightData?.intensity ?? 0f;
-            
-            // TODO add check for sun's position relative to horizon???
-            if (sunLuminosity < auroraSunThreshold && (!auroraObject?.activeInHierarchy ?? false)) 
-            {
-                auroraObject?.SetActive(true);
-            }
-        }
-
         internal static Color GetAverageTextureColor(Texture2D? texture)
         {
             if (texture == null)
@@ -937,24 +933,14 @@ namespace VoxxWeatherPlugin.Weathers
             }
         }
 
-        private void OnEnable()
+        internal void Update()
         {
-            if (flareObjectCopy != null)
+            float sunLuminosity = LevelManipulator.Instance.sunLightData?.intensity ?? 0f;
+            
+            // TODO add check for sun's position relative to horizon???
+            if (auroraObject != null) 
             {
-                flareObjectCopy.SetActive(true);
-            }
-        }
-
-        private void OnDisable()
-        {
-            // TODO compat for OpenCams
-            if (auroraObject != null)
-            {
-                auroraObject.SetActive(false);
-            }
-            if (flareObjectCopy != null)
-            {
-                flareObjectCopy.SetActive(false);
+                auroraObject?.SetActive(sunLuminosity <= auroraSunThreshold);
             }
         }
     }

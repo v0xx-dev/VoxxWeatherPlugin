@@ -55,7 +55,7 @@ namespace VoxxWeatherPlugin.Behaviours
 
             bool shouldEnableDistortion = (SolarFlareWeather.Instance?.IsActive ?? false) && !allPlayerScript.isPlayerDead && isUsingWalkieTalkie && SolarFlareWeather.Instance.flareData != null;
 
-            InterferenceDistortionFilter interferenceFilter = GetOrAddFilter(voiceSource);
+            InterferenceDistortionFilter? interferenceFilter = GetOrAddFilter(voiceSource);
 
             if (interferenceFilter == null)
             {

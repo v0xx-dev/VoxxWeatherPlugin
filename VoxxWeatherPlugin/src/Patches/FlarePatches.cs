@@ -48,7 +48,8 @@ namespace VoxxWeatherPlugin.Patches
                     new CodeInstruction(OpCodes.Ldloc_0),  // Load voiceChatAudioSource
                     new CodeInstruction(OpCodes.Ldloc_1),  // Load allPlayerScript
                     new CodeInstruction(OpCodes.Ldloc_S, 4),  // Load walkie talkie flag 
-                    new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(WalkieDistortionManager), "UpdateVoiceChatDistortion"))
+                    new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(WalkieDistortionManager),
+                                                                        nameof(WalkieDistortionManager.UpdateVoiceChatDistortion)))
                 );
             }
             
@@ -118,7 +119,7 @@ namespace VoxxWeatherPlugin.Patches
             matcher.Insert(
                 new CodeInstruction(OpCodes.Ldloc_1), // Load `shipTeleporter` onto the stack
                 new CodeInstruction(OpCodes.Call, 
-                    AccessTools.Method(typeof(FlarePatches), "TeleporterPositionDistorter"))
+                    AccessTools.Method(typeof(FlarePatches), nameof(TeleporterPositionDistorter)))
             );
 
             // Move to the end of the matched block
@@ -127,7 +128,7 @@ namespace VoxxWeatherPlugin.Patches
             matcher.Insert(
                 new CodeInstruction(OpCodes.Ldloc_1),
                 new CodeInstruction(OpCodes.Call, 
-                    AccessTools.Method(typeof(FlarePatches), "TeleporterPositionRestorer"))
+                    AccessTools.Method(typeof(FlarePatches), nameof(TeleporterPositionRestorer)))
             );
 
             // Return the modified instructions
@@ -270,7 +271,8 @@ namespace VoxxWeatherPlugin.Patches
 
             codeMatcher.Advance(1);
 
-            codeMatcher.SetInstruction(new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(FlareOptionalWalkiePatches), "SplitWalkieTarget")));
+            codeMatcher.SetInstruction(new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(FlareOptionalWalkiePatches),
+                                                                                            nameof(SplitWalkieTarget))));
 
             // Replace audio source disposal logic
             codeMatcher = codeMatcher.MatchForward(true,
@@ -278,7 +280,8 @@ namespace VoxxWeatherPlugin.Patches
                 new CodeMatch(OpCodes.Call, AccessTools.Method(typeof(UnityEngine.Object), "Destroy", new[] { typeof(UnityEngine.Object) }))
             )
             .Repeat(matcher => {
-                matcher.SetInstruction(new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(FlareOptionalWalkiePatches), "DisposeWalkieTarget",
+                matcher.SetInstruction(new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(FlareOptionalWalkiePatches),
+                                                                                            nameof(DisposeWalkieTarget),
                      new[] { typeof(AudioSource), typeof(GameObject) })));
                 matcher.Insert(new CodeInstruction(OpCodes.Callvirt, AccessTools.Method(typeof(Component), "get_gameObject")));
                 matcher.Insert(new CodeInstruction(OpCodes.Ldarg_0));

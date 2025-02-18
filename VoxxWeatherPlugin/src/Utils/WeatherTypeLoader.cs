@@ -360,6 +360,10 @@ namespace VoxxWeatherPlugin.Utils
             levelManipulatorController.snowVertexOpaqueMaterial!.shader = opaqueVertexSnowShader;
 
             levelManipulatorController.snowVertexMaterial.SetFloat(SnowfallShaderIDs.IsDepthFade, Configuration.softSnowEdges.Value ? 1f : 0f);
+            levelManipulatorController.snowVertexMaterial.SetFloat(SnowfallShaderIDs.TessellationFadeDistance, Configuration.tesselationFadeDistance.Value);
+            levelManipulatorController.snowVertexMaterial.SetFloat(SnowfallShaderIDs.TessellationMaxDistance, Configuration.tesselationMaxDistance.Value);
+            levelManipulatorController.snowVertexMaterial.SetFloat(SnowfallShaderIDs.TessellationFadeDistance, Configuration.tesselationFadeDistance.Value);
+            levelManipulatorController.snowVertexMaterial.SetFloat(SnowfallShaderIDs.TessellationMaxDistance, Configuration.tesselationMaxDistance.Value);
             
             return true;   
         }

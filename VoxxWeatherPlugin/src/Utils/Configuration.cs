@@ -93,7 +93,6 @@ namespace VoxxWeatherPlugin.Utils
         public static ConfigEntry<bool> snowVfxLighting; //
         public static ConfigEntry<bool> blizzardWaveVfxLighting; //
         public static ConfigEntry<bool> useOpaqueSnowMaterial; //
-        
         public static ConfigEntry<bool> snowCastsShadows; //
         public static ConfigEntry<bool> addFootprints; //
         public static ConfigEntry<int> trackedEntityNumber; //
@@ -105,6 +104,8 @@ namespace VoxxWeatherPlugin.Utils
         public static ConfigEntry<int>  minTesselationFactor; //
         public static ConfigEntry<int>  maxTesselationFactor; //
         public static ConfigEntry<bool>  adaptiveTesselation; //
+        public static ConfigEntry<float>  tesselationFadeDistance; //
+        public static ConfigEntry<float>  tesselationMaxDistance; //
         public static ConfigEntry<bool>  softSnowEdges; //
         public static ConfigEntry<bool>  enableSnowTracks; //
         public static ConfigEntry<bool>  enableVFXCollisions; //
@@ -259,7 +260,7 @@ namespace VoxxWeatherPlugin.Utils
 
             TurretMalfunctionChance = Config.Bind("SolarFlare",
                                                 "TurretMalfunctionChance",
-                                                0.15f,
+                                                0.3f,
                                                 new ConfigDescription("Chance of turrets malfunctioning during Solar Flare. 0.1 is 10% chance, 0.5 is 50% chance, 1.0 is 100% chance. All chances are rolled independently for each turret.",
                                                                     new AcceptableValueRange<float>(0, 1f)));
 
@@ -283,7 +284,7 @@ namespace VoxxWeatherPlugin.Utils
 
             LandmineMalfunctionChance = Config.Bind("SolarFlare",
                                                 "LandmineMalfunctionChance",
-                                                0.05f,
+                                                0.025f,
                                                 new ConfigDescription("Chance of landmines malfunctioning during Solar Flare. 0.1 is 10% chance, 0.5 is 50% chance, 1.0 is 100% chance. All chances are rolled independently for each landmine.",
                                                                     new AcceptableValueRange<float>(0, 1f)));
 
@@ -556,6 +557,18 @@ namespace VoxxWeatherPlugin.Utils
                                                 "adaptiveTesselation",
                                                 true,
                                                 "Enable adaptive tesselation for snow material. This will apply max tesselation factor only to areas with rapid snow height changes, like around snow tracks, trees or roofs.");
+            tesselationFadeDistance = Config.Bind("Snow Graphics",
+                                                "tesselationFadeDistance",
+                                                60f,
+                                                new ConfigDescription("Distance in meters from the camera where snow mesh quality will start to decrease. Lower values improve performance, higher values improve visual quality. Must be lower than tesselationMaxDistance!",
+                                                                    new AcceptableValueRange<float>(0, 2000f)));
+                        
+            tesselationMaxDistance = Config.Bind("Snow Graphics",
+                                                "tesselationMaxDistance",
+                                                120f,
+                                                new ConfigDescription("Distance in meters from the camera where snow mesh quality will reach its vanilla (non-tessellated) quality. Lower values improve performance, higher values improve visual quality (at the cost of performance).",
+                                                                    new AcceptableValueRange<float>(0, 2000f)));
+
             softSnowEdges = Config.Bind("Snow Graphics",
                                         "softSnowEdges",
                                         false,
