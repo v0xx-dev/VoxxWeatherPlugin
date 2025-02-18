@@ -34,14 +34,16 @@
         </PackageReference>
         <PackageReference Include="BepInEx.Core" Version="5.*" />
         <PackageReference Include="BepInEx.PluginInfoProps" Version="1.*" />
+        <PackageReference Include="IAmBatby.LethalLevelLoader" Version="1.4.0" />
         <PackageReference Include="LethalCompany.GameLibs.Steam" Version="67.0.0-ngd.0" />
-        <PackageReference Include="mrov.MrovLib" Version="0.2.11" />
-        <PackageReference Include="mrov.WeatherRegistry" Version="0.3.9" />
+        <PackageReference Include="mrov.MrovLib" Version="0.2.21" />
+        <PackageReference Include="mrov.WeatherRegistry" Version="0.4.2" />
         <PackageReference Include="UnityEngine.Modules" Version="2022.3.9" IncludeAssets="compile" />
 		<Reference Include="UnityEditor" HintPath="C:\Program Files\Unity 2022.3.9f1\Editor\Data\Managed\UnityEditor.dll" />
 		<Reference Include="UnityEngine" HintPath="C:\Program Files\Unity 2022.3.9f1\Editor\Data\Managed\UnityEngine.dll" />
-    <Reference Include="TerraMesh" HintPath=".\libs\voxx.TerraMesh.dll" />
-    <Reference Include="OpenBodyCams" HintPath=".\libs\OpenBodyCams.dll" />
+        <Reference Include="TerraMesh" HintPath=".\libs\voxx.TerraMesh.dll" />
+        <Reference Include="OpenBodyCams" HintPath=".\libs\OpenBodyCams.dll" />
+		<Reference Include="WeatherTweaks" HintPath=".\libs\WeatherTweaks.dll" />
 		</ItemGroup>
 	
 

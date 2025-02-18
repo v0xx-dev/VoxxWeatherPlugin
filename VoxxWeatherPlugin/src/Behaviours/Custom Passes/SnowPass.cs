@@ -227,7 +227,7 @@ namespace VoxxWeatherPlugin.Behaviours
             material.SetFloat(SnowfallShaderIDs.Emission, LevelManipulator.Instance.emissionMultiplier);
 
             // Default scale is 0.7 - 1.3
-            float snowNoiseScaleBias = 10f; 
+            float snowNoiseScaleBias = 7f; 
             material.SetFloat(SnowfallShaderIDs.SnowNoiseScaleOverlay, LevelManipulator.Instance.snowScale + snowNoiseScaleBias);
         }
 

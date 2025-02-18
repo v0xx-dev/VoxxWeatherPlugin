@@ -273,7 +273,7 @@ namespace VoxxWeatherPlugin.Weathers
                 reductionFactor = heatwaveIntensityCurve!.Evaluate(reductionFactor); // Min value in curve is 0.001 to avoid division by zero
                 foreach (VisualEffect vfx in cachedVFX)
                 {
-                    vfx?.SetFloat(spawnRatePropertyID, Configuration.HeatwaveParticlesSpawnRate.Value * reductionFactor);
+                    vfx?.SetFloat(spawnRatePropertyID, Configuration.HeatwaveParticlesSpawnRate.Value * reductionFactor + 1);
                     yield return null;
                 }
             }

@@ -60,28 +60,29 @@ namespace VoxxWeatherPlugin.Utils
 
             heatwaveContainer.SetActive(true);
 
-            ImprovedWeatherEffect heatwaveEffect = new(effectObject, effectPermanentObject) {
-                SunAnimatorBool = "",
-                };
-
-            Weather HeatwaveWeather = new Weather("Heatwave", heatwaveEffect)
+            Weather HeatwaveWeather = new("Heatwave", new(effectObject, effectPermanentObject) { SunAnimatorBool = "" })
             {
-                DefaultLevelFilters = new[] {"Experimentation", "Assurance", "Offense", "Embrion", "Artifice",
-                                            "EGypt", "Aquatis", "Affliction", "Penumbra", "EchoReach", "Harloth",
-                                            "Celestria", "Derelict", "Infernis", "Etern", "Atlantica", "Junic",
-                                            "FissionC", "Mantif", "Sierra", "Cambrian", "Orion", "Vertigo",
-                                            "Collateral", "Devastation", "RelayStation", "$Valley", "$Wasteland", 
-                                            "$Volcanic", "$Canyon", "$Desert"},
-                LevelFilteringOption = FilteringOption.Include,
-                Color = new Color(1f, 0.5f, 0f),
-                ScrapAmountMultiplier = 1.2f,
-                ScrapValueMultiplier = 0.9f,
-                DefaultWeight = 100,
+                Color = new(1f, 0.5f, 0f),
+                Config =
+                {
+                    LevelFilters = new(["Experimentation", "Assurance", "Offense", "Embrion", "Artifice", "EGypt", "Aquatis", "Affliction",
+                        "Penumbra", "EchoReach", "Harloth","Celestria", "Derelict", "Infernis", "Etern", "Atlantica", "Junic", "FissionC",
+                        "Mantif", "Sierra", "Cambrian", "Orion", "Vertigo", "Collateral", "Devastation", "RelayStation",
+                        "$Valley", "$Wasteland", "$Volcanic", "$Canyon", "$Desert"]),
+                    FilteringOption = new(FilteringOption.Include),
+                    ScrapAmountMultiplier = new(1.2f),
+                    ScrapValueMultiplier = new(0.9f),
+                    LevelWeights = new(["Assurance@120", "Embrion@100", "Sierra@160", "EGypt@150", "Aquatis@100", "Thallasic@100", "Calamitous@180",
+                        "$Volcanic@150", "$Canyon@100", "$Desert@100", "$Ocean@30"]),
+                    WeatherToWeatherWeights = new(["Cloudy@100", "Solar Flare@150", "DustClouds@75", "Windy@50", "Toxic Smog@25", "Eclipsed@10",
+                        "Foggy@0", "Rainy@0", "Stormy@0", "Blizzard@0", "Snowfall@0", "Flooded@0"]),
+                    DefaultWeight = new(40),
+                },
             };
 
             heatwaveWeatherController.WeatherDefinition = HeatwaveWeather;
             WeatherManager.RegisterWeather(HeatwaveWeather);
-            Debug.Log($"{PluginInfo.PLUGIN_GUID}: Heatwave weather registered!");
+            Debug.Log($"{PluginInfo.PLUGIN_GUID}: Heatwave weather registered!"); 
         }
 
         public static void RegisterFlareWeather()
@@ -133,19 +134,20 @@ namespace VoxxWeatherPlugin.Utils
 
             flareContainer.SetActive(true);
 
-            ImprovedWeatherEffect flareWeatherEffect = new(effectObject, effectPermanentObject)
+            Weather FlareWeather = new("Solar Flare", new(effectObject, effectPermanentObject) { SunAnimatorBool = "" })
             {
-                SunAnimatorBool = "",
-            };
-
-            Weather FlareWeather = new Weather("Solar Flare", flareWeatherEffect)
-            {
-                DefaultLevelFilters = new[] {"Gordion", "Galetry"},
-                LevelFilteringOption = FilteringOption.Exclude,
                 Color = Color.yellow,
-                ScrapAmountMultiplier = 0.95f,
-                ScrapValueMultiplier = 1.25f,
-                DefaultWeight = 100
+                Config =
+                {
+                    LevelFilters = new(["Gordion", "Galetry"]),
+                    FilteringOption = new(FilteringOption.Exclude),
+                    ScrapAmountMultiplier = new(1.25f),
+                    ScrapValueMultiplier = new(0.95f),
+                    LevelWeights = new(["Arcadia@200", "Embrion@200", "Summit@300", "Incalescence@125", 
+                        "$Canyon@100", "$Wasteland@100", "$Tundra@90"]),
+                    WeatherToWeatherWeights = new(["Solar Flare@25", "Blackout@100", "Heatwave@100", "Eclipsed@10"]),
+                    DefaultWeight = new(60),
+                },
             };
 
             flareWeatherController.WeatherDefinition = FlareWeather;
@@ -223,26 +225,26 @@ namespace VoxxWeatherPlugin.Utils
 
             blizzardContainer.SetActive(true);
 
-            ImprovedWeatherEffect blizzardWeatherEffect = new(effectObject, effectPermanentObject)
+            Weather BlizzardWeatherType = new("Blizzard", new(effectObject, effectPermanentObject) { SunAnimatorBool = "overcast" })
             {
-                SunAnimatorBool = "overcast",
-            };
-
-            Weather BlizzardWeatherType = new Weather("Blizzard", blizzardWeatherEffect)
-            {
-                DefaultLevelFilters = ["Gordion", "Galetry", "Experimentation", "Assurance", "Offense", "Embrion",
-                                            "EGypt", "Penumbra", "EchoReach", "Infernis", "Atlantica",
-                                            "Gloom", "Orion", "Vertigo", "RelayStation", "Vaporization",
-                                            "Praetor", "Lithium", "Arcadia", "Sector", "Ichor", "AtlasAbyss",
-                                            "Asteroid13", "Hyve", "Desolation", "Cosmocos", "Aquatis",
-                                            "Junic", "Detritus", "CaltPrime", "Vow", "Makron", "Calist", "Thalasso",
-                                            "Empra", "Attenuation", "Argent", "Humidity", "Sierra", "Black Mesa", "Elasticity",
-                                            "$Volcanic"],
-                LevelFilteringOption = FilteringOption.Exclude,
                 Color = Color.cyan,
-                ScrapAmountMultiplier = 1.4f,
-                ScrapValueMultiplier = 0.9f,
-                DefaultWeight = 75
+                Config =
+                {
+                    LevelFilters = new(["Gordion", "Galetry", "Experimentation", "Assurance", "Offense", "Embrion", "EGypt", "Penumbra",
+                        "EchoReach", "Infernis", "Atlantica", "Gloom", "Orion", "Vertigo", "RelayStation", "Vaporization", "Praetor",
+                        "Lithium", "Arcadia", "Sector", "Ichor", "AtlasAbyss", "Asteroid13", "Hyve", "Desolation", "Cosmocos", "Aquatis",
+                        "Junic", "Detritus", "CaltPrime", "Vow", "Makron", "Calist", "Thalasso", "Empra", "Attenuation", "Argent",
+                        "Humidity", "Sierra", "Black Mesa", "Elasticity",
+                        "$Volcanic"]),
+                    FilteringOption = new(FilteringOption.Exclude),
+                    ScrapAmountMultiplier = new(1.4f),
+                    ScrapValueMultiplier = new(0.9f),
+                    LevelWeights = new(["Artifice@200", "Polarus@200",
+                        "$Tundra@120", "$Snow@120"]),
+                    WeatherToWeatherWeights = new(["Snowfall@150", "Cloudy@150", "Foggy@90", "Stormy@80", "Rainy@25",
+                        "Blizzard@75", "Windy@75", "Flooded@30", "Heatwave@0", "DustClouds@0"]),
+                    DefaultWeight = new(50),
+                },
             };
 
             blizzardWeatherController.WeatherDefinition = BlizzardWeatherType;
@@ -298,21 +300,25 @@ namespace VoxxWeatherPlugin.Utils
                 SunAnimatorBool = "overcast",
             };
 
-            Weather SnowfallWeatherEffect = new Weather("Snowfall", snowyWeatherEffect)
+            Weather SnowfallWeatherEffect = new("Snowfall", new(effectObject, effectPermanentObject) { SunAnimatorBool = "overcast" })
             {
-                DefaultLevelFilters = ["Gordion", "Galetry", "Assurance", "Embrion", "Sierra",
-                                        "EGypt", "Penumbra", "EchoReach", "Infernis", "Atlantica",
-                                        "Gloom", "Orion", "Vertigo", "RelayStation", "Vaporization",
-                                        "Praetor", "Lithium", "Arcadia", "Sector", "Ichor", "AtlasAbyss",
-                                        "Asteroid13", "Hyve", "Desolation", "Cosmocos", "Calist",
-                                        "Empra", "Junic", "Detritus", "CaltPrime", "Submersion", "Maritopia",
-                                        "Cambrian", "Halation", "Black Mesa", "Baykal", "Elasticity", "Thalasso",
-                                        "$Volcanic"],
-                LevelFilteringOption = FilteringOption.Exclude,
                 Color = Color.blue,
-                ScrapAmountMultiplier = 1.5f,
-                ScrapValueMultiplier = 0.75f,
-                DefaultWeight = 100
+                Config =
+                {
+                    LevelFilters = new(["Gordion", "Galetry", "Assurance", "Embrion", "Sierra", "EGypt", "Penumbra", "EchoReach", "Infernis",
+                        "Atlantica", "Gloom", "Orion", "Vertigo", "RelayStation", "Vaporization", "Praetor", "Lithium", "Arcadia", "Sector",
+                        "Ichor", "AtlasAbyss", "Asteroid13", "Hyve", "Desolation", "Cosmocos", "Calist", "Empra", "Junic", "Detritus",
+                        "CaltPrime", "Submersion", "Maritopia", "Cambrian", "Halation", "Black Mesa", "Elasticity", "Thalasso",
+                        "$Volcanic"]),
+                    FilteringOption = new(FilteringOption.Exclude),
+                    ScrapAmountMultiplier = new(1.5f),
+                    ScrapValueMultiplier = new(0.75f),
+                    LevelWeights = new(["Artifice@300", "Polarus@300", "Vow@100", "Rockwell@200",
+                        "$Tundra@150", "$Snow@200"]),
+                    WeatherToWeatherWeights = new(["Snowfall@75", "Cloudy@150", "Foggy@100", "Stormy@80", "Rainy@25",
+                        "Blizzard@100", "Windy@75", "Heatwave@0", "DustClouds@0"]),
+                    DefaultWeight = new(60),
+                },
             };
 
             snowfallWeatherController.WeatherDefinition = SnowfallWeatherEffect;
@@ -416,23 +422,25 @@ namespace VoxxWeatherPlugin.Utils
             }
 
             VisualEffect? toxicFumesVFX = toxicSmogVFXManager.hazardPrefab?.GetComponent<VisualEffect>();
-            toxicFumesVFX.visualEffectAsset = toxicFumesVFXAsset;
+            toxicFumesVFX!.visualEffectAsset = toxicFumesVFXAsset;
 
             toxicSmogContainer.SetActive(true);
 
-            ImprovedWeatherEffect toxicWeatherEffect = new(effectObject, effectPermanentObject)
+            Weather ToxicSmogWeatherEffect = new("Toxic Smog", new(effectObject, effectPermanentObject) { SunAnimatorBool = "" })
             {
-                SunAnimatorBool = "",
-            };
-
-            Weather ToxicSmogWeatherEffect = new Weather("Toxic Smog", toxicWeatherEffect)
-            {
-                DefaultLevelFilters = ["Gordion", "Derelict", "Galetry", "Elasticity"],
-                LevelFilteringOption = FilteringOption.Exclude,
-                Color = new Color(0.413f, 0.589f, 0.210f), // dark lime green
-                ScrapAmountMultiplier = 1.3f,
-                ScrapValueMultiplier = 0.7f,
-                DefaultWeight = 100
+                Color = new(0.413f, 0.589f, 0.210f), // dark lime green
+                Config =
+                {
+                    LevelFilters = new(["Gordion", "Derelict", "Galetry", "Elasticity"]),
+                    FilteringOption = new(FilteringOption.Exclude),
+                    ScrapAmountMultiplier = new(1.3f),
+                    ScrapValueMultiplier = new(0.8f),
+                    LevelWeights = new(["FissionC@300", "Makron@300", "Asteroid13@150", "Collateral@150", "Quasara@200",
+                        "$Atomic@200", "$Toxic@200", "$Ocean@30"]),
+                    WeatherToWeatherWeights = new(["Cloudy@150", "Foggy@120", "Toxic Smog@60", "Heatwave@100", "DustClouds@40",
+                        "Rainy@25", "Windy@0", "Stormy@0", "Blizzard@0"]),
+                    DefaultWeight = new(80),
+                },
             };
 
             toxicSmogWeatherController.WeatherDefinition = ToxicSmogWeatherEffect;

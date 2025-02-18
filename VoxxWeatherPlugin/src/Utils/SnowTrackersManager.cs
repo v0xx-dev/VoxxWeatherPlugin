@@ -16,16 +16,10 @@ namespace VoxxWeatherPlugin.Utils
         Item // Leaves a single footprint,for example when dropping an item (must be played manually)
     }
 
-    public class SnowTrackerData
+    public class SnowTrackerData(VisualEffect trackerVFX, bool isTracking = false)
     {
-        public VisualEffect? trackerVFX;
-        public bool isTracking;
-
-        public SnowTrackerData(VisualEffect trackerVFX, bool isTracking = false)
-        {
-            this.trackerVFX = trackerVFX;
-            this.isTracking = isTracking;
-        }
+        public VisualEffect? trackerVFX = trackerVFX;
+        public bool isTracking = isTracking;
     }
 
     //TODO CHECK IF IT'S WORKING

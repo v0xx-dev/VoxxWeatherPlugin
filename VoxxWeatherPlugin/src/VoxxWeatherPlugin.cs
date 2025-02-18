@@ -17,6 +17,7 @@ namespace VoxxWeatherPlugin
     [BepInDependency("voxx.TerraMesh", BepInDependency.DependencyFlags.HardDependency)]
     [BepInDependency("imabatby.lethallevelloader", BepInDependency.DependencyFlags.SoftDependency)]
     [BepInDependency("Zaggy1024.OpenBodyCams", BepInDependency.DependencyFlags.SoftDependency)]
+    // [BepInDependency("WeatherTweaks", BepInDependency.DependencyFlags.SoftDependency)] Disabled due to dependency loop
     public class VoxxWeatherPlugin : BaseUnityPlugin
     {
         private Harmony harmony;
@@ -99,7 +100,18 @@ namespace VoxxWeatherPlugin
 
             }
 
+            // Delayed registering of the combined weathers for WeatherTweaks compatibility
+            WeatherRegistry.EventManager.BeforeSetupStart.AddListener(() => {
+                if (Chainloader.PluginInfos.ContainsKey("WeatherTweaks"))
+                {
+                    Logger.LogDebug("Weather Tweaks detected!");
+                    WeatherTweaksCompat.Init();
+                    WeatherTweaksCompat.RegisterCombinedWeathers();
+                }
+            });
+
             Logger.LogInfo($"Plugin {PluginInfo.PLUGIN_GUID} is loaded!");
+
 
 #if DEBUG
         // disable overhead of stack trace in dev build
