@@ -69,10 +69,9 @@ namespace VoxxWeatherPlugin.Compatibility
                 Debug.LogWarning("GlitchEffect is null for bodyCam: " + bodyCamComp.name);
                 return;
             }
-
-            glitchEffect.enabled = bodyCamComp.IsRemoteCamera && (SolarFlare?.IsActive ?? false);
-            glitchEffect.intensity.value = SolarFlare?.flareData?.ScreenDistortionIntensity ?? 0.1f;
-
+            
+            glitchEffect.enabled = bodyCamComp.IsRemoteCamera && (SolarFlare?.flareData != null);
+            glitchEffect.intensity.value = SolarFlare?.flareData?.ScreenDistortionIntensity ?? 0f;
         }
     }
 }

@@ -124,6 +124,7 @@ namespace VoxxWeatherPlugin.Weathers
             {
                 LLLCompat.TagRecolorToxic();
             }
+
             // Find the dungeon scale
             float dungeonSize = StartOfRound.Instance.currentLevel.factorySizeMultiplier;
 
@@ -167,9 +168,9 @@ namespace VoxxWeatherPlugin.Weathers
             }
 
             // Use item spawners AND AI nodes as anchors
-            // TODO CHECK IF THIS CAUSES DESYNC OF FUMES
-            anchorPositions = RoundManager.Instance.spawnedSyncedObjects.Select(obj => obj.transform.position).ToList();
-            anchorPositions.AddRange(RoundManager.Instance.insideAINodes.Select(obj => obj.transform.position));
+            // CAUSES DESYNC OF FUMES
+            // anchorPositions = RoundManager.Instance.spawnedSyncedObjects.Select(obj => obj.transform.position).ToList();
+            anchorPositions = RoundManager.Instance.insideAINodes.Select(obj => obj.transform.position).ToList();
             // Use entrances as blockers
             blockersPositions = entrances.Select(entrance => entrance.transform.position).ToList();
             Debug.LogDebug($"Indoor fumes: Anchor positions: {anchorPositions.Count}, Blockers positions: {blockersPositions.Count}");
