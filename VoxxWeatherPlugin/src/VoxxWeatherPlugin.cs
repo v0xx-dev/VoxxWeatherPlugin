@@ -43,7 +43,7 @@ namespace VoxxWeatherPlugin
             if (Chainloader.PluginInfos.ContainsKey("Zaggy1024.OpenBodyCams"))
             {
                 Logger.LogDebug("OpenBodyCams detected!");
-                OpenCamsCompat.Init();
+                OpenBodyCamsCompat.Init();
             }
 
             WeatherTypeLoader.LoadLevelManipulator();

@@ -41,6 +41,7 @@
 		<Reference Include="UnityEditor" HintPath="C:\Program Files\Unity 2022.3.9f1\Editor\Data\Managed\UnityEditor.dll" />
 		<Reference Include="UnityEngine" HintPath="C:\Program Files\Unity 2022.3.9f1\Editor\Data\Managed\UnityEngine.dll" />
     <Reference Include="TerraMesh" HintPath=".\libs\voxx.TerraMesh.dll" />
+    <Reference Include="OpenBodyCams" HintPath=".\libs\OpenBodyCams.dll" />
 		</ItemGroup>
 	
 

@@ -70,3 +70,4 @@ crashlytics-build.properties
 .vscode/
 VoxxWeatherPlugin/bin/
 VoxxWeatherPlugin/obj/
+VoxxWeatherPlugin/libs/

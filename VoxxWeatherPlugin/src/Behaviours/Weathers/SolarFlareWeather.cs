@@ -9,7 +9,7 @@ using System.Collections;
 using UnityEngine.Rendering;
 using System.Collections.Generic;
 using TerraMesh;
-using Unity.Netcode;
+using VoxxWeatherPlugin.Compatibility;
 
 namespace VoxxWeatherPlugin.Weathers
 {
@@ -53,7 +53,7 @@ namespace VoxxWeatherPlugin.Weathers
         public static SolarFlareWeather? Instance { get; private set; }
         [SerializeField]
         internal Material? glitchMaterial;
-        internal Dictionary<Camera, GlitchEffect?> glitchPasses = [];
+        internal Dictionary<Camera?, GlitchEffect?> glitchPasses = [];
         [SerializeField]
         internal FlareData[]? flareTypes;
         internal FlareData? flareData;
@@ -87,6 +87,11 @@ namespace VoxxWeatherPlugin.Weathers
         private void Awake()
         {
             Instance = this;
+
+            if (OpenBodyCamsCompat.IsActive)
+            {
+                OpenBodyCamsCompat.GlitchBodyCameras();
+            }
         }
 
         private void OnEnable()
@@ -116,9 +121,39 @@ namespace VoxxWeatherPlugin.Weathers
 
             flareData = flareTypes[(int)randomIntensity];
             
+            RefreshGlitchCameras();
+
+            TerminalAccessibleObject[] terminalObjects = FindObjectsOfType<TerminalAccessibleObject>();
+            bigDoors = terminalObjects.Where(obj => obj.isBigDoor).ToArray();
+
+            var radMechNests = FindObjectsOfType<EnemyAINestSpawnObject>().Where(obj => obj.enemyType.enemyName == "RadMech").ToArray();
+            foreach (EnemyAINestSpawnObject radMechNest in radMechNests)
+            {
+                CreateStaticParticle(radMechNest);
+            }
+
+            var mines = FindObjectsOfType<Landmine>();
+            foreach (Landmine mine in mines)
+            {
+                CreateStaticParticle(mine);
+            }
+
+            VFXManager?.PopulateLevelWithVFX();
+
+            StartCoroutine(DisplayTipDelayed("Solar Flare Warning", $"{randomIntensity} solar energy burst detected!", 7f));
+        }
+
+        private IEnumerator DisplayTipDelayed(string title, string message, float delay)
+        {
+            yield return new WaitForSeconds(delay);
+            HUDManager.Instance.DisplayTip(title, message);
+        }
+
+        private void RefreshGlitchCameras()
+        {
             List<Camera> staleCameras = [];
            
-            foreach ((Camera camera, GlitchEffect? glitchPass) in glitchPasses)
+            foreach ((Camera? camera, GlitchEffect? glitchPass) in glitchPasses)
             {
                 if (camera == null || glitchPass == null)
                 {
@@ -133,31 +168,6 @@ namespace VoxxWeatherPlugin.Weathers
             {
                 glitchPasses.Remove(staleCamera);
             }
-
-            TerminalAccessibleObject[] terminalObjects = FindObjectsOfType<TerminalAccessibleObject>();
-            bigDoors = terminalObjects.Where(obj => obj.isBigDoor).ToArray();
-
-            VFXManager?.PopulateLevelWithVFX();
-            
-            var radMechNests = FindObjectsOfType<EnemyAINestSpawnObject>().Where(obj => obj.enemyType.enemyName == "RadMech").ToArray();
-            foreach (EnemyAINestSpawnObject radMechNest in radMechNests)
-            {
-                CreateStaticParticle(radMechNest);
-            }
-
-            var mines = FindObjectsOfType<Landmine>();
-            foreach (Landmine mine in mines)
-            {
-                CreateStaticParticle(mine);
-            }
-
-            StartCoroutine(DisplayTipDelayed("Solar Flare Warning", $"{randomIntensity} solar energy burst detected!", 7f));
-        }
-
-        private IEnumerator DisplayTipDelayed(string title, string message, float delay)
-        {
-            yield return new WaitForSeconds(delay);
-            HUDManager.Instance.DisplayTip(title, message);
         }
 
         private void OnDisable()
@@ -391,7 +401,7 @@ namespace VoxxWeatherPlugin.Weathers
         internal void GlitchRadarMap()
         {
             //Enable glitch effect for the radar camera
-            GameObject radarCameraObject = GameObject.Find("Systems/GameSystems/ItemSystems/MapCamera");
+            GameObject? radarCameraObject = GameObject.Find("Systems/GameSystems/ItemSystems/MapCamera");
 
             if (radarCameraObject == null)
             {
@@ -399,9 +409,9 @@ namespace VoxxWeatherPlugin.Weathers
                 return;
             }
 
-            Camera radarCamera = radarCameraObject.GetComponent<Camera>();
+            Camera? radarCamera = radarCameraObject.GetComponent<Camera>();
 
-            if (radarCamera != null && !glitchPasses.ContainsKey(radarCamera))
+            if (radarCamera != null)
             {
                 GlitchCamera(radarCamera);
                 //radarCameraObject.AddComponent<CameraDebugSettings>();
@@ -412,12 +422,20 @@ namespace VoxxWeatherPlugin.Weathers
             }
         }
 
-        internal void GlitchCamera(Camera camera)
+        internal GlitchEffect? GlitchCamera(Camera? camera)
         {
             if (glitchMaterial == null)
             {
                 Debug.LogError("Glitch material not found! Cannot glitch camera.");
-                return;
+                return null;
+            }
+
+            if (camera == null)
+                return null;
+
+            if (glitchPasses.ContainsKey(camera))
+            {
+                return glitchPasses[camera];
             }
 
             HDAdditionalCameraData radarCameraData = camera.GetComponent<HDAdditionalCameraData>();
@@ -454,6 +472,8 @@ namespace VoxxWeatherPlugin.Weathers
             glitchPasses.Add(camera, glitchPass);
 
             Debug.LogDebug("Glitch Pass added to the Radar camera.");
+
+            return glitchPass;
         }
 
         internal void CreateStaticParticle(MonoBehaviour inputClass)

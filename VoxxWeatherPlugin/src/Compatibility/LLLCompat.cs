@@ -14,7 +14,7 @@ namespace VoxxWeatherPlugin.Compatibility
 {
     public static class LLLCompat
     {
-        public static bool isActive { get; private set; } = false;
+        public static bool IsActive { get; private set; } = false;
         private static readonly string snowColorTag = "voxxSnowColor";
         private static readonly string snowOverlayColorTag = "voxxSnowOverlayColor";
         private static readonly string blizzardFogColorTag = "voxxBlizzardFogColor";
@@ -24,7 +24,7 @@ namespace VoxxWeatherPlugin.Compatibility
 
         public static void Init()
         {
-            isActive = true;
+            IsActive = true;
         }
 
         [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]

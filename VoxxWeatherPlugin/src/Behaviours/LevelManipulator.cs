@@ -713,7 +713,7 @@ namespace VoxxWeatherPlugin.Behaviours
                 return;
             }
 
-            if (LLLCompat.isActive)
+            if (LLLCompat.IsActive)
             {
                 LLLCompat.TagRecolorSnow();
             }
