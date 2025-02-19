@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.CompilerServices;
 using OpenBodyCams;
 using OpenBodyCams.API;
 using UnityEngine;
@@ -12,11 +13,13 @@ namespace VoxxWeatherPlugin.Compatibility
         public static bool IsActive { get; private set; } = false;
         private static SolarFlareWeather? SolarFlare => SolarFlareWeather.Instance;
 
+        [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
         public static void Init()
         {
             IsActive = true;
         }
 
+        [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
         internal static void GlitchBodyCameras()
         {
             BodyCamComponent[] bodyCamComps = BodyCamComponent.GetAllBodyCams();
@@ -30,13 +33,15 @@ namespace VoxxWeatherPlugin.Compatibility
             BodyCam.OnBodyCamInstantiated += GlitchBodyCam;
         }
 
+        [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
         private static void GlitchBodyCam(MonoBehaviour bodyCamBehaviour)
         {
             BodyCamComponent? bodyCamComp = bodyCamBehaviour as BodyCamComponent;
             GlitchBodyCam(bodyCamComp);
         }
 
-        internal static void GlitchBodyCam(BodyCamComponent? bodyCamComp)
+        [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
+        internal static void GlitchBodyCam(BodyCamComponent? bodyCamComp, bool subscribe = true)
         {
             if (bodyCamComp == null)
                 return;
@@ -44,21 +49,35 @@ namespace VoxxWeatherPlugin.Compatibility
             Camera? bodyCam = bodyCamComp.GetCamera();
             GlitchEffect? glitchEffect = SolarFlare?.GlitchCamera(bodyCam);
             RefreshGlitchEffect(bodyCamComp, glitchEffect);
-            bodyCamComp.OnTargetChanged += OnCameraStatusChanged;
+            if (subscribe)
+            {
+                bodyCamComp.OnTargetChanged += OnCameraStatusChanged;
+                bodyCamComp.OnCameraCreated += _ => OnCameraStatusChanged(bodyCamComp);
+            }
         }
 
+        [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
         private static void OnCameraStatusChanged(MonoBehaviour bodyCamBehaviour)
         {
             if (!SolarFlare?.IsActive ?? true)
                 return;
 
             BodyCamComponent? bodyCamComp = bodyCamBehaviour as BodyCamComponent;
-            if (SolarFlare?.glitchPasses.TryGetValue(bodyCamComp?.GetCamera(), out GlitchEffect? glitchEffect) ?? false)
+            Camera? bodyCam = bodyCamComp?.GetCamera();
+            if (bodyCam == null)
+                return;
+
+            if (SolarFlare?.glitchPasses.TryGetValue(bodyCam, out GlitchEffect? glitchEffect) ?? false)
             {
                 RefreshGlitchEffect(bodyCamComp, glitchEffect);
             }
+            else
+            {
+                GlitchBodyCam(bodyCamComp, false);
+            }
         }
 
+        [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
         private static void RefreshGlitchEffect(BodyCamComponent? bodyCamComp, GlitchEffect? glitchEffect)
         {
             if (bodyCamComp == null)

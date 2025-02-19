@@ -10,6 +10,7 @@ namespace VoxxWeatherPlugin.Compatibility
         public static bool IsActive { get; private set; } = false;
         public static bool IsWeatherRegistered { get; private set; } = false;
 
+        [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
         public static void Init()
         {
             IsActive = true;

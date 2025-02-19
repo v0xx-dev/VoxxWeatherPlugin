@@ -22,6 +22,8 @@ namespace VoxxWeatherPlugin.Compatibility
         private static readonly string toxicFumesColorTag = "voxxToxicFumesColor";
         private static readonly string toxicFogColorTag = "voxxToxicFogColor";
 
+
+        [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
         public static void Init()
         {
             IsActive = true;
