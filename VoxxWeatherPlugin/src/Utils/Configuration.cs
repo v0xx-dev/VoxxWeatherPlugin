@@ -217,7 +217,7 @@ namespace VoxxWeatherPlugin.Utils
                                                 "Drain item battery even when inside a facility during Solar Flare");
             NoiseStaticLevel = Config.Bind("SolarFlare",
                                             "NoiseStaticLevel",
-                                            0.001f,
+                                            0.0008f,
                                             new ConfigDescription("Level of static noise from the walkie talkie during Solar Flare. This is signal amplitude, the actual volume in dB will follow a logarithmic scale. For example the volume for value 0.1 relative to 0.2 is not reduced by 100%, it's actually by ~log10(0.2/0.1) %",
                                                                     new AcceptableValueRange<float>(0, 1f)));
             DoorMalfunctionEnabled = Config.Bind("SolarFlare",

@@ -143,7 +143,7 @@ namespace VoxxWeatherPlugin.Utils
                     FilteringOption = new(FilteringOption.Exclude),
                     ScrapAmountMultiplier = new(1.25f),
                     ScrapValueMultiplier = new(0.95f),
-                    LevelWeights = new(["Arcadia@200", "Embrion@200", "Summit@300", "Incalescence@125", 
+                    LevelWeights = new(["Arcadia@200", "Embrion@200", "Summit@300", "Incalescence@125", "Sierra@350", 
                         "$Canyon@100", "$Wasteland@100", "$Tundra@90"]),
                     WeatherToWeatherWeights = new(["Solar Flare@25", "Blackout@100", "Heatwave@100", "Eclipsed@10"]),
                     DefaultWeight = new(60),
