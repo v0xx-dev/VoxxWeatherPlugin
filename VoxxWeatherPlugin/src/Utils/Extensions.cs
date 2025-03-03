@@ -7,6 +7,7 @@ using UnityEngine.UI;
 using System.Collections;
 using System.Threading.Tasks;
 using Unity.AI.Navigation;
+using System.IO;
 
 namespace VoxxWeatherPlugin.Utils
 {
@@ -25,16 +26,10 @@ namespace VoxxWeatherPlugin.Utils
             return (float)random.NextDouble() * (max - min) + min;
         }
 
-        /// <summary>
-        /// Bakes a mask texture for the object to be used with Snowfall shaders.
-        /// </summary>
-        /// <param name="objectToBake"></param> The GameObject to bake the mask for.
-        /// <param name="snowfallData"></param> The SnowfallData object containing the bake material, resolution, etc.
-        /// <param name="submeshIndex"></param> The index of the submesh to bake the mask for.
-        /// <returns></returns> The baked mask texture.
         internal static IEnumerator BakeMasks(this Texture2DArray snowMasks,
                                             List<GameObject> objectsToBake,
                                             Material bakeMaterial,
+                                            bool bakeMipmaps = false,
                                             int bakeResolution = 1024,
                                             int submeshIndex = 0
                                             )
@@ -70,81 +65,12 @@ namespace VoxxWeatherPlugin.Utils
 
             for (int textureIndex = 0; textureIndex < objectsToBake.Count; textureIndex++)
             {
-                sw.Restart();
-                GameObject objectToBake = objectsToBake[textureIndex];
-                Mesh? mesh = objectToBake.GetComponent<MeshFilter>()?.sharedMesh;
-
-                if (mesh == null)
+                
+                if (!TryBakeMask(snowMasks, objectsToBake[textureIndex], bakeMaterial, textureIndex, tempRT, blurRT1, blurRT2, maskLayer, sw, bakeResolution, submeshIndex))
                 {
-                    Debug.LogError($"No mesh found on object to bake with name: {objectToBake.name}!");
+                    Debug.LogError("Failed to bake mask for object at index " + textureIndex);
                     yield break;
                 }
-
-                Debug.LogDebug("Baking mask for " + objectToBake.name + " with texture index " + textureIndex + " and submesh index " + submeshIndex);
-
-                RenderTexture currentRT = RenderTexture.active;
-                RenderTexture.active = tempRT;
-                GL.Clear(true, true, Color.clear);
-                
-                var matrix = objectToBake.transform.localToWorldMatrix;
-                // UV1 is used for baking here (see shader implementation)
-                if (bakeMaterial?.SetPass(0) ?? false)
-                    Graphics.DrawMeshNow(mesh, matrix, submeshIndex);
-
-                sw.Stop();
-                Debug.LogDebug("Baking took " + sw.ElapsedMilliseconds + " ms");
-                sw.Restart();
-                // Blur the normal map horizontally
-                Graphics.Blit(tempRT, blurRT1, bakeMaterial, 1);
-                // Blur the normal map vertically
-                Graphics.Blit(blurRT1, blurRT2, bakeMaterial, 2);
-
-                RenderTexture.active = blurRT2;
-                maskLayer.ReadPixels(new Rect(0, 0, bakeResolution, bakeResolution), 0, 0);
-
-                // Copy the texture to the specified index in the masks texture array
-                Graphics.CopyTexture(maskLayer, 0, 0, snowMasks, textureIndex, 0);
-                
-                sw.Stop();
-                Debug.LogDebug("Blurring took " + sw.ElapsedMilliseconds + " ms");
-
-    #if DEBUG
-
-                // *** DEBUG: Display blurRT2 on the screen ***
-                GameObject debugQuad = new GameObject("DebugQuad");
-                debugQuad.transform.position = 5 * (textureIndex + 1) *Vector3.up; // Position as needed
-                debugQuad.transform.localScale = new Vector3(5f, 5f, 5f);
-                MeshRenderer renderer = debugQuad.AddComponent<MeshRenderer>();
-                MeshFilter filter = debugQuad.AddComponent<MeshFilter>();
-
-                Mesh quadMesh = new Mesh();
-                quadMesh.vertices = new Vector3[] {
-                    new Vector3(-1, -1, 0),
-                    new Vector3(1, -1, 0),
-                    new Vector3(1, 1, 0),
-                    new Vector3(-1, 1, 0)
-                };
-                quadMesh.uv = new Vector2[] {
-                    new Vector2(0, 0),
-                    new Vector2(1, 0),
-                    new Vector2(1, 1),
-                    new Vector2(0, 1)
-                };
-                quadMesh.triangles = new int[] { 0, 2, 1, 0, 3, 2 };
-                quadMesh.RecalculateNormals();
-                quadMesh.RecalculateBounds();
-                filter.mesh = quadMesh;
-
-                Texture2D debugTexture = new Texture2D(bakeResolution, bakeResolution, TextureFormat.RGBAFloat, false);
-                Graphics.CopyTexture(snowMasks, textureIndex, 0, debugTexture, 0, 0);
-                debugTexture.Apply();
-
-                Material debugMaterial = new Material(Shader.Find("HDRP/Unlit"));
-                debugMaterial.mainTexture = debugTexture;
-                renderer.sharedMaterial = debugMaterial;
-    #endif        
-
-                RenderTexture.active = currentRT;
 
                 yield return null;
             }
@@ -155,6 +81,80 @@ namespace VoxxWeatherPlugin.Utils
             RenderTexture.ReleaseTemporary(blurRT2);
             GameObject.Destroy(maskLayer);
 
+            snowMasks.Apply(updateMipmaps: bakeMipmaps, makeNoLongerReadable: true); // Move to the GPU
+
+            Debug.LogDebug("Snow shader masks baked!");
+        }
+
+        internal static bool TryBakeMask(this Texture2DArray snowMasks,
+                                            GameObject objectToBake,
+                                            Material bakeMaterial,
+                                            int textureIndex,
+                                            RenderTexture tempRT,
+                                            RenderTexture blurRT1,
+                                            RenderTexture blurRT2,
+                                            Texture2D maskLayer,
+                                            System.Diagnostics.Stopwatch sw,
+                                            int bakeResolution = 1024,
+                                            int submeshIndex = 0
+                                            )
+        {
+            if (objectToBake == null)
+            {
+                Debug.LogDebug("Object to bake is null!");
+                return false;
+            }
+            if (snowMasks.depth < textureIndex)
+            {
+                Debug.LogError("The depth of the snowMasks texture array must be greater than or equal to the object index!");
+                return false;
+            }
+
+            Mesh? mesh = objectToBake.GetComponent<MeshFilter>()?.sharedMesh;
+
+            if (mesh == null)
+            {
+                Debug.LogError($"No mesh found on object to bake with name: {objectToBake.name}!");
+                return false;
+            }
+
+            sw.Restart();
+            Debug.LogDebug("Baking mask for " + objectToBake.name + " with texture index " + textureIndex + " and submesh index " + submeshIndex);
+
+            RenderTexture currentRT = RenderTexture.active;
+            RenderTexture.active = tempRT;
+            GL.Clear(true, true, Color.clear);
+            
+            var matrix = objectToBake.transform.localToWorldMatrix;
+            // UV1 is used for baking here (see shader implementation)
+            if (bakeMaterial?.SetPass(0) ?? false)
+                Graphics.DrawMeshNow(mesh, matrix, submeshIndex);
+
+            sw.Stop();
+            Debug.LogDebug("Baking took " + sw.ElapsedMilliseconds + " ms");
+            sw.Restart();
+            // Blur the normal map horizontally
+            Graphics.Blit(tempRT, blurRT1, bakeMaterial, 1);
+            // Blur the normal map vertically
+            Graphics.Blit(blurRT1, blurRT2, bakeMaterial, 2);
+
+            RenderTexture.active = blurRT2;
+            maskLayer.ReadPixels(new Rect(0, 0, bakeResolution, bakeResolution), 0, 0);
+
+            // Copy the texture to the specified index in the masks texture array
+            Graphics.CopyTexture(maskLayer, 0, 0, snowMasks, textureIndex, 0);
+            
+            sw.Stop();
+            Debug.LogDebug("Blurring took " + sw.ElapsedMilliseconds + " ms");
+
+#if DEBUG
+            string assemblyPath = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+            maskLayer.SaveToFile(Path.Combine(assemblyPath, $"mask_{objectToBake.name}.png"));
+#endif        
+
+            RenderTexture.active = currentRT;
+
+            return true;
         }
    
         public static GameObject Duplicate(this GameObject original, bool disableShadows = true, bool removeCollider = true, bool noChildren = true)
@@ -306,6 +306,52 @@ namespace VoxxWeatherPlugin.Utils
                 Mathf.Clamp(color.a, min, max)
             );
         }
-    
+
+        public static IEnumerable<Transform> GetParents(this Transform transform)
+        {
+            Transform? parent = transform.parent;
+            while (parent != null)
+            {
+                yield return parent;
+                parent = parent.parent;
+            }
+        }
+
+        public static void SaveToFile(this RenderTexture rt, string filePath)
+        {
+            // Check for null RenderTexture
+            if (rt == null)
+            {
+                Debug.LogError("RenderTexture is null. Cannot save to file.");
+                return;
+            }
+            RenderTexture previous = RenderTexture.active;
+            RenderTexture.active = rt;
+            Texture2D tex = new Texture2D(rt.width, rt.height, TextureFormat.RGBA32, false);
+            tex.ReadPixels(new Rect(0, 0, rt.width, rt.height), 0, 0);
+            tex.Apply();
+            RenderTexture.active = previous;
+
+            byte[] bytes = ImageConversion.EncodeToPNG(tex);
+            File.WriteAllBytes(filePath, bytes);
+            Object.DestroyImmediate(tex); 
+        }
+
+        public static void SaveToFile(this Texture2D tex, string filePath)
+        {
+            // Check for null RenderTexture
+            if (tex == null)
+            {
+                Debug.LogError("Texture is null. Cannot save to file.");
+                return;
+            }
+            // Copy the texture to a new Texture2D
+            Texture2D newTex = new Texture2D(tex.width, tex.height, tex.format, tex.mipmapCount > 1);
+            newTex.SetPixels(tex.GetPixels());
+            newTex.Apply();
+            byte[] bytes = ImageConversion.EncodeToPNG(tex);
+            File.WriteAllBytes(filePath, bytes);
+            Object.Destroy(newTex); 
+        }
     }
 }

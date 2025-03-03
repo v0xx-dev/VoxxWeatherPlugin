@@ -325,7 +325,7 @@ namespace VoxxWeatherPlugin.Patches
                 return;
             }
             bool enableTracker = !__instance.isInsideFactory &&
-                                    (SnowThicknessManager.Instance?.isEntityOnNaturalGround(__instance) ?? false);
+                                    (SnowThicknessManager.Instance?.IsEntityOnNaturalGround(__instance) ?? false);
             // We need this check to prevent updating tracker's position after player death, as players get moved out of bounds on their death, causing VFX to be culled
             if (!__instance.isPlayerDead) 
             {
@@ -345,7 +345,7 @@ namespace VoxxWeatherPlugin.Patches
             // __instance.isOutside is a simplified check for clients, may cause incorrect behaviour in some cases
             
             bool enableTracker = __instance.isOutside ||
-                                    (SnowThicknessManager.Instance?.isEntityOnNaturalGround(__instance) ?? false);
+                                    (SnowThicknessManager.Instance?.IsEntityOnNaturalGround(__instance) ?? false);
             if (__instance is SandWormAI worm)
             {
                 enableTracker &= worm.emerged || worm.inEmergingState;
@@ -496,7 +496,7 @@ namespace VoxxWeatherPlugin.Patches
 
                 // Override footstep sound if snow is thick enough
                 if (SnowfallVFXManager.snowFootstepIndex != -1 &&
-                    SnowThicknessManager.Instance.isEntityOnNaturalGround(playerScript) &&
+                    SnowThicknessManager.Instance.IsEntityOnNaturalGround(playerScript) &&
                      SnowThicknessManager.Instance.GetSnowThickness(playerScript) > 0.1f // offset is not applied here for nonlocal player so they would produce normal footstep sounds at edge cases
                     )
                 {

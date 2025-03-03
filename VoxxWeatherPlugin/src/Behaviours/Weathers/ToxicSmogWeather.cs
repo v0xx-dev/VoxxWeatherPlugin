@@ -136,8 +136,6 @@ namespace VoxxWeatherPlugin.Weathers
             toxicVolumetricFog.transform.position = LevelBounds.center;
             toxicVolumetricFog.parameters.distanceFadeStart = LevelBounds.size.x*0.9f;
             toxicVolumetricFog.parameters.distanceFadeEnd = LevelBounds.size.x;
-            
-            
 
             fumesAmount = SeededRandom.Next(MinFumesAmount, MaxFumesAmount);
             factoryFumesAmount = Mathf.CeilToInt(fumesAmount * factoryAmountMultiplier * dungeonSize);
@@ -159,7 +157,7 @@ namespace VoxxWeatherPlugin.Weathers
             ///Add ship bounds to the list of blockers
             blockersPositions.AddRange([StartOfRound.Instance.shipBounds.transform.position, Vector3.zero]);
             Debug.LogDebug($"Outdoor fumes: Anchor positions: {anchorPositions.Count}, Blockers positions: {blockersPositions.Count}");
-            SpawnFumes(anchorPositions, blockersPositions, fumesAmount, fumesContainerOutside!, SeededRandom);
+            SpawnFumes(anchorPositions, blockersPositions, fumesAmount, fumesContainerOutside, SeededRandom);
 
             if (fumesContainerInside == null)
             {
@@ -174,7 +172,7 @@ namespace VoxxWeatherPlugin.Weathers
             // Use entrances as blockers
             blockersPositions = entrances.Select(entrance => entrance.transform.position).ToList();
             Debug.LogDebug($"Indoor fumes: Anchor positions: {anchorPositions.Count}, Blockers positions: {blockersPositions.Count}");
-            SpawnFumes(anchorPositions, blockersPositions, factoryFumesAmount, fumesContainerInside!, SeededRandom);
+            SpawnFumes(anchorPositions, blockersPositions, factoryFumesAmount, fumesContainerInside, SeededRandom);
             
         }
 

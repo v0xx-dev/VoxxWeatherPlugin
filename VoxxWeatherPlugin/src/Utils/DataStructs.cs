@@ -117,8 +117,7 @@ namespace VoxxWeatherPlugin.Utils
 
     }
 
-    [Serializable]
-    public struct SnowTrackerData
+    public struct SnowTrackerDebugData
     {
         public bool isActive;
         public float particleSize;

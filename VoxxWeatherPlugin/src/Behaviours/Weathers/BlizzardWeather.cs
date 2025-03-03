@@ -345,6 +345,12 @@ namespace VoxxWeatherPlugin.Weathers
             blizzardWaveContainer?.SetActive(false);
         }
 
+        internal override void Update()
+        {
+            base.Update();
+            blizzardCollisionCamera?.LimitFrameRate(Configuration.collisionCamerasFPS.Value);
+        }
+
         internal override void Reset()
         {
             base.Reset();

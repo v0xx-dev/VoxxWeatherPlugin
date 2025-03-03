@@ -70,7 +70,7 @@ namespace VoxxWeatherPlugin.Behaviours
             }
         }
 
-        private void FixedUpdate()
+        private void Update()
         {
             //Adjust LOCAL x position of the camera so it follows the player on the x axis
             //Project the player's position on the x axis to the camera's local space
@@ -80,6 +80,7 @@ namespace VoxxWeatherPlugin.Behaviours
                 Vector3 playerPosition = GameNetworkManager.Instance.localPlayerController.transform.position;
                 Vector3 playerPositionLocal = transform.InverseTransformPoint(playerPosition);
                 collisionCamera.transform.localPosition = new Vector3(playerPositionLocal.x, collisionCamera.transform.localPosition.y, collisionCamera.transform.localPosition.z);
+                collisionCamera.LimitFrameRate(Configuration.collisionCamerasFPS.Value);
             }
         } 
 

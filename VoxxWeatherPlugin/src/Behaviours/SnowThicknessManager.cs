@@ -46,9 +46,9 @@ namespace VoxxWeatherPlugin.Behaviours
 
         [Header("Ground")]
         [SerializeField]
-        internal string[] groundTags = {"Grass", "Gravel", "Snow", "Rock"};
+        internal string[] groundTags = ["Grass", "Gravel", "Snow", "Rock"];
         [SerializeField]
-        internal bool isOnNaturalGround => isPlayerOnNaturalGround();
+        internal bool IsOnNaturalGround => IsPlayerOnNaturalGround();
         [SerializeField]
         internal bool isOnIce = false;
         [SerializeField]
@@ -59,12 +59,12 @@ namespace VoxxWeatherPlugin.Behaviours
 
 #if DEBUG
         [Header("Debug")]
-        public List<string> groundsInfo = new List<string>();
+        public List<string> groundsInfo = [];
         public string[]? entityInfo;
-        private Dictionary<MonoBehaviour, RaycastHit> entityHitData = new Dictionary<MonoBehaviour, RaycastHit>();
-        public List<string> entityHitInfo = new List<string>();
-        public SerializableDictionary<GameObject, SnowTrackerData> snowTrackerData = new SerializableDictionary<GameObject, SnowTrackerData>();
-        public SerializableDictionary<GameObject, float> entitySpeeds = new SerializableDictionary<GameObject, float>();
+        private Dictionary<MonoBehaviour, RaycastHit> entityHitData = [];
+        public List<string> entityHitInfo = [];
+        public SerializableDictionary<GameObject, SnowTrackerDebugData> snowTrackerData = new();
+        public SerializableDictionary<GameObject, float> entitySpeeds = new();
         public AudioReverbTrigger? reverbTrigger;
 
 #endif
@@ -165,20 +165,23 @@ namespace VoxxWeatherPlugin.Behaviours
                     entityHitInfo.Add(hitString + $", wPos {hit.point}, texPos2 {hit.textureCoord2}");
                 }
 
-                snowTrackerData = new SerializableDictionary<GameObject, SnowTrackerData>();
+                snowTrackerData = new SerializableDictionary<GameObject, SnowTrackerDebugData>();
 
-                foreach (KeyValuePair<MonoBehaviour, VisualEffect> kvp in SnowTrackersManager.snowTrackersDict)
+                foreach (KeyValuePair<MonoBehaviour, SnowTrackerData> kvp in SnowTrackersManager.snowTrackersDict)
                 {
                     if (kvp.Key == null)
                     {
                         continue;
                     }
-                    SnowTrackerData data = new SnowTrackerData();
-                    data.isActive = kvp.Value.GetBool("isTracking");
-                    data.particleSize = kvp.Value.GetFloat("particleSize");
-                    data.lifetimeMultiplier = kvp.Value.GetFloat("lifetimeMultiplier");
-                    data.footprintStrength = kvp.Value.GetFloat("footprintStrength");
-                    data.particleNumber = kvp.Value.aliveParticleCount;
+                    VisualEffect? snowTracker = kvp.Value.trackerVFX;
+                    SnowTrackerDebugData data = new()
+                    {
+                        isActive = snowTracker?.GetBool("isTracking") ?? false,
+                        particleSize = snowTracker?.GetFloat("particleSize") ?? 0f,
+                        lifetimeMultiplier = snowTracker?.GetFloat("lifetimeMultiplier") ?? 0f,
+                        footprintStrength = snowTracker?.GetFloat("footprintStrength") ?? 0f,
+                        particleNumber = snowTracker?.aliveParticleCount ?? 0,
+                    };
                     snowTrackerData[kvp.Key.gameObject] = data;
                 }
 
@@ -241,9 +244,9 @@ namespace VoxxWeatherPlugin.Behaviours
         }
 
 
-        internal bool isPlayerOnNaturalGround()
+        internal bool IsPlayerOnNaturalGround()
         {
-            return isEntityOnNaturalGround(GameNetworkManager.Instance.localPlayerController);
+            return IsEntityOnNaturalGround(GameNetworkManager.Instance.localPlayerController);
         }
 
         /// <summary>
@@ -254,10 +257,10 @@ namespace VoxxWeatherPlugin.Behaviours
         /// <remarks>
         /// Natural ground includes grass, gravel, snow, and rock tagged terrain objects.
         /// </remarks>
-        public bool isEntityOnNaturalGround(MonoBehaviour entity)
+        public bool IsEntityOnNaturalGround(MonoBehaviour entity)
         {
             EntitySnowData? data = GetEntityData(entity);
-            return data.HasValue ? data.Value.textureIndex != -1 : false;
+            return data.HasValue && data.Value.textureIndex != -1;
         }
 
         /// <summary>

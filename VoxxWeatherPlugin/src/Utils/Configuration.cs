@@ -108,7 +108,9 @@ namespace VoxxWeatherPlugin.Utils
         public static ConfigEntry<float>  tesselationMaxDistance; //
         public static ConfigEntry<bool>  softSnowEdges; //
         public static ConfigEntry<bool>  enableSnowTracks; //
+        public static ConfigEntry<float> tracksCameraFPS;//
         public static ConfigEntry<bool>  enableVFXCollisions; //
+        public static ConfigEntry<float> collisionCamerasFPS;//
         #endregion
 
         #region Snow & Blizzard Mesh and Terrain Processing
@@ -577,10 +579,24 @@ namespace VoxxWeatherPlugin.Utils
                                             "enableSnowTracks",
                                             true,
                                             "Enable snow tracks. This will render snow tracks on the ground where player or enemies walk and will affect walking speed. Disabling this will improve performance.");
+            
+            tracksCameraFPS = Config.Bind("Snow Graphics",
+                                            "tracksCameraFPS",
+                                            5f,
+                                            new ConfigDescription("Target FPS for camera that is used to update snow tracks. Lower values may increase performance, but tracks will appear with a delay.",
+                                                new AcceptableValueRange<float>(0.01f, 60f)));
+            
             enableVFXCollisions = Config.Bind("Snow Graphics",
                                             "Enable VFX Collisions",
                                             true,
                                             "Enable VFX collisions for blizzard wind. This will render an additional depth buffer to make snow particles collide with the terrain and objects. Disabling this will improve performance.");
+            
+            collisionCamerasFPS = Config.Bind("Snow Graphics",
+                                            "collisionCamerasFPS",
+                                            10f,
+                                            new ConfigDescription("Target FPS for cameras that are used to calculate vfx collisions. Lower values will increase performance, but if player moves very fast some particles might go through objects occasionally if this value is too low",
+                                                new AcceptableValueRange<float>(0.01f, 60f)));
+           
             #endregion
 
             #region Mesh & Terrain processing

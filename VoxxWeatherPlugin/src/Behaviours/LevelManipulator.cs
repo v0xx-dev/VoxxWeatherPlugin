@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -220,61 +221,23 @@ namespace VoxxWeatherPlugin.Behaviours
             sunLightData = null;
         }
 
-        internal void UpdateLevelDepthmap(bool bakeSnowMaps = true, bool waitForLanding = false)
+        internal void RefreshLevelCamera()
         {
-            Debug.LogDebug("Updating level depthmap");
-
-            Vector3 cameraPosition = new Vector3(levelBounds.center.x,
-                                                levelDepthmapCamera!.transform.position.y,
-                                                levelBounds.center.z);
+            Vector3 cameraPosition = new(levelBounds.center.x,
+                                        levelDepthmapCamera!.transform.position.y,
+                                        levelBounds.center.z);
             // Set orthographic size to match the level bounds (max is 300)
-            levelDepthmapCamera.orthographicSize = (int)Mathf.Clamp(Mathf.Max(levelBounds.size.x, levelBounds.size.z) / 2, 0, 300f);
+            levelDepthmapCamera.orthographicSize = (int)Mathf.Clamp(Mathf.Max(levelBounds.size.x, levelBounds.size.z) / 2, 25, 300f);
             levelDepthmapCamera.transform.position = cameraPosition;
             depthWorldToClipMatrix = levelDepthmapCamera.projectionMatrix * levelDepthmapCamera.worldToCameraMatrix;
-            Debug.LogDebug($"Camera position: {levelDepthmapCamera.transform.position}, Barycenter: {levelBounds.center}");
-            
-            StartCoroutine(RefreshDepthmapCoroutine(bakeSnowMaps, waitForLanding));
-
+            Debug.LogDebug($"Depth camera position: {levelDepthmapCamera.transform.position}, Size: {levelDepthmapCamera.orthographicSize}, Barycenter: {levelBounds.center}");
         }
 
-        internal IEnumerator RefreshDepthmapCoroutine(bool bakeSnowMaps = false, bool waitForLanding = false)
+        internal IEnumerator RefreshDepthmapOnLanding()
         {
-            if (levelDepthmapCamera == null)
-            {
-                Debug.LogError("Level depthmap camera is not set!");
-                yield break;
-            }
-
-            if (waitForLanding)
-            {
-                yield return new WaitUntil(() => StartOfRound.Instance.shipHasLanded);
-            }
-
-            levelDepthmapCamera.targetTexture = levelDepthmap;
-            levelDepthmapCamera.aspect = 1.0f;
-            levelDepthmapCamera.enabled = false;
-            
-            yield return new WaitForEndOfFrame();
-
-            levelDepthmapCamera.Render();
+            yield return new WaitUntil(() => StartOfRound.Instance.shipHasLanded);
 
             BakeDepth();
-            
-            // levelDepthmapCamera.enabled = false;
-            
-            Debug.LogDebug("Level depthmap rendered!");
-
-            if (bakeSnowMaps)
-            {
-                RefreshBakeMaterial();
-                yield return StartCoroutine(BakeSnowMasksCoroutine());
-
-                Debug.LogDebug("Shader masks baked!");
-            }
-
-            IsSnowReady = true;
-            OnSnowReady?.Invoke(IsSnowReady);
-            SnowThicknessManager.Instance!.inputNeedsUpdate = true;
         }
 
         private void RequestHDRPBuffersAccess(ref HDAdditionalCameraData.BufferAccess access)
@@ -282,21 +245,29 @@ namespace VoxxWeatherPlugin.Behaviours
             access.RequestAccess(HDAdditionalCameraData.BufferAccessType.Depth);
         }
 
-        private void BakeDepth()
+        private void BakeDepth(bool blur = true)
         {
+            if (levelDepthmapCamera == null)
+            {
+                Debug.LogError("Level depthmap camera is not set!");
+                return;
+            }
+
             if (depthBakeMaterial == null)
             {
                 Debug.LogError("Depth material is not assigned.");
                 return;
             }
 
-            if (levelDepthmapCamera?.targetTexture == null || levelDepthmap == null)
+            if (levelDepthmap == null || levelDepthmapUnblurred == null)
             {
-                Debug.LogError("Camera target texture is not assigned for VSM.");
+                Debug.LogError("Level depthmap is not assigned.");
                 return;
             }
 
             depthBakeMaterial.SetFloat("_BlurKernelSize", depthBlurRadius);
+            // Render the depth map
+            levelDepthmapCamera?.Render();
             // Get the depth buffer handle
             RTHandle? depthBufferHandle = depthmapCameraData?.GetGraphicsBuffer(HDAdditionalCameraData.BufferAccessType.Depth);
 
@@ -309,14 +280,30 @@ namespace VoxxWeatherPlugin.Behaviours
             // Store the unblurred depth map (use Blit instead of CopyTexture to avoid format mismatch)
             Graphics.Blit(depthBufferHandle.rt, levelDepthmapUnblurred);
             
-            RenderTexture tempBuffer = RenderTexture.GetTemporary(levelDepthmap.descriptor);
+            if (blur)
+            {
+                RenderTexture tempBuffer = RenderTexture.GetTemporary(levelDepthmap.descriptor);
+                // Blur the depth map (Horizontal + Vertical)
+                Graphics.Blit(depthBufferHandle.rt, tempBuffer, depthBakeMaterial, 0);
+#if DEBUG
+                string savePath = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+                tempBuffer.SaveToFile(Path.Combine(savePath, "LevelDepthmapBlurredTemp.png"));
+#endif
+                Graphics.Blit(tempBuffer, levelDepthmap, depthBakeMaterial, 1);
+                RenderTexture.ReleaseTemporary(tempBuffer);
+            }
 
-            // Blur the depth map (Horizontal + Vertical)
-            Graphics.Blit(levelDepthmapUnblurred, tempBuffer, depthBakeMaterial, 0);
-            Graphics.Blit(tempBuffer, levelDepthmap, depthBakeMaterial, 1);
+            Debug.LogDebug($"Level depthmap rendered! Blurred: {blur}");
 
-            RenderTexture.ReleaseTemporary(tempBuffer);
+#if DEBUG
+            string assemblyPath = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
 
+            levelDepthmapUnblurred.SaveToFile(Path.Combine(assemblyPath, "LevelDepthmapUnblurred.png"));
+            if (blur)
+                levelDepthmap.SaveToFile(Path.Combine(assemblyPath, "LevelDepthmapBlurred.png"));
+
+            Debug.LogDebug($"Depthmaps saved to: {assemblyPath}");
+#endif
         }
 
         public List<GameObject> GetSurfaceObjects()
@@ -520,6 +507,14 @@ namespace VoxxWeatherPlugin.Behaviours
             box.size = levelBounds.size;
             box.isTrigger = true;
             GameObject.Instantiate(debugCube);
+            // Create a primitive cube and parent to the collider
+            GameObject cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            cube.transform.position = levelBounds.center;
+            cube.transform.localScale = levelBounds.size;
+            cube.transform.parent = debugCube.transform;
+            // Replace the material with default HDRP Unlit
+            cube.GetComponent<MeshRenderer>().sharedMaterial = new Material(Shader.Find("HDRP/Unlit"));
+            
 #endif
 
             return levelBounds;
@@ -536,9 +531,11 @@ namespace VoxxWeatherPlugin.Behaviours
             PlayerControllerB localPlayer = GameNetworkManager.Instance.localPlayerController;
             // Update the camera position to follow the player or the spectated player
             Vector3 playerPosition = localPlayer.isPlayerDead ? localPlayer.spectatedPlayerScript?.transform.position ?? default : localPlayer.transform.position;
-
+            camera.LimitFrameRate(Configuration.tracksCameraFPS.Value);
             if (Vector3.Distance(playerPosition, cameraContainer.transform.position) >= camera.orthographicSize / 2f)
             {
+                // To render the frame when position changed
+                camera.LimitFrameRate(-1f);
                 cameraContainer.transform.position = playerPosition;
                 tracksWorldToClipMatrix = camera.projectionMatrix * camera.worldToCameraMatrix;
             }
@@ -582,19 +579,20 @@ namespace VoxxWeatherPlugin.Behaviours
                             copyDetail : false
                             );
 
-            levelDepthmap = new RenderTexture(DepthmapResolution, 
+            levelDepthmap = new RenderTexture(DepthmapResolution,
                                             DepthmapResolution,
                                             0, // Depth bits
                                             RenderTextureFormat.RGHalf
-                                            );
-            
-            levelDepthmap.dimension = TextureDimension.Tex2DArray; // Single layer array for compat with VFX Graph binding
-            levelDepthmap.wrapMode = TextureWrapMode.Clamp;
-            levelDepthmap.filterMode = FilterMode.Trilinear;
-            levelDepthmap.useMipMap = false;
-            levelDepthmap.enableRandomWrite = true;
-            levelDepthmap.useDynamicScale = true;
-            levelDepthmap.name = "Level Depthmap";
+                                            )
+            {
+                dimension = TextureDimension.Tex2DArray, // Single layer array for compat with VFX Graph binding
+                wrapMode = TextureWrapMode.Clamp,
+                filterMode = FilterMode.Trilinear,
+                useMipMap = false,
+                enableRandomWrite = true,
+                useDynamicScale = true,
+                name = "Level Depthmap"
+            };
             levelDepthmap.Create();
             // Set the camera target texture
             levelDepthmapCamera!.targetTexture = levelDepthmapUnblurred;
@@ -604,19 +602,20 @@ namespace VoxxWeatherPlugin.Behaviours
             if (depthmapCameraData != null)
                 depthmapCameraData.requestGraphicsBuffer += RequestHDRPBuffersAccess;
             // Create buffer for unblurred depthmap
-            levelDepthmapUnblurred = new RenderTexture(DepthmapResolution, 
+            levelDepthmapUnblurred = new RenderTexture(DepthmapResolution,
                                             DepthmapResolution,
                                             0, // Depth bits
                                             RenderTextureFormat.RFloat
-                                            );
-            
-            levelDepthmapUnblurred.dimension = TextureDimension.Tex2DArray; // Single layer array for compat with VFX Graph binding
-            levelDepthmapUnblurred.wrapMode = TextureWrapMode.Clamp;
-            levelDepthmapUnblurred.filterMode = FilterMode.Trilinear;
-            levelDepthmapUnblurred.useMipMap = false;
-            levelDepthmapUnblurred.enableRandomWrite = true;
-            levelDepthmapUnblurred.useDynamicScale = true;
-            levelDepthmapUnblurred.name = "Level Depthmap Unblurred";
+                                            )
+            {
+                dimension = TextureDimension.Tex2DArray, // Single layer array for compat with VFX Graph binding
+                wrapMode = TextureWrapMode.Clamp,
+                filterMode = FilterMode.Trilinear,
+                useMipMap = false,
+                enableRandomWrite = true,
+                useDynamicScale = true,
+                name = "Level Depthmap Unblurred"
+            };
             levelDepthmapUnblurred.Create();
 
             snowTracksMap = new RenderTexture(TracksMapResolution,
@@ -673,7 +672,9 @@ namespace VoxxWeatherPlugin.Behaviours
             if (rebakeMaps)
             {
                 rebakeMaps = false;
-                StartCoroutine(RefreshDepthmapCoroutine(bakeSnowMaps: true));
+                RefreshMaskTexture(groundObjectCandidates.Count);
+                BakeDepth(blur: true);
+                BakeSnowMasks();
             }
 #endif
         }
@@ -724,28 +725,35 @@ namespace VoxxWeatherPlugin.Behaviours
             snowScale = seededRandom.NextDouble(snowScaleRange.Item1, snowScaleRange.Item2); // Snow patchy-ness
             finalSnowHeight = seededRandom.NextDouble(snowHeightRange.Item1, snowHeightRange.Item2);
             fullSnowNormalizedTime = seededRandom.NextDouble(snowNormalizedTimeRange.Item1, snowNormalizedTimeRange.Item2);
+            // Here we also try to find mesh terrain objects
             List<GameObject> surfaceObjects = GetSurfaceObjects();
             ModifyRenderMasks(surfaceObjects, terraMeshConfig.renderingLayerMask);
             ModifyScrollingFog(fogStrengthRange.Item1, fogStrengthRange.Item2);
-            if (Configuration.asyncProcessing.Value)
+            RefreshLevelCamera();
+            StartCoroutine(FinishSnowSetupCoroutine(Configuration.asyncProcessing.Value));
+            StartCoroutine(RefreshDepthmapOnLanding());
+        }
+
+        internal IEnumerator FinishSnowSetupCoroutine(bool isAsync = false)
+        {
+            if (isAsync)
             {
-                StartCoroutine(FinishSnowSetupCoroutine());
+                // Masks are baked sequentially here
+                yield return SetupGroundForSnowAsync().AsCoroutine();
+                // Bake the VSM depth map again (as this point might execute after ship landing)
+                BakeDepth();
             }
             else
             {
                 SetupGroundForSnow();
-                FreezeWater();
-                UpdateLevelDepthmap();
-                StartCoroutine(RefreshDepthmapCoroutine(bakeSnowMaps: false, waitForLanding: true));
+                BakeSnowMasks();
             }
-        }
 
-        internal IEnumerator FinishSnowSetupCoroutine()
-        {
-            yield return SetupGroundForSnowAsync().AsCoroutine();
             FreezeWater();
-            UpdateLevelDepthmap();
-            StartCoroutine(RefreshDepthmapCoroutine(bakeSnowMaps: false, waitForLanding: true));
+
+            IsSnowReady = true;
+            OnSnowReady?.Invoke(IsSnowReady);
+            SnowThicknessManager.Instance!.inputNeedsUpdate = true;
         }
 
         internal IEnumerator SnowMeltCoroutine()
@@ -819,7 +827,7 @@ namespace VoxxWeatherPlugin.Behaviours
         internal async Task SetupGroundForSnowAsync()
         {
             // Stores mesh terrains and actual Unity terrains to keep track of of walkable ground objects and their texture index in the baked masks
-            Dictionary <GameObject, int> groundToIndex = new Dictionary<GameObject, int>();
+            Dictionary <GameObject, int> groundToIndex = [];
             // Some moons used TerraMesh package and already have good mesh terrains, skip them
             bool skipMoonProcessing = true;
             foreach (string moon in moonProcessingWhitelist)
@@ -842,88 +850,127 @@ namespace VoxxWeatherPlugin.Behaviours
                 Debug.LogDebug($"Moon {StartOfRound.Instance.currentLevel.name} needs UV replacement for mesh postprocessing! Overriding...");
             }
             
-            Dictionary<Task<GameObject?>, UnityEngine.Object> taskDict = [];
+            Terrain[] terrains = Terrain.activeTerrains.Where(terrain => terrain.terrainData != null && terrain.drawHeightmap && terrain.gameObject.activeInHierarchy).ToArray();
             
-            // Process possible mesh terrains to render snow on
-            foreach (GameObject meshTerrain in groundObjectCandidates)
+            // Create a combined list of all possible ground objects and sort them in asc. order by distance to the ship
+            List<UnityEngine.Object> groundObjectsAll = [.. groundObjectCandidates, .. terrains];
+            groundObjectsAll.Sort((a, b) => Vector3.SqrMagnitude(shipPosition - GetGroundCenter(a)).CompareTo(Vector3.SqrMagnitude(shipPosition - GetGroundCenter(b))));
+
+            (RenderTexture tempRT, RenderTexture blurRT1, RenderTexture blurRT2, Texture2D maskLayer) = RefreshMaskTexture(groundObjectsAll.Count, getBuffers: true);
+            System.Diagnostics.Stopwatch sw = new();
+
+            // Thread-safe dictionaries to store the ground objects and their texture index
+            ConcurrentDictionary<Task<GameObject?>, UnityEngine.Object> meshifyTaskDict = [];
+            ConcurrentBag<Task> tasks = [];
+            ConcurrentBag<GameObject> groundObjectCandidatesSafe = [.. groundObjectCandidates];
+            ConcurrentDictionary<GameObject, int> groundToIndexSafe = [];
+            var mainThreadScheduler = TaskScheduler.FromCurrentSynchronizationContext(); // To schedule the continuation task on the main thread
+            int textureIndex = 0;
+
+            // Process possible ground objects to render snow on
+            foreach (UnityEngine.Object groundObject in groundObjectsAll)
             {
-                // Process the mesh to remove thin triangles and smooth the mesh
-                Task<GameObject?> meshTask = meshTerrain.PostprocessMeshTerrainAsync(terraMeshConfig);
-                taskDict.TryAdd(meshTask, meshTerrain);
-            }
-            
-            Terrain[] terrains = Terrain.activeTerrains;
-            
-            foreach (Terrain terrain in terrains)
-            {
-                //Check if terrain data is null and if it's being rendered
-                if (terrain.terrainData == null || !terrain.drawHeightmap || !terrain.gameObject.activeInHierarchy)
+                Task<GameObject?> groundTask;
+
+                if (groundObject is GameObject meshTerrain)
+                {
+                    // Process the mesh to remove thin triangles and smooth the mesh
+                    groundTask = meshTerrain.PostprocessMeshTerrainAsync(terraMeshConfig);
+                }
+                else if (groundObject is Terrain terrain)
+                {
+                    // Turn the terrain into a mesh
+                    groundTask = terrain.MeshifyAsync(terraMeshConfig);
+                }
+                else
                 {
                     continue;
                 }
-                // Turn the terrain into a mesh
-                Task<GameObject?> terrainTask = terrain.MeshifyAsync(terraMeshConfig);
 
-                taskDict.TryAdd(terrainTask, terrain);
+                Task meshTerrainTask = groundTask.ContinueWith(ProcessMeshTerrainObject, mainThreadScheduler);
+                meshifyTaskDict.TryAdd(groundTask, groundObject);
+                tasks.Add(meshTerrainTask);
             }
 
-            await Task.WhenAll(taskDict.Keys);
+            await Task.WhenAll(tasks);
 
-            int textureIndex = 0;
+            // Align thread-safe dictionaries with the main thread
+            groundObjectCandidates = groundObjectCandidatesSafe.ToList();
+            groundToIndex = groundToIndexSafe.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+            // Store the ground objects mapping
+            SnowThicknessManager.Instance!.groundToIndex = groundToIndex;
 
-            foreach (var (task, obj) in taskDict)
+            // Cleanup after mask baking
+            RenderTexture.ReleaseTemporary(tempRT);
+            RenderTexture.ReleaseTemporary(blurRT1);
+            RenderTexture.ReleaseTemporary(blurRT2);
+            Destroy(maskLayer);
+
+            snowMasks?.Apply(updateMipmaps: BakeMipmaps, makeNoLongerReadable: true); // Move to the GPU
+            
+            Vector3 GetGroundCenter(UnityEngine.Object groundObject)
             {
-                if (task.IsFaulted)
+                switch (groundObject)
                 {
-                    Debug.LogError($"Task {task} failed with exception {task.Exception}");
+                    case GameObject meshTerrain:
+                        MeshRenderer? meshRenderer = meshTerrain.GetComponent<MeshRenderer>();
+                        Vector3 center = meshRenderer != null ? meshRenderer.bounds.center : meshTerrain.transform.position;
+                        return center;
+                    case Terrain terrain:
+                        TerrainCollider terrainCollider = terrain.GetComponent<TerrainCollider>();
+                        Vector3 terrainCenter = terrainCollider != null ? terrainCollider.bounds.center : terrain.transform.position;
+                        return terrainCenter;
+                    default:
+                        return Vector3.zero;
+                }
+            }
+
+            void ProcessMeshTerrainObject(Task<GameObject?> meshTerrainTask )
+            {
+                if (meshTerrainTask.IsFaulted)
+                {
+                    Debug.LogError($"Task {meshTerrainTask} failed with exception {meshTerrainTask.Exception}");
                 }
 
-                GameObject? meshTerrain = task.Result;
+                GameObject? meshTerrain = meshTerrainTask.Result;
+
+                if (!meshifyTaskDict.TryGetValue(meshTerrainTask, out UnityEngine.Object sourceObj))
+                {
+                    Debug.LogError($"Could not find source object for task {meshTerrainTask}");
+                    return;
+                }
 
                 if (meshTerrain == null)
                 {
-                    continue;
+                    Debug.LogError($"Mesh terrain object is null for task {meshTerrainTask}");
+                    return;
                 }
 
-                // do different things based on the type of the object use switch case
-                switch (obj)
+                // textureIndex++ in a thread-safe manner
+                int currentIndex = Interlocked.Increment(ref textureIndex) -1; 
+
+                switch (sourceObj)
                 {
                     case GameObject:
                         // Setup the index in the material property block for the snow masks
-                        SetupMeshForSnow(meshTerrain, textureIndex);
+                        SetupMeshForSnow(meshTerrain, currentIndex, tempRT, blurRT1, blurRT2, maskLayer, sw);
                         // Add the terrain to the dictionary
-                        groundToIndex.Add(meshTerrain, textureIndex);
+                        groundToIndexSafe.TryAdd(meshTerrain, currentIndex);
                         break;
                     case Terrain terrain:
                         // Modify render mask to support overlay snow rendering
                         MeshRenderer meshRenderer = meshTerrain.GetComponent<MeshRenderer>();
                         meshRenderer.renderingLayerMask |= terraMeshConfig.renderingLayerMask;
-                        // Setup the Lit terrain material
-                        Material terrainMaterial = meshRenderer.sharedMaterial;
-                        terrainMaterial.SetupMaterialFromTerrain(terrain);
                         // Setup the index in the material property block for the snow masks
-                        SetupMeshForSnow(meshTerrain, textureIndex);
-                        if (terraMeshConfig.useMeshCollider)
-                        {
-                            // Use mesh terrain for snow thickness calculation
-                            groundToIndex.Add(meshTerrain, textureIndex);
-                        }
-                        else
-                        {
-                            // Use terrain collider for snow thickness calculation
-                            groundToIndex.Add(terrain.gameObject, textureIndex);
-                        }
-                        
+                        SetupMeshForSnow(meshTerrain, currentIndex, tempRT, blurRT1, blurRT2, maskLayer, sw);
+                        // Use mesh terrain or terrain collider for snow thickness calculation
+                        GameObject colliderObject = terraMeshConfig.useMeshCollider ? meshTerrain : terrain.gameObject;
+                        groundToIndexSafe.TryAdd(colliderObject, currentIndex);
                         // Store the mesh terrain in the list for baking later
-                        groundObjectCandidates.Add(meshTerrain);
+                        groundObjectCandidatesSafe.Add(meshTerrain);
                         break;
                 }
-
-                textureIndex++;
             }
-
-            // Store the ground objects mapping
-            SnowThicknessManager.Instance!.groundToIndex = groundToIndex;
         }
 
         internal void SetupGroundForSnow()
@@ -952,6 +999,10 @@ namespace VoxxWeatherPlugin.Behaviours
                 Debug.LogDebug($"Moon {StartOfRound.Instance.currentLevel.name} needs UV replacement for mesh postprocessing! Overriding...");
             }
 
+            Terrain[] terrains = Terrain.activeTerrains.Where(terrain => terrain.terrainData != null && terrain.drawHeightmap && terrain.gameObject.activeInHierarchy).ToArray();
+            int groundObjectCount = groundObjectCandidates.Count + terrains.Length;
+            RefreshMaskTexture(groundObjectCount);
+
             int textureIndex = 0;
             // Process possible mesh terrains to render snow on
             foreach (GameObject meshTerrain in groundObjectCandidates)
@@ -965,37 +1016,19 @@ namespace VoxxWeatherPlugin.Behaviours
 
                 textureIndex++;
             }
-            
-            Terrain[] terrains = Terrain.activeTerrains;
-            
+
             foreach (Terrain terrain in terrains)
             {
-                //Check if terrain data is null annd if it's being rendered
-                if (terrain.terrainData == null || !terrain.drawHeightmap)
-                {
-                    continue;
-                }
                 // Turn the terrain into a mesh
                 GameObject meshTerrain = terrain.Meshify(terraMeshConfig);
                 // Modify render mask to support overlay snow rendering
                 MeshRenderer meshRenderer = meshTerrain.GetComponent<MeshRenderer>();
                 meshRenderer.renderingLayerMask |= terraMeshConfig.renderingLayerMask;
-                // Setup the Lit terrain material
-                Material terrainMaterial = meshRenderer.sharedMaterial;
-                terrainMaterial.SetupMaterialFromTerrain(terrain);
                 // Setup the index in the material property block for the snow masks
                 SetupMeshForSnow(meshTerrain, textureIndex);
-                if (terraMeshConfig.useMeshCollider)
-                {
-                    // Use mesh terrain for snow thickness calculation
-                    groundToIndex.Add(meshTerrain, textureIndex);
-                }
-                else
-                {
-                    // Use terrain collider for snow thickness calculation
-                    groundToIndex.Add(terrain.gameObject, textureIndex);
-                }
-                
+                // Use mesh terrain or terrain collider for snow thickness calculation
+                GameObject colliderObject = terraMeshConfig.useMeshCollider ? meshTerrain : terrain.gameObject;
+                groundToIndex.Add(colliderObject, textureIndex);
                 // Store the mesh terrain in the list for baking later
                 groundObjectCandidates.Add(meshTerrain);
 
@@ -1014,6 +1047,7 @@ namespace VoxxWeatherPlugin.Behaviours
             // Duplicate the snow vertex material to allow SRP batching
             Material snowVertexCopy = Instantiate(CurrentSnowVertexMaterial!);
             snowVertexCopy.SetFloat(SnowfallShaderIDs.TexIndex, texId);
+            snowVertexCopy.SetTexture(SnowfallShaderIDs.SnowMasks, snowMasks);
             snowOverlayCustomPass!.snowVertexMaterials.Add(snowVertexCopy);
             meshRenderer.sharedMaterial = snowVertexCopy;
             // Deselect snow OVERLAY rendering layers from vertex snow objects
@@ -1021,6 +1055,28 @@ namespace VoxxWeatherPlugin.Behaviours
             // Upload the mesh to the GPU to save RAM. TODO: Prevents NavMesh baking
             // snowGround.GetComponent<MeshFilter>().sharedMesh.UploadMeshData(true);
             snowGroundObjects.Add(snowGround);
+        }
+
+        internal void SetupMeshForSnow(GameObject meshTerrain,
+                                        int texId,
+                                        RenderTexture tempRT,
+                                        RenderTexture blurRT1,
+                                        RenderTexture blurRT2,
+                                        Texture2D maskLayer,
+                                        System.Diagnostics.Stopwatch sw)
+        {
+            SetupMeshForSnow(meshTerrain, texId);
+            BakeDepth(blur: false);
+            RefreshBakeMaterial();
+            snowMasks?.TryBakeMask(meshTerrain,
+                                    bakeMaterial!,
+                                    texId,
+                                    tempRT,
+                                    blurRT1,
+                                    blurRT2,
+                                    maskLayer,
+                                    sw,
+                                    BakeResolution);
         }
 
         internal void FreezeWater()
@@ -1061,12 +1117,10 @@ namespace VoxxWeatherPlugin.Behaviours
                                                                                     x.area == 1).ToList(); // Layer 1 is not walkable
 
             
-            GameObject? navMeshContainer = GameObject.FindGameObjectWithTag("OutsideLevelNavMesh");
+            Transform? navMeshContainer = GameObject.FindGameObjectWithTag("OutsideLevelNavMesh")?.transform;
             GameObject? randomWater = waterSurfaceObjects.FirstOrDefault();
             GameObject iceContainer = new GameObject("IceContainer");
-            iceContainer.transform.SetParent(navMeshContainer?.transform ?? randomWater?.transform?.parent);
-
-            
+            iceContainer.transform.SetParent(navMeshContainer ?? randomWater?.transform?.parent);
 
             foreach (GameObject waterSurface in waterSurfaceObjects)
             {
@@ -1143,7 +1197,20 @@ namespace VoxxWeatherPlugin.Behaviours
                 // Change footstep sounds
                 waterSurface.tag = "Rock";
                 waterSurface.layer = LayerMask.NameToLayer("Room");
-                waterSurface.transform.SetParent(iceContainer.transform);
+                // Check all parents up to the scene root and if none of them is navmesh container, parent to ice container
+                bool orphanedWater = true;
+                foreach (Transform parent in waterSurface.transform.GetParents())
+                {
+                    if (parent == navMeshContainer)
+                    {
+                        orphanedWater = false;
+                        break;
+                    }
+                }
+                if (orphanedWater)
+                {
+                    waterSurface.transform.SetParent(iceContainer.transform);
+                }
                 iceObjects.Add(waterSurface);
             }
             // Store the ice objects
@@ -1178,37 +1245,6 @@ namespace VoxxWeatherPlugin.Behaviours
             }
         }
 
-        internal IEnumerator BakeSnowMasksCoroutine()
-        {
-            
-            if (groundObjectCandidates.Count == 0)
-            {
-                Debug.LogDebug("No ground objects to bake snow masks for!");
-                yield break;
-            }
-
-            // Bake the snow masks into a Texture2DArray
-            snowMasks = new Texture2DArray(BakeResolution,
-                                           BakeResolution,
-                                           groundObjectCandidates.Count,
-                                           TextureFormat.RGBAFloat,
-                                           BakeMipmaps,
-                                           false,
-                                           true);
-            snowMasks.filterMode = FilterMode.Trilinear;
-            snowMasks.wrapMode = TextureWrapMode.Clamp;
-            
-            // Start the bake masks coroutine and wait for it to finish
-            yield return StartCoroutine(snowMasks.BakeMasks(groundObjectCandidates, bakeMaterial!, BakeResolution));
-
-            snowMasks.Apply(updateMipmaps: BakeMipmaps, makeNoLongerReadable: true); // Move to the GPU
-
-            foreach (Material snowVertexMaterial in snowOverlayCustomPass!.snowVertexMaterials)
-            {
-                snowVertexMaterial?.SetTexture(SnowfallShaderIDs.SnowMasks, snowMasks);
-            }
-        }
-
         internal void RefreshBakeMaterial()
         {
             // Set shader properties
@@ -1229,6 +1265,67 @@ namespace VoxxWeatherPlugin.Behaviours
             {
                 bakeMaterial?.SetMatrix(SnowfallShaderIDs.LightViewProjection, depthWorldToClipMatrix ?? Matrix4x4.identity);
             }
+        }
+
+        internal (RenderTexture, RenderTexture, RenderTexture, Texture2D) RefreshMaskTexture(int groundObjectsCount,
+                                                                                                    bool getBuffers = false)
+        {
+            if (groundObjectsCount == 0)
+            {
+                Debug.LogError("No ground objects to render snow on!");
+                return (null!, null!, null!, null!);
+            }
+            
+            RenderTexture tempRT = null!;
+            RenderTexture blurRT1 = null!;
+            RenderTexture blurRT2 = null!;
+            Texture2D maskLayer = null!;
+
+            if (getBuffers)
+            {
+                tempRT = RenderTexture.GetTemporary(BakeResolution, BakeResolution, 0, RenderTextureFormat.ARGBFloat);
+                tempRT.wrapMode = TextureWrapMode.Clamp;
+                tempRT.filterMode = FilterMode.Trilinear;
+
+                blurRT1 = RenderTexture.GetTemporary(BakeResolution, BakeResolution, 0, RenderTextureFormat.ARGBFloat);
+                blurRT1.wrapMode = TextureWrapMode.Clamp;
+                blurRT1.filterMode = FilterMode.Trilinear;
+
+                blurRT2 = RenderTexture.GetTemporary(BakeResolution, BakeResolution, 0, RenderTextureFormat.ARGBFloat);
+                blurRT2.wrapMode = TextureWrapMode.Clamp;
+                blurRT2.filterMode = FilterMode.Trilinear;
+                
+                maskLayer = new Texture2D(BakeResolution, BakeResolution, TextureFormat.RGBAFloat, false);
+                maskLayer.wrapMode = TextureWrapMode.Clamp;
+                maskLayer.filterMode = FilterMode.Trilinear;
+            }
+
+            // Bake the snow masks into a Texture2DArray
+            snowMasks = new Texture2DArray(BakeResolution,
+                                           BakeResolution,
+                                           groundObjectsCount,
+                                           TextureFormat.RGBAFloat,
+                                           BakeMipmaps,
+                                           false,
+                                           true)
+            {
+                filterMode = FilterMode.Trilinear,
+                wrapMode = TextureWrapMode.Clamp
+            };
+
+            return (tempRT, blurRT1, blurRT2, maskLayer);
+        }
+
+        private void BakeSnowMasks()
+        {
+            if (groundObjectCandidates.Count == 0 || snowMasks == null)
+            {
+                Debug.LogError("No ground objects to bake snow masks!");
+                return;
+            }
+            BakeDepth(false);
+            RefreshBakeMaterial();
+            StartCoroutine(snowMasks.BakeMasks(groundObjectCandidates, bakeMaterial!, BakeMipmaps, BakeResolution));
         }
 
         #endregion

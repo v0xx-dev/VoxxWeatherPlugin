@@ -138,7 +138,7 @@ namespace VoxxWeatherPlugin.Weathers
         {   
             PlayerControllerB localPlayer = GameNetworkManager.Instance.localPlayerController;
             
-            if ((SnowThicknessManager.Instance?.isOnNaturalGround ?? false) &&
+            if ((SnowThicknessManager.Instance?.IsOnNaturalGround ?? false) &&
                     localPlayer.physicsParent == null &&
                     !localPlayer.isPlayerDead &&
                     localPlayer.thisController.isGrounded)
